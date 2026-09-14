@@ -1,0 +1,251 @@
+.source-ocr-quiet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line, #dce2da);
+  color: var(--muted, #5d6962);
+  font-size: 11px;
+}
+
+.source-ocr-quiet-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.source-ocr-quiet-copy > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.source-ocr-quiet-copy strong {
+  color: var(--ink, #223b34);
+  font-size: 11px;
+}
+
+.source-ocr-quiet-copy small {
+  color: var(--muted, #5d6962);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.source-ocr-quiet button,
+.source-ocr-collapse {
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #cbd3c9;
+  border-radius: 5px;
+  background: #fff;
+  color: #496446;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.source-ocr-quiet button:hover:not(:disabled),
+.source-ocr-collapse:hover:not(:disabled) {
+  border-color: #9cae99;
+  background: #edf1e8;
+}
+
+.source-ocr {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-top: 18px;
+  padding: 17px;
+  border: 1px solid var(--line, #dce2da);
+  border-radius: 9px;
+  background: #fafbf8;
+  color: var(--ink, #223b34);
+}
+
+.source-ocr-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.source-ocr-kicker {
+  color: #626e62;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.source-ocr h3 {
+  margin-top: 4px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.source-ocr-intro,
+.source-ocr-warning,
+.source-ocr-notice,
+.source-ocr-error,
+.source-ocr-result {
+  color: var(--muted, #5d6962);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.source-ocr-intro,
+.source-ocr-warning,
+.source-ocr-notice,
+.source-ocr-error {
+  max-width: 68ch;
+}
+
+.source-ocr-warning {
+  margin: 0;
+  color: #735618;
+}
+
+.source-ocr-pending-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: #f0f3eb;
+  color: #496446;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.source-ocr-notice {
+  margin: 0;
+  color: #496446;
+}
+
+.source-ocr-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: #9d3232;
+  overflow-wrap: anywhere;
+}
+
+.source-ocr-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #496446;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.source-ocr-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.source-ocr-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ink, #223b34);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.source-ocr-controls select {
+  min-height: 40px;
+  padding: 8px 9px;
+  font-size: 12px;
+}
+
+.source-ocr-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 12px;
+  border-radius: 7px;
+  background: #f0f3eb;
+}
+
+.source-ocr-result strong {
+  color: var(--ink, #223b34);
+  font-size: 12px;
+}
+
+.source-ocr-result span {
+  font-size: 11px;
+}
+
+.source-ocr-low-signal {
+  margin: 4px 0 0;
+  color: #735618;
+  font-size: 11px;
+}
+
+.source-ocr-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.source-ocr-actions .button {
+  min-height: 42px;
+}
+
+.source-ocr-spin {
+  animation: source-ocr-spin 0.9s linear infinite;
+}
+
+@keyframes source-ocr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .source-ocr,
+  .source-ocr-quiet {
+    margin-top: 15px;
+  }
+
+  .source-ocr {
+    padding: 15px;
+  }
+
+  .source-ocr-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .source-ocr-controls select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .source-ocr-actions,
+  .source-ocr-actions .button,
+  .source-ocr-quiet button,
+  .source-ocr-collapse {
+    width: 100%;
+  }
+
+  .source-ocr-actions .button,
+  .source-ocr-quiet button,
+  .source-ocr-collapse {
+    min-height: 44px;
+  }
+
+  .source-ocr-quiet {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-ocr-spin {
+    animation: none;
+  }
+}

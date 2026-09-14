@@ -1,0 +1,373 @@
+.google-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--ink, #223b34);
+}
+
+.google-setup-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.google-setup-intro-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #e7eddc;
+  color: #496446;
+}
+
+.google-setup-intro h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.google-setup-intro p {
+  max-width: 58ch;
+  margin: 5px 0 0;
+  color: var(--muted, #5d6962);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.google-setup-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 8px 10px;
+  border: 1px solid var(--line, #dce2da);
+  border-radius: 7px;
+  background: #fafbf8;
+  color: var(--muted, #5d6962);
+  font-size: 12px;
+}
+
+.google-setup-status code {
+  overflow-wrap: anywhere;
+  color: var(--ink, #223b34);
+  font-size: 11px;
+}
+
+.google-setup-status-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #c5cec4;
+}
+
+.google-setup-status-dot.is-saved {
+  background: #73915f;
+}
+
+.google-setup-steps {
+  border-top: 1px solid var(--line, #dce2da);
+}
+
+.google-setup-step {
+  border-bottom: 1px solid var(--line, #dce2da);
+}
+
+.google-setup-step-toggle {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 28px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink, #223b34);
+  text-align: left;
+}
+
+.google-setup-step-toggle:hover .google-setup-step-title {
+  color: #496446;
+}
+
+.google-setup-step-number {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border: 1px solid #bec9bb;
+  border-radius: 50%;
+  color: #55704e;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.google-setup-step.is-open .google-setup-step-number {
+  border-color: #55704e;
+  background: #e7eddc;
+}
+
+.google-setup-step-title {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.google-setup-step-status {
+  color: var(--muted, #5d6962);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.google-setup-step-body {
+  max-width: 68ch;
+  padding: 0 28px 19px 38px;
+  color: var(--muted, #5d6962);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.google-setup-step-body > p {
+  margin: 0 0 12px;
+}
+
+.google-setup-step-body code {
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: #e8ece1;
+  color: var(--ink, #223b34);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.google-setup-actions,
+.google-setup-verify-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.google-setup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #3f624a;
+  font-size: 12px;
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.google-setup-link:hover {
+  color: var(--ink, #223b34);
+}
+
+.google-setup-manual-note,
+.google-setup-field-help {
+  color: var(--muted, #5d6962);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.google-setup-manual-note {
+  margin-top: 13px !important;
+}
+
+.google-setup-commands {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 15px 0 9px;
+}
+
+.google-setup-command-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink, #223b34);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.google-setup-command-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 9px;
+  padding: 7px 8px 7px 11px;
+  border: 1px solid #d4ddd0;
+  border-radius: 7px;
+  background: #f7f9f4;
+}
+
+.google-setup-command-row code {
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  background: transparent;
+  color: #334b39;
+  font-size: 11px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.google-setup-copy,
+.google-setup-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 1px solid #cbd3c9;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--forest, #243e38);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.google-setup-copy {
+  min-height: 29px;
+  padding: 5px 8px;
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+
+.google-setup-copy-feedback {
+  flex: 0 1 auto;
+  color: #416541;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.google-setup-copy-feedback.is-error {
+  color: #9d3232;
+}
+
+.google-setup-button {
+  padding: 8px 12px;
+}
+
+.google-setup-copy:hover,
+.google-setup-button:hover:not(:disabled) {
+  border-color: #9cae99;
+  background: #edf1e8;
+}
+
+.google-setup-button-primary {
+  border-color: var(--forest, #243e38);
+  background: var(--forest, #243e38);
+  color: #fff;
+}
+
+.google-setup-button-primary:hover:not(:disabled) {
+  border-color: #365348;
+  background: #365348;
+}
+
+.google-setup-project-form {
+  margin: 15px 0;
+}
+
+.google-setup-project-form > label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink, #223b34);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.google-setup-project-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.google-setup-project-row input {
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.google-setup-field-help {
+  margin: 6px 0 0;
+}
+
+.google-setup-success,
+.google-setup-error {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.google-setup-success {
+  color: #416541;
+}
+
+.google-setup-error {
+  color: #9d3232;
+}
+
+.google-setup-project-form > .google-setup-error {
+  margin-top: 9px;
+}
+
+.google-setup-verify-row {
+  align-items: flex-start;
+}
+
+@media (max-width: 560px) {
+  .google-setup-step-toggle {
+    grid-template-columns: 28px minmax(0, 1fr) 18px;
+    gap: 8px;
+  }
+
+  .google-setup-step-status {
+    display: none;
+  }
+
+  .google-setup-step-body {
+    padding-inline: 0 5px;
+  }
+
+  .google-setup-project-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .google-setup-project-row .google-setup-button {
+    width: 100%;
+  }
+
+  .google-setup-project-row input {
+    font-size: 16px;
+  }
+
+  .google-setup-command-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .google-setup-copy {
+    align-self: flex-start;
+  }
+
+  .google-setup-copy-feedback {
+    align-self: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .google-setup * {
+    scroll-behavior: auto;
+    transition: none;
+  }
+}

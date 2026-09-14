@@ -1,0 +1,12 @@
+{
+  "engine": "tesseract.js",
+  "engineVersion": "7.0.0",
+  "coreVersion": "7.0.0",
+  "modelRepository": "tesseract-ocr/tessdata_fast",
+  "modelRevision": "87416418657359cb625c412a48b6e1d6d41c29bd",
+  "compression": "gzip",
+  "files": {
+    "eng": { "file": "eng.traineddata.gz", "bytes": 1967615, "sha256": "CD60B5C18A96626D1A7B56F2B88700B9F60E45AA35EB89A1294B7C5486681B2F" },
+    "nld": { "file": "nld.traineddata.gz", "bytes": 2976741, "sha256": "0B8E104C8FA867C00E38BF8D84F3E6454792DB5335C042AF35EE858B3B1C14BB" }
+  }
+}

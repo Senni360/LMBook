@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+data/
+test-results/
+playwright-report/
+*.log
+release/
+server-dist/
+.work/
+__pycache__/
+*.pyc

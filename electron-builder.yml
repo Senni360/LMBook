@@ -1,0 +1,34 @@
+appId: org.sennibook.desktop
+productName: SenniBook
+directories:
+  output: release
+files:
+  - electron/**/*
+  - server-dist/**/*
+  - dist/**/*
+  - package.json
+  - LICENSE
+asar: true
+extraResources:
+  - from: resources/ocr
+    to: ocr
+  - from: python
+    to: python
+    filter: ["*.py", "requirements*.txt"]
+npmRebuild: false
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: electron/icon.png
+  signExecutable: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  deleteAppDataOnUninstall: false
+portable:
+  artifactName: SenniBook-${version}-portable.${ext}
