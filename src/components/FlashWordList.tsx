@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+import { MotionList, useSaveMotion } from "./Motion";
 import { useEffect, useRef, useState } from "react";
 import {
   type FlashCard,
@@ -194,7 +196,11 @@ export function FlashWordList({
           placeholder="Search either side or chapter"
         />
       </label>
-      <ol className="flash-word-boxes">
+      <MotionList
+        as="ol"
+        itemsKey={`${deck.cards.map((card) => card.id).join(":")}:${filter}`}
+        className="flash-word-boxes"
+      >
         {deck.cards.map((card, index) => (
           <WordBox
             key={card.id}
@@ -213,7 +219,7 @@ export function FlashWordList({
             }
           />
         ))}
-      </ol>
+      </MotionList>
       {!!filter &&
         !deck.cards.some((c) =>
           `${c.front} ${c.back} ${c.group}`
@@ -228,9 +234,21 @@ export function FlashWordList({
 }
 
 function SaveState({ edit }: { edit: ReturnType<typeof useAutosave> }) {
+  const state = useRef<HTMLSpanElement>(null);
+  useSaveMotion(state, `${edit.status}:${edit.error}`);
   return (
     <div className="flash-word-save">
-      <span role="status">{edit.status}</span>
+      <span
+        role="status"
+        className="save-stamp"
+        ref={state}
+        data-saved={edit.status === "Saved" && !edit.error}
+      >
+        {edit.status === "Saved" && !edit.error && (
+          <Check size={13} aria-hidden="true" />
+        )}
+        <span key={edit.status}>{edit.status}</span>
+      </span>
       {edit.error && (
         <div role="alert">
           <p>{edit.error}</p>

@@ -1,3 +1,4 @@
+import { MotionList } from "./Motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, History, LoaderCircle } from "lucide-react";
 import "./activity-history.css";
@@ -149,7 +150,11 @@ export function ActivityHistory({
           <p className="activity-history-message">No generation jobs yet.</p>
         )}
         {!error && rows.length > 0 && (
-          <ol className="activity-history-list">
+          <MotionList
+            as="ol"
+            itemsKey={rows.map((row) => row.id).join(":")}
+            className="activity-history-list"
+          >
             {rows.map((activity) => (
               <li key={activity.id} className="activity-history-row">
                 <span
@@ -174,7 +179,7 @@ export function ActivityHistory({
                 </time>
               </li>
             ))}
-          </ol>
+          </MotionList>
         )}
       </div>
     </details>

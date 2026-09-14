@@ -1,3 +1,4 @@
+import { MotionNavigation } from "./Motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, Download, Plus } from "lucide-react";
 import { uid, type Notebook } from "../../shared/model";
@@ -505,7 +506,13 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                   source review.
                 </p>
               )}
-              <div className="flash-actions" aria-label="Deck view">
+              <MotionNavigation
+                as="div"
+                activeKey={view}
+                selector="button[aria-pressed=true]"
+                className="flash-actions"
+                aria-label="Deck view"
+              >
                 <button
                   className="button"
                   aria-pressed={view === "words"}
@@ -529,7 +536,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 >
                   Review sources
                 </button>
-              </div>
+              </MotionNavigation>
               {!!pending.size && (
                 <p role="status" className="flash-help">
                   Finish saving your edits before practice and export.

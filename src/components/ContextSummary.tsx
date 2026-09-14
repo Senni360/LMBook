@@ -70,7 +70,7 @@ export function ContextSummary({
   sources,
   onOpenSource,
 }: ContextSummaryProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [openedOnce, setOpenedOnce] = useState(false);
   const [visibleCount, setVisibleCount] = useState(50);
   const sourceById = new Map(sources.map((source) => [source.id, source]));
   const selectedLabel =
@@ -86,7 +86,9 @@ export function ContextSummary({
   return (
     <details
       className="context-summary"
-      onToggle={(event) => setExpanded(event.currentTarget.open)}
+      onToggle={(event) => {
+        if (event.currentTarget.open) setOpenedOnce(true);
+      }}
     >
       <summary>
         <span className="context-summary-heading">
@@ -103,7 +105,7 @@ export function ContextSummary({
         />
       </summary>
 
-      {expanded && (
+      {openedOnce && (
         <div className="context-summary-body">
           <p className="context-summary-note">
             {summary.scope === "selected"

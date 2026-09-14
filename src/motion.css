@@ -1,0 +1,557 @@
+/* Page, margin, bookmark: feedback → related surface → settled content. */
+:root {
+  --motion-quick: 120ms;
+  --motion-change: 220ms;
+  --motion-travel: 300ms;
+  --motion-sheet: 360ms;
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.main {
+  overflow-x: clip;
+}
+
+/* Controls respond to intent. Content containers never lift on hover. */
+:where(
+  .button,
+  .icon-button,
+  .rail-settings,
+  .notebook-item,
+  .episode-player-button,
+  .evidence-link,
+  .source-open,
+  summary,
+  .tabs button,
+  .flash-actions button
+) {
+  transition:
+    background-color var(--motion-quick) ease-out,
+    border-color var(--motion-quick) ease-out,
+    color var(--motion-quick) ease-out,
+    opacity var(--motion-quick) ease-out,
+    translate var(--motion-quick) var(--motion-ease);
+}
+:where(
+    .button,
+    .icon-button,
+    .episode-player-button,
+    .rail-settings
+  ):active:not(:disabled):not([aria-disabled="true"]) {
+  translate: 0 1px;
+}
+:where(.button, .icon-button, .episode-player-button, .rail-settings) > svg {
+  transition:
+    transform var(--motion-change) var(--motion-ease),
+    opacity var(--motion-quick) ease-out;
+}
+@media (hover: hover) and (pointer: fine) {
+  .next-step .button:hover > svg,
+  .evidence-link:hover > svg,
+  .episode-player-button:last-of-type:hover > svg {
+    transform: translateX(2px);
+  }
+  .episode-player-button:first-of-type:hover > svg,
+  .rail-settings[title="Go back"]:hover > svg {
+    transform: translateX(-2px);
+  }
+  .rail-new:hover > svg,
+  .mobile-create:hover > svg,
+  .rail-label .icon-button:hover > svg {
+    transform: rotate(90deg);
+  }
+  .source-open:hover strong {
+    text-decoration-thickness: 2px;
+  }
+  .source-row:hover .file-symbol {
+    background-color: #e5e9e0;
+  }
+}
+:where(
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select
+) {
+  transition:
+    border-color var(--motion-quick) ease-out,
+    background-color var(--motion-quick) ease-out;
+}
+input::placeholder,
+textarea::placeholder {
+  transition: opacity var(--motion-quick) ease-out;
+}
+input:focus::placeholder,
+textarea:focus::placeholder {
+  opacity: 0.65;
+}
+/* Focus rings remain immediate: motion must not delay keyboard orientation. */
+:where(input, textarea, select):focus-visible {
+  border-color: #b48627;
+}
+.file-symbol,
+.source-row,
+.flash-source-picker label,
+.flash-mode-choice,
+.flash-word-box,
+.chapter-row {
+  transition:
+    background-color var(--motion-change) ease-out,
+    border-color var(--motion-change) ease-out;
+}
+.flash-word-box:focus-within {
+  border-color: #b48627;
+}
+.flash-word-box {
+  /* Keep edits mounted while letting the browser skip offscreen row layout. */
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 225px;
+}
+.source-row[data-source-open="true"] .file-symbol {
+  background-color: #dfe7cf;
+}
+.source-row[data-source-open="true"] .source-open strong {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* One real marker connects the old destination to the new one. */
+.motion-navigation {
+  position: relative;
+}
+.motion-track {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1px;
+  height: 2px;
+  background: var(--forest);
+  transform-origin: top left;
+  pointer-events: none;
+  z-index: 1;
+}
+.motion-track-vertical {
+  width: 2px;
+  height: 1px;
+  background: var(--accent);
+}
+.motion-track[hidden] {
+  display: none;
+}
+.tabs.motion-navigation button.active {
+  border-color: transparent;
+}
+.notebook-item.selected > svg {
+  animation: notebook-open var(--motion-travel) var(--motion-ease);
+}
+@keyframes notebook-open {
+  from {
+    transform: perspective(80px) rotateY(-24deg);
+  }
+  to {
+    transform: perspective(80px) rotateY(0deg);
+  }
+}
+
+/* Native disclosures keep their keyboard and accessibility behavior. */
+details > summary {
+  list-style-position: inside;
+}
+details > summary::marker {
+  color: var(--muted);
+}
+details[open] > summary {
+  color: var(--ink);
+}
+@supports (interpolate-size: allow-keywords) and
+  selector(details::details-content) {
+  details {
+    interpolate-size: allow-keywords;
+  }
+  details::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+    transition:
+      block-size var(--motion-change) var(--motion-ease),
+      opacity 150ms ease-out,
+      content-visibility var(--motion-change) allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+.context-summary-chevron {
+  transition: transform var(--motion-change) var(--motion-ease);
+}
+
+/* The focused sheet opens before its contents settle. Native dialog owns focus. */
+.create-dialog {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition:
+    opacity 140ms ease-out,
+    transform 180ms var(--motion-ease),
+    display 180ms allow-discrete,
+    overlay 180ms allow-discrete;
+}
+.create-dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--motion-change);
+}
+.create-dialog::backdrop {
+  background: #13282100;
+  transition:
+    background-color 180ms ease-out,
+    display 180ms allow-discrete,
+    overlay 180ms allow-discrete;
+}
+.create-dialog[open]::backdrop {
+  background: #13282170;
+}
+@starting-style {
+  .create-dialog[open] {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  .create-dialog[open]::backdrop {
+    background: #13282100;
+  }
+}
+.create-dialog[open] .section-heading {
+  animation: dialog-title var(--motion-travel) var(--motion-ease);
+}
+@keyframes dialog-title {
+  from {
+    transform: translateY(5px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* A citation is located, then marked; the source words themselves never vanish. */
+.source-highlight,
+.source-snapshot-highlight {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.message-latest .evidence-list blockquote {
+  animation: evidence-open var(--motion-travel) var(--motion-ease);
+}
+.message-latest .evidence-list blockquote p {
+  animation: evidence-text var(--motion-travel) var(--motion-ease);
+}
+@keyframes evidence-open {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes evidence-text {
+  from {
+    transform: translateY(-4px);
+    opacity: 0.65;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Acknowledgments use their real result, never a simulated progress value. */
+.toast,
+.app-error,
+.download-status {
+  animation: notice-arrive var(--motion-change) var(--motion-ease);
+}
+.toast > svg {
+  animation: result-stamp var(--motion-travel) var(--motion-ease);
+}
+.toast > svg polyline {
+  stroke-dasharray: 32;
+  animation: result-ink var(--motion-travel) var(--motion-ease);
+}
+.app-error > svg {
+  animation: attention 240ms ease-out;
+}
+@keyframes notice-arrive {
+  from {
+    transform: translateY(8px);
+    opacity: 0.55;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes result-stamp {
+  from {
+    transform: scale(0.82);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes result-ink {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes attention {
+  25% {
+    transform: translateX(-2px);
+  }
+  65% {
+    transform: translateX(2px);
+  }
+}
+.save-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.save-stamp[data-saved="true"] {
+  color: var(--forest);
+}
+.save-stamp svg path {
+  stroke-dasharray: 32;
+}
+.download-status[data-state="completed"] .download-status-heading > svg {
+  animation: result-stamp var(--motion-travel) var(--motion-ease);
+}
+.download-status[data-state="completed"]
+  .download-status-heading
+  > svg
+  polyline {
+  stroke-dasharray: 32;
+  animation: result-ink var(--motion-travel) var(--motion-ease);
+}
+.download-status p[role="status"],
+.cartesia-feedback,
+.inline-error,
+.trash-error {
+  animation: state-label var(--motion-change) ease-out;
+}
+.badge,
+.activity-history-state,
+.activity-history-state-label {
+  transition:
+    background-color var(--motion-change) ease-out,
+    color var(--motion-change) ease-out;
+}
+.bookmark > svg {
+  transition:
+    transform var(--motion-change) var(--motion-ease),
+    fill var(--motion-quick) ease-out;
+}
+.bookmark.marked:focus > svg {
+  animation: bookmark-set var(--motion-change) var(--motion-ease);
+}
+@keyframes bookmark-set {
+  from {
+    transform: translateY(-3px);
+  }
+  to {
+    transform: none;
+  }
+}
+.objective-detail {
+  animation: evidence-open var(--motion-change) var(--motion-ease);
+}
+.objective-row button[aria-expanded] > .lucide-chevron-right {
+  transition: transform var(--motion-change) var(--motion-ease);
+}
+.objective-row button[aria-expanded="true"] > .lucide-chevron-right {
+  transform: rotate(90deg);
+}
+@keyframes state-label {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.flash-word-save [role="alert"],
+.episode-player-error {
+  animation: state-label var(--motion-change) ease-out;
+}
+progress::-webkit-progress-value {
+  transition: width var(--motion-change) var(--motion-ease);
+}
+progress::-moz-progress-bar {
+  transition: width var(--motion-change) var(--motion-ease);
+}
+
+/* New responses open as a paragraph; prior conversation stays still. */
+.message-latest {
+  animation: message-arrive var(--motion-change) var(--motion-ease);
+}
+.message-latest.assistant .message-label {
+  animation: result-stamp var(--motion-travel) var(--motion-ease);
+  transform-origin: left center;
+}
+@keyframes message-arrive {
+  from {
+    transform: translateY(-6px);
+    opacity: 0.65;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Practice has a single visible face; JS replaces it before starting motion. */
+.flash-question {
+  animation: none;
+}
+.flash-question[data-face="answer"] {
+  background-color: #edf1e7;
+}
+.flash-study-dark .flash-question[data-face="answer"] {
+  background-color: #354e44;
+}
+.flash-round-counts {
+  display: inline-block;
+  animation: state-label var(--motion-change) ease-out;
+}
+.flash-round-complete {
+  animation: round-settle var(--motion-sheet) var(--motion-ease);
+}
+@keyframes round-settle {
+  from {
+    transform: scale(0.98);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.flash-study {
+  transition:
+    background-color var(--motion-change) ease-out,
+    color var(--motion-change) ease-out;
+}
+.flash-study progress {
+  accent-color: var(--forest);
+}
+.flash-study-dark progress {
+  accent-color: var(--accent);
+}
+.language-direction {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.language-direction > span {
+  display: inline-block;
+  overflow-wrap: anywhere;
+}
+.language-direction > svg {
+  transition: transform var(--motion-travel) var(--motion-ease);
+}
+
+/* Transport activity is shown only for real playback, and sleeps offscreen. */
+.playback-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.playback-mark i {
+  display: block;
+  width: 3px;
+  height: 12px;
+  background: currentColor;
+  border-radius: 1px;
+  transform: scaleY(0.25);
+}
+.playback-mark[data-playing="true"] i {
+  animation: playback-running 900ms ease-in-out infinite alternate;
+}
+.playback-mark[data-playing="true"] i:nth-child(2) {
+  animation-delay: -350ms;
+}
+.playback-mark[data-playing="true"] i:nth-child(3) {
+  animation-delay: -650ms;
+}
+@keyframes playback-running {
+  from {
+    transform: scaleY(0.3);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+.episode-player-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.episode-player-heading strong {
+  animation: chapter-arrive var(--motion-change) var(--motion-ease);
+}
+@keyframes chapter-arrive {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.motion-preferences {
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+}
+.motion-preferences h3 {
+  margin-bottom: 12px;
+}
+.motion-preferences label {
+  display: grid;
+  gap: 7px;
+  max-width: 360px;
+}
+.motion-preferences p {
+  margin-top: 10px;
+  max-width: 65ch;
+  font-size: 13px;
+}
+
+/* Local and live OS preferences cancel movement, including pseudo-elements. */
+:root[data-document-hidden="true"] *,
+:root[data-document-hidden="true"] *::before,
+:root[data-document-hidden="true"] *::after {
+  animation-play-state: paused !important;
+}
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after,
+:root[data-motion="reduced"] *::backdrop,
+:root[data-motion="reduced"] details::details-content {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  *::backdrop,
+  details::details-content {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

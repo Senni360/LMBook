@@ -1,4 +1,11 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource/manrope/400.css";
 import "@fontsource/manrope/500.css";
@@ -78,6 +85,16 @@ import { useDraftText } from "./hooks/useDraftText";
 import { useObjectDraft } from "./hooks/useObjectDraft";
 import { version as appVersion } from "../package.json";
 import { Flashcards } from "./components/Flashcards";
+import {
+  canAnimate,
+  MotionList,
+  MotionNavigation,
+  MotionPreferences,
+  MotionSurface,
+  useCitationMotion,
+  useMotionEnvironment,
+} from "./components/Motion";
+import "./motion.css";
 
 /* THESIS: a course becomes a conversation through visible evidence and goals.
 OWN-WORLD: forest navigation, mineral paper, ochre listening controls, serif titles and quiet ledgers.
@@ -224,16 +241,35 @@ function Field({
   );
 }
 function App() {
+  useMotionEnvironment();
   const [notebooks, setNotebooks] = useState<Summary[]>([]);
   const [n, setN] = useState<Notebook | null>(null);
   const [tab, setTab] = useState<Tab>("sources");
+  const motionTab = useRef(tab);
+  const motionDirection = useMemo(() => {
+    const order: Tab[] = [
+      "sources",
+      "goals",
+      "studio",
+      "chat",
+      "flashcards",
+      "settings",
+    ];
+    const direction =
+      order.indexOf(tab) < order.indexOf(motionTab.current) ? -1 : 1;
+    return direction;
+  }, [tab]);
+  useLayoutEffect(() => {
+    motionTab.current = tab;
+  }, [tab]);
   const previousTab = useRef<Exclude<Tab, "settings">>("sources");
   const openSettings = () => {
     if (tab !== "settings") previousTab.current = tab;
     setTab("settings");
   };
   const leaveSettings = () => setTab(previousTab.current);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Reset the section before its reader/chat effects locate specific content.
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [tab]);
   const [sourceRequest, setSourceRequest] = useState<SourceRequest | null>(
@@ -474,7 +510,14 @@ function App() {
             <Plus size={18} />
           </button>
         </div>
-        <nav className="notebook-list" aria-label="Notebooks">
+        <MotionNavigation
+          activeKey={n?.id || ""}
+          itemsKey={notebooks.map((book) => book.id).join(":")}
+          selector=".notebook-item.selected"
+          vertical
+          className="notebook-list"
+          aria-label="Notebooks"
+        >
           {notebooks.map((book) => (
             <button
               key={book.id}
@@ -499,7 +542,7 @@ function App() {
           {!notebooks.length && (
             <p className="rail-empty">Your courses will live here.</p>
           )}
-        </nav>
+        </MotionNavigation>
         <Button
           icon={Plus}
           variant="rail-new"
@@ -752,7 +795,12 @@ function App() {
                 <Download size={16} /> Export notes
               </DownloadLink>
             </section>
-            <nav className="tabs" aria-label="Notebook sections">
+            <MotionNavigation
+              activeKey={`${n.id}:${tab}`}
+              selector="button.active"
+              className="tabs"
+              aria-label="Notebook sections"
+            >
               {(
                 [
                   {
@@ -778,7 +826,12 @@ function App() {
                     label: "Ask your sources",
                     icon: MessageSquare,
                   },
-                  { id: "flashcards", label: "Flashcards", icon: BookOpen, count: n.flashcards?.length || 0 },
+                  {
+                    id: "flashcards",
+                    label: "Flashcards",
+                    icon: BookOpen,
+                    count: n.flashcards?.length || 0,
+                  },
                 ] as const
               ).map((t) => (
                 <button
@@ -792,8 +845,12 @@ function App() {
                   {"count" in t && <span className="tab-count">{t.count}</span>}
                 </button>
               ))}
-            </nav>
-            <div className="page-content">
+            </MotionNavigation>
+            <MotionSurface
+              motionKey={tab}
+              direction={motionDirection}
+              className="page-content"
+            >
               {job && (
                 <div className="job-banner" role="status">
                   <LoaderCircle className="spin" size={18} />
@@ -868,8 +925,16 @@ function App() {
                   openSource={openSource}
                 />
               )}
-              {tab === "flashcards" && <Flashcards key={n.id} n={n} disabled={disabled} run={run} change={change} />}
-            </div>
+              {tab === "flashcards" && (
+                <Flashcards
+                  key={n.id}
+                  n={n}
+                  disabled={disabled}
+                  run={run}
+                  change={change}
+                />
+              )}
+            </MotionSurface>
           </>
         )}
         <footer className="page-footer">
@@ -968,6 +1033,7 @@ function Sources({
     n.sources.find((source) => source.id === reading?.sourceId) || null;
   const reader = useRef<HTMLDivElement>(null);
   const highlight = useRef<HTMLElement>(null);
+  useCitationMotion(highlight, `${reading?.sourceId}:${reading?.nonce}`);
   const location =
     selected && reading?.range
       ? locateSourceRange(
@@ -998,9 +1064,7 @@ function Sources({
     const target = highlight.current || reader.current;
     target?.scrollIntoView({
       block: "center",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
+      behavior: canAnimate() ? "smooth" : "instant",
     });
     target?.focus({ preventScroll: true });
   }, [reading]);
@@ -1219,9 +1283,16 @@ function Sources({
           Try a different term or clear the search to see all your sources.
         </Empty>
       ) : (
-        <div className="source-list">
+        <MotionList
+          itemsKey={visibleSources.map((source) => source.id).join(":")}
+          className="source-list"
+        >
           {visibleSources.map((s, i) => (
-            <div className="source-row" key={s.id}>
+            <div
+              className="source-row"
+              key={s.id}
+              data-source-open={selected?.id === s.id}
+            >
               <div className="file-symbol">
                 {s.attachment?.mediaType.startsWith("audio/") ? (
                   <Headphones size={20} />
@@ -1286,7 +1357,7 @@ function Sources({
               </button>
             </div>
           ))}
-        </div>
+        </MotionList>
       )}
       {n.sources.length > 0 && (
         <div className="next-step">
@@ -1306,9 +1377,11 @@ function Sources({
         </div>
       )}
       {selected && (
-        <div
+        <MotionSurface
+          kind="reader"
+          motionKey={`${selected.id}:${reading?.nonce}`}
           className="reader"
-          ref={reader}
+          elementRef={reader}
           tabIndex={-1}
           aria-label="Source reader"
         >
@@ -1392,7 +1465,7 @@ function Sources({
               )}
             </div>
           )}
-        </div>
+        </MotionSurface>
       )}
     </>
   );
@@ -1626,7 +1699,10 @@ function Goals({
             : "Coverage has not been assessed yet. Your goals are still in the notebook."}
         </Empty>
       ) : (
-        <div className="objective-list">
+        <MotionList
+          itemsKey={`${visibleGoals.map((goal) => goal.id).join(":")}:${expanded}`}
+          className="objective-list"
+        >
           {visibleGoals.map((o) => {
             const i = n.objectives.findIndex(
               (objective) => objective.id === o.id,
@@ -1692,11 +1768,7 @@ function Goals({
                     }
                     onClick={() => setExpanded(expanded === o.id ? null : o.id)}
                   >
-                    {expanded === o.id ? (
-                      <ChevronDown size={18} />
-                    ) : (
-                      <ChevronRight size={18} />
-                    )}
+                    <ChevronRight size={18} />
                   </button>
                   <button
                     className="icon-button delete"
@@ -1762,7 +1834,7 @@ function Goals({
               </div>
             );
           })}
-        </div>
+        </MotionList>
       )}
       <p className="fine-print">
         <Bookmark size={13} /> Marked items get extra emphasis. All objectives
@@ -2199,7 +2271,14 @@ function Studio({
                 <span>{e.error}</span>
               </div>
             )}
-            <div className="chapter-list">
+            <MotionNavigation
+              as="div"
+              activeKey={c?.id || ""}
+              itemsKey={e.chapters.map((chapter) => chapter.id).join(":")}
+              selector="button.active"
+              vertical
+              className="chapter-list"
+            >
               {e.chapters.map((ch, i) => (
                 <button
                   key={ch.id}
@@ -2234,7 +2313,7 @@ function Studio({
                   )}
                 </button>
               ))}
-            </div>
+            </MotionNavigation>
             {hasScript && qualityWarnings.length > 0 && (
               <details className="script-checks">
                 <summary>
@@ -2624,11 +2703,18 @@ function Chat({
   change,
   openSource,
 }: WorkProps & { openSource: OpenSource }) {
+  const initialMessageIds = useMemo(
+    () => new Set(n.messages.map((message) => message.id)),
+    [n.id],
+  );
   const questionDraft = useDraftText(`${n.id}:question`, "", 6000);
   const { text: message, setText: setMessage } = questionDraft;
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    end.current?.scrollIntoView({
+      block: "nearest",
+      behavior: canAnimate() ? "smooth" : "instant",
+    });
   }, [n.messages.length]);
   return (
     <section className="chat">
@@ -2664,8 +2750,11 @@ function Chat({
         </div>
       ) : (
         <div className="messages">
-          {n.messages.map((m) => (
-            <article key={m.id} className={`message ${m.role}`}>
+          {n.messages.map((m, index) => (
+            <article
+              key={m.id}
+              className={`message ${m.role}${index === n.messages.length - 1 && !initialMessageIds.has(m.id) ? " message-latest" : ""}`}
+            >
               <span className="message-label">
                 {m.role === "user" ? "You" : "LMBook"}
               </span>
@@ -2787,7 +2876,7 @@ function Connections({
   const [checkingCodex, setCheckingCodex] = useState(false);
   const bundleInput = useRef<HTMLInputElement>(null);
   return (
-    <div className="settings-page">
+    <MotionSurface motionKey="settings" className="settings-page">
       <div className="page-heading">
         <div>
           <h1>Connections & settings</h1>
@@ -2928,9 +3017,9 @@ function Connections({
             <summary>Connection instructions</summary>
             <p>
               <strong>Codex:</strong> install the CLI and run{" "}
-              <code>codex login</code>. LMBook connects through Codex App
-              Server using your local login. Your subscription or API billing
-              and usage limits apply.
+              <code>codex login</code>. LMBook connects through Codex App Server
+              using your local login. Your subscription or API billing and usage
+              limits apply.
             </p>
             <p>
               <strong>OpenCode Go:</strong> install OpenCode and connect your Go
@@ -3034,6 +3123,7 @@ function Connections({
         </div>
         <div className="settings-body">
           {window.sennibookDesktop && <DesktopDetails />}
+          <MotionPreferences />
           <h3>Notebook backups</h3>
           <p>
             A ZIP backup includes notes, saved source evidence, episode scripts
@@ -3165,7 +3255,7 @@ function Connections({
           </details>
         </div>
       </section>
-    </div>
+    </MotionSurface>
   );
 }
 

@@ -1,3 +1,4 @@
+import { canAnimate } from "./Motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleAlert,
@@ -269,9 +270,7 @@ export function SourceAudio({
       if (!target) return;
       target.scrollIntoView({
         block: "center",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
+        behavior: canAnimate() ? "smooth" : "instant",
       });
       target.focus({ preventScroll: true });
     });
@@ -493,9 +492,9 @@ export function SourceAudio({
               )}
             </div>
             <p className="source-audio-explainer">
-              LMBook uses faster-whisper on this computer. The result is
-              machine generated, so check names, numbers and technical terms
-              against the audio.
+              LMBook uses faster-whisper on this computer. The result is machine
+              generated, so check names, numbers and technical terms against the
+              audio.
             </p>
             {isTranscribing && (
               <p className="source-audio-progress" role="status">

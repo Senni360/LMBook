@@ -21,5 +21,8 @@ Primarily flat with fine borders. Shadows are limited to the welcome book/record
 ## Components
 Buttons have hover, focus, disabled and loading states. Source chips open the episode's saved source. Empty states explain the next action. In-progress work is cancellable and communicates actual stages. Episode cost and duration estimates reflect the script, independently of new-episode targets.
 
+## Motion
+Page, margin, bookmark: a selection marker travels, the related surface opens, then its content settles. Use short coordinated sequences, with transforms for travel and bounded reveals for supporting evidence. Flashcards render only the current face. All motion is interruptible; live device and local reduced-motion preferences remove movement. Reading has no idle decoration. Follow the [motion specification and evaluation](docs/ui/motion.md).
+
 ## Do's and Don'ts
 Keep examples explicitly illustrative. Never fake audio or source verification. Distinguish provider configuration from tested authentication. Maintain desktop and phone readability, reduced motion support, and keyboard access.

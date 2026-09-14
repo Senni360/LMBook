@@ -1,3 +1,4 @@
+import { MotionList } from "./Motion";
 import { useEffect, useRef, useState } from "react";
 import { CircleAlert, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
 import "./notebook-trash.css";
@@ -186,48 +187,50 @@ export function NotebookTrash({
         </button>
       )}
       {!loading && entries?.length === 0 && <p>Trash is empty.</p>}
-      {entries?.map((entry) => (
-        <div className="trash-entry" key={entry.id}>
-          <div className="trash-entry-details">
-            <h3>{entry.title}</h3>
-            <p>
-              {deletedDate(entry.deletedAt)} · {entry.sourceCount} source
-              {entry.sourceCount === 1 ? "" : "s"} · {entry.episodeCount}{" "}
-              episode{entry.episodeCount === 1 ? "" : "s"}
-            </p>
-            {entry.state === "purging" && (
-              <p className="trash-error">
-                Permanent deletion did not finish. Retry to remove the remaining
-                files; this notebook can no longer be restored.
+      <MotionList itemsKey={entries?.map((entry) => entry.id).join(":") || ""}>
+        {entries?.map((entry) => (
+          <div className="trash-entry" key={entry.id}>
+            <div className="trash-entry-details">
+              <h3>{entry.title}</h3>
+              <p>
+                {deletedDate(entry.deletedAt)} · {entry.sourceCount} source
+                {entry.sourceCount === 1 ? "" : "s"} · {entry.episodeCount}{" "}
+                episode{entry.episodeCount === 1 ? "" : "s"}
               </p>
-            )}
-            {entry.error && <p className="trash-error">{entry.error}</p>}
-          </div>
-          <div className="trash-entry-actions">
-            {entry.state === "trashed" && (
+              {entry.state === "purging" && (
+                <p className="trash-error">
+                  Permanent deletion did not finish. Retry to remove the
+                  remaining files; this notebook can no longer be restored.
+                </p>
+              )}
+              {entry.error && <p className="trash-error">{entry.error}</p>}
+            </div>
+            <div className="trash-entry-actions">
+              {entry.state === "trashed" && (
+                <button
+                  className="button"
+                  disabled={disabled || !!pending}
+                  onClick={() => void act(entry, false)}
+                  aria-label={`Restore ${entry.title}`}
+                >
+                  <RotateCcw size={16} aria-hidden="true" /> Restore
+                </button>
+              )}
               <button
-                className="button"
+                className="button quiet trash-purge"
                 disabled={disabled || !!pending}
-                onClick={() => void act(entry, false)}
-                aria-label={`Restore ${entry.title}`}
+                onClick={() => void act(entry, true)}
+                aria-label={`${entry.state === "purging" ? "Retry permanent deletion of" : "Permanently delete"} ${entry.title}`}
               >
-                <RotateCcw size={16} aria-hidden="true" /> Restore
+                <Trash2 size={16} aria-hidden="true" />
+                {entry.state === "purging"
+                  ? "Retry permanent deletion"
+                  : "Delete permanently"}
               </button>
-            )}
-            <button
-              className="button quiet trash-purge"
-              disabled={disabled || !!pending}
-              onClick={() => void act(entry, true)}
-              aria-label={`${entry.state === "purging" ? "Retry permanent deletion of" : "Permanently delete"} ${entry.title}`}
-            >
-              <Trash2 size={16} aria-hidden="true" />
-              {entry.state === "purging"
-                ? "Retry permanent deletion"
-                : "Delete permanently"}
-            </button>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </MotionList>
     </details>
   );
 }

@@ -1,5 +1,7 @@
 # LMBook roadmap
 
+- Version 0.3.4 adds the owner's requested application-wide purposeful motion sweep. Navigation, readers, evidence, editable lists, practice, playback, disclosures, dialogs and recovery use one motion system. See [coverage and verification](docs/ui/motion.md).
+
 - LMBook is the owner's selected name from 2026-09-14. Version 0.3.3 rebrands the app and Windows downloads while preserving existing profiles and backup compatibility. See [upgrade behavior](docs/rebranding.md) and [release notes](docs/releases/0.3.3.md).
 
 The owner authorized sustained, broad development on 2026-09-14, with Electron as the desktop delivery format. The existing journey is sources → learning goals → episode. The learning-experience workstream is investigating a purposeful questioning step before generation; its shape remains open to evidence and critical discussion. Deliver working vertical slices; check the evidence for completion before moving on. Follow [AGENTS.md](AGENTS.md) for the long-term quality and collaboration agreement.
