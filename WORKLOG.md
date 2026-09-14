@@ -10,6 +10,8 @@ The revised direction sample followed five forward/back transitions: marker and 
 
 The owner had the first 0.3.4 portable running, which locked its executable against replacement. Left that session running and packaged the revised version separately under `release/0.3.4-revised`. A revised short walkthrough is available in `release/0.3.4/LMBook-motion-preview.webm`. No release was published from this branch.
 
+Delivery: [draft PR #5](https://github.com/Senni360/LMBook/pull/5), branch `feat/purposeful-motion`, commit `695af16`. The revised installer and portable finished successfully; the walkthrough is also in `release/0.3.4-revised`. Applied the reviewed source patch to the shared checkout after a clean `git apply --check`, preserving other work. The running first-candidate portable was not restarted; using the revision requires quitting that instance and opening the executable in the revised folder.
+
 ## 2026-09-14 — Purposeful motion sweep, version 0.3.4
 
 The owner requested abundant, creative, coordinated animation throughout the application, with a purpose for every sequence. Implemented the [page, margin, bookmark system](docs/ui/motion.md) across notebook/section/chapter navigation, reader and citation openings, source/goal/word/history/Trash lists, dialogs and disclosures, chat, autosave/result feedback, playback and flashcard practice. Existing learning behavior and the reading-room identity remain intact. The imaginary sidebar example was treated as an illustration of choreography, not a feature requirement.
