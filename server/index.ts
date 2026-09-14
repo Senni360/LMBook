@@ -16,12 +16,7 @@ import {
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { extractDocument } from "./document-import.ts";
-import {
-  storeOriginal,
-  verifyOriginal,
-  originalPath,
-} from "./source-originals.ts";
-import { lstat } from "node:fs/promises";
+import { storeOriginal, verifyOriginal } from "./source-originals.ts";
 import {
   transcriptionModelSchema,
   transcriptionOptionsSchema,
@@ -40,10 +35,11 @@ import {
 } from "./transcription-jobs.ts";
 import { settingsSchema, uid, type Notebook } from "../shared/model.ts";
 import {
-  listNotebooks,
+  listNotebookSummaries,
   getNotebook,
   saveNotebook,
-  removeNotebook,
+  trashNotebook,
+  restoreNotebookFromTrash,
   newNotebook,
   audioDir,
   dataDir,
@@ -55,10 +51,21 @@ import {
   checkGoogleConnection,
 } from "./providers.ts";
 import { googleProject, savePreferences } from "./preferences.ts";
-import { cartesiaKey, cartesiaKeySchema, saveCartesiaKey, listCartesiaVoices } from "./cartesia.ts";
+import { checkCodexConnection } from "./codex-app-server.ts";
+import {
+  cartesiaKey,
+  cartesiaKeySchema,
+  saveCartesiaKey,
+  listCartesiaVoices,
+} from "./cartesia.ts";
 import { speechSettingsSchema, voiceSelectionError } from "../shared/speech.ts";
 import { readCachedSegment } from "./audio-cache.ts";
-import { listActivity, reconcileInterruptedActivities } from "./activity.ts";
+import {
+  beginActivity,
+  updateActivity,
+  listActivity,
+  reconcileInterruptedActivities,
+} from "./activity.ts";
 import { createEpisodeRevision } from "./episode-revisions.ts";
 import {
   createNotebookBundle,
@@ -80,6 +87,11 @@ import {
   createAudio,
   turnSchema,
 } from "./jobs.ts";
+import { withArtifactMutation } from "./artifact-lock.ts";
+import {
+  listTrash,
+  purgeTrashNotebook,
+} from "./notebook-trash.ts";
 
 const app = express();
 reconcileInterruptedActivities();
@@ -143,11 +155,46 @@ const exclusive = (
         { status: 409 },
       );
     const controller = new AbortController();
-    jobs.set(nid, { label, controller });
+    const activityId =
+      label === "Planning an episode"
+        ? beginActivity({ notebookId: nid, episodeId: "", operation: "plan" })
+        : undefined;
+    jobs.set(nid, { label, controller, activityId });
+    const started = Date.now();
+    const progress = () => {
+      const job = jobs.get(nid);
+      const message = `${job?.stage || label} · ${Math.round((Date.now() - started) / 1000)} seconds elapsed`;
+      if (job) job.label = message;
+      if (activityId) {
+        try {
+          updateActivity(activityId, { progress: message });
+        } catch {
+          console.error("Planning progress could not be saved.");
+        }
+      }
+    };
+    const timer = activityId ? setInterval(progress, 5000) : undefined;
+    if (activityId) progress();
     requestSignals.set(req, controller.signal);
     try {
       await fn(req, res);
+      if (activityId)
+        updateActivity(activityId, {
+          state: "completed",
+          progress: "Outline ready for review.",
+        });
+    } catch (error) {
+      if (activityId)
+        updateActivity(activityId, {
+          state: controller.signal.aborted ? "cancelled" : "failed",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Planning could not complete.",
+        });
+      throw error;
     } finally {
+      if (timer) clearInterval(timer);
       requestSignals.delete(req);
       jobs.delete(nid);
     }
@@ -197,17 +244,35 @@ app.get(
 );
 app.get(
   "/api/notebooks",
-  route((_req, res) =>
-    res.json(
-      listNotebooks().map((n) => ({
-        id: n.id,
-        title: n.title,
-        subject: n.settings.subject,
-        sourceCount: n.sources.length,
-        example: n.example,
-      })),
-    ),
-  ),
+  route((_req, res) => res.json(listNotebookSummaries())),
+);
+app.get(
+  "/api/trash",
+  route((_req, res) => res.json(listTrash())),
+);
+app.post(
+  "/api/trash/:id/restore",
+  route(async (req, res) => {
+    const trashId = z.string().uuid().parse(req.params.id);
+    const notebook = await withArtifactMutation(() =>
+      restoreNotebookFromTrash(trashId),
+    );
+    res.json(notebook);
+  }),
+);
+app.delete(
+  "/api/trash/:id",
+  route(async (req, res) => {
+    const trashId = z.string().uuid().parse(req.params.id);
+    const result = await withArtifactMutation(() =>
+      purgeTrashNotebook(trashId),
+    );
+    res.json({ ok: true, episodeIds: result.episodeIds });
+  }),
+);
+app.post(
+  "/api/connections/codex/check",
+  route(async (_req, res) => res.json(await checkCodexConnection())),
 );
 app.post(
   "/api/connections/google",
@@ -237,19 +302,32 @@ app.get(
 app.post(
   "/api/connections/cartesia",
   route(async (req, res) => {
-    if (jobs.size) throw new Error("Finish or cancel generation before changing the speech connection.");
+    if (jobs.size)
+      throw new Error(
+        "Finish or cancel generation before changing the speech connection.",
+      );
     const key = cartesiaKeySchema.parse(req.body.apiKey);
     await listCartesiaVoices({}, key);
     // The connection check is asynchronous: recheck before replacing a live key.
-    if (jobs.size) throw new Error("Finish or cancel generation before changing the speech connection.");
+    if (jobs.size)
+      throw new Error(
+        "Finish or cancel generation before changing the speech connection.",
+      );
     saveCartesiaKey(key);
-    res.json({ ok: true, message: "Cartesia connected. Voice access checked; no speech credits used. Preview an episode to check audio generation." });
+    res.json({
+      ok: true,
+      message:
+        "Cartesia connected. Voice access checked; no speech credits used. Preview an episode to check audio generation.",
+    });
   }),
 );
 app.delete(
   "/api/connections/cartesia",
   route((_req, res) => {
-    if (jobs.size) throw new Error("Finish or cancel generation before disconnecting Cartesia.");
+    if (jobs.size)
+      throw new Error(
+        "Finish or cancel generation before disconnecting Cartesia.",
+      );
     saveCartesiaKey("");
     res.json({ ok: true });
   }),
@@ -257,11 +335,13 @@ app.delete(
 app.get(
   "/api/cartesia/voices",
   route(async (req, res) => {
-    const query = z.object({
-      language: z.enum(["en", "nl"]).optional(),
-      query: z.string().trim().max(150).optional(),
-      cursor: z.string().uuid().optional(),
-    }).parse(req.query);
+    const query = z
+      .object({
+        language: z.enum(["en", "nl"]).optional(),
+        query: z.string().trim().max(150).optional(),
+        cursor: z.string().uuid().optional(),
+      })
+      .parse(req.query);
     res.setHeader("Cache-Control", "no-store");
     res.json(await listCartesiaVoices(query));
   }),
@@ -378,17 +458,20 @@ app.post(
       if (!res.writableFinished) controller.abort();
     });
     try {
-      const imported = await importNotebookBundle(req.file.path, audioDir, {
-        signal: controller.signal,
-        originalsDir,
+      const saved = await withArtifactMutation(async () => {
+        const imported = await importNotebookBundle(req.file!.path, audioDir, {
+          signal: controller.signal,
+          originalsDir,
+        });
+        try {
+          controller.signal.throwIfAborted();
+          return saveNotebook(imported.notebook);
+        } catch (error) {
+          await imported.cleanup();
+          throw error;
+        }
       });
-      try {
-        controller.signal.throwIfAborted();
-        res.status(201).json(saveNotebook(imported.notebook));
-      } catch (error) {
-        await imported.cleanup();
-        throw error;
-      }
+      res.status(201).json(saved);
     } finally {
       rmSync(req.file.path, { force: true });
     }
@@ -431,19 +514,24 @@ app.patch(
       .object({
         title: z.string().trim().min(1).max(150).optional(),
         description: z.string().max(2000).optional(),
-        settings: settingsSchema.optional(),
+        settings: z.record(z.string(), z.unknown()).optional(),
       })
       .parse(req.body);
-    Object.assign(n, input);
+    const { settings, ...details } = input;
+    Object.assign(n, details);
+    if (settings)
+      n.settings = settingsSchema.parse({ ...n.settings, ...settings });
     res.json(saveNotebook(n));
   }),
 );
 app.delete(
   "/api/notebooks/:id",
-  route((req, res) => {
-    const n = editable(req);
-    removeNotebook(n.id);
-    res.json({ ok: true });
+  route(async (req, res) => {
+    const result = await withArtifactMutation(() => {
+      const n = editable(req);
+      return trashNotebook(n);
+    });
+    res.json({ ok: true, ...result });
   }),
 );
 app.post(
@@ -501,46 +589,53 @@ app.post(
       ".jpg": "image/jpeg",
       ".jpeg": "image/jpeg",
     };
-    const attachment = await storeOriginal(
-      originalsDir,
-      req.file.buffer,
-      req.file.originalname,
-      mediaTypes[ext] || "application/octet-stream",
-      signal,
-    );
-    requestSignals.get(req)?.throwIfAborted();
-    // Preserve any state saved before this import acquired the notebook lock.
-    const latest = getNotebook(n.id);
-    latest.sources.push({
-      id: uid(),
-      title: req.file.originalname,
-      text,
-      filename: req.file.originalname,
-      originalSha256: createHash("sha256")
-        .update(req.file.buffer)
-        .digest("hex"),
-      extractedSha256: createHash("sha256").update(text).digest("hex"),
-      extraction,
-      ...(warnings.length ? { extractionWarnings: warnings } : {}),
-      ...(ocrCandidate ? { ocrCandidate: true } : {}),
-      ...(ocrCandidate && !text.trim()
-        ? { processing: { task: "ocr" as const, status: "pending" as const } }
-        : {}),
-      attachment,
-      kind: req.body.kind === "supplement" ? "supplement" : "course",
-      createdAt: new Date().toISOString(),
+    const saved = await withArtifactMutation(async () => {
+      signal?.throwIfAborted();
+      const attachment = await storeOriginal(
+        originalsDir,
+        req.file!.buffer,
+        req.file!.originalname,
+        mediaTypes[ext] || "application/octet-stream",
+        signal,
+      );
+      requestSignals.get(req)?.throwIfAborted();
+      // Preserve any state saved before this import acquired the notebook lock.
+      const latest = getNotebook(n.id);
+      latest.sources.push({
+        id: uid(),
+        title: req.file!.originalname,
+        text,
+        filename: req.file!.originalname,
+        originalSha256: createHash("sha256")
+          .update(req.file!.buffer)
+          .digest("hex"),
+        extractedSha256: createHash("sha256").update(text).digest("hex"),
+        extraction,
+        ...(warnings.length ? { extractionWarnings: warnings } : {}),
+        ...(ocrCandidate ? { ocrCandidate: true } : {}),
+        ...(ocrCandidate && !text.trim()
+          ? { processing: { task: "ocr" as const, status: "pending" as const } }
+          : {}),
+        attachment,
+        kind: req.body.kind === "supplement" ? "supplement" : "course",
+        createdAt: new Date().toISOString(),
+      });
+      latest.coverage = [];
+      return saveNotebook(latest);
     });
-    latest.coverage = [];
-    res.json(saveNotebook(latest));
+    res.json(saved);
   }),
 );
 app.delete(
   "/api/notebooks/:id/sources/:sourceId",
-  route((req, res) => {
-    const n = editable(req);
-    n.sources = n.sources.filter((s) => s.id !== req.params.sourceId);
-    n.coverage = [];
-    res.json(saveNotebook(n));
+  route(async (req, res) => {
+    const saved = await withArtifactMutation(() => {
+      const n = editable(req);
+      n.sources = n.sources.filter((s) => s.id !== req.params.sourceId);
+      n.coverage = [];
+      return saveNotebook(n);
+    });
+    res.json(saved);
   }),
 );
 app.get(
@@ -603,7 +698,6 @@ app.post(
   route(async (req, res) => {
     const temporary = req.file?.path;
     try {
-      editable(req);
       if (!req.file) throw new Error("Choose an audio recording to import.");
       const ext = path.extname(req.file.originalname).toLowerCase();
       const types: Record<string, string> = {
@@ -621,31 +715,37 @@ app.post(
         throw new Error(
           "Supported recordings: MP3, WAV, M4A, MP4, FLAC, OGG, Opus, AAC and WebM.",
         );
-      const attachment = await storeOriginal(
-        originalsDir,
-        req.file.path,
-        req.file.originalname,
-        types[ext],
-      );
-      // Recheck the notebook lock after the asynchronous original-file write.
-      const latest = editable(req);
-      latest.sources.push({
-        id: uid(),
-        title: req.file.originalname,
-        filename: req.file.originalname,
-        text: "",
-        kind: req.body.kind === "supplement" ? "supplement" : "course",
-        createdAt: new Date().toISOString(),
-        attachment,
-        originalSha256: attachment.sha256,
-        processing: {
-          status: "pending",
-          progress:
-            "Recording saved. Transcribe it locally to use it as evidence.",
-        },
+      const saved = await withArtifactMutation(async () => {
+        // Hold the artifact lock before reading/publishing the original so a
+        // concurrent notebook trash/purge cannot invalidate this publication.
+        editable(req);
+        const attachment = await storeOriginal(
+          originalsDir,
+          req.file!.path,
+          req.file!.originalname,
+          types[ext],
+        );
+        // Recheck the notebook lock after the asynchronous original-file write.
+        const latest = editable(req);
+        latest.sources.push({
+          id: uid(),
+          title: req.file!.originalname,
+          filename: req.file!.originalname,
+          text: "",
+          kind: req.body.kind === "supplement" ? "supplement" : "course",
+          createdAt: new Date().toISOString(),
+          attachment,
+          originalSha256: attachment.sha256,
+          processing: {
+            status: "pending",
+            progress:
+              "Recording saved. Transcribe it locally to use it as evidence.",
+          },
+        });
+        latest.coverage = [];
+        return saveNotebook(latest);
       });
-      latest.coverage = [];
-      res.status(201).json(saveNotebook(latest));
+      res.status(201).json(saved);
     } finally {
       if (
         temporary &&
@@ -680,16 +780,17 @@ app.get(
     const attachment = sources.find((source) => source.id === sid)?.attachment;
     if (!attachment?.mediaType.startsWith("audio/"))
       throw new Error("An audio recording is not available for this source.");
-    const filename = originalPath(originalsDir, attachment.sha256);
-    const info = await lstat(filename);
-    if (
-      !info.isFile() ||
-      info.isSymbolicLink() ||
-      info.size !== attachment.bytes
-    )
-      throw new Error(
-        "The original recording is missing or incomplete. Import it again.",
-      );
+    const controller = new AbortController();
+    res.on("close", () => {
+      if (!res.writableFinished) controller.abort();
+    });
+    // Playback must honor the same saved source identity as downloads and
+    // transcription. A same-size corruption used to pass this endpoint.
+    const filename = await verifyOriginal(
+      originalsDir,
+      attachment,
+      controller.signal,
+    );
     res
       .type(attachment.mediaType)
       .sendFile(path.basename(filename), { root: originalsDir });
@@ -809,7 +910,10 @@ app.post(
       requestSignals.get(req),
       (message) => {
         const job = jobs.get(n.id);
-        if (job) job.label = message;
+        if (job) {
+          job.label = message;
+          job.stage = message;
+        }
       },
     );
     const latest = getNotebook(n.id);
@@ -876,7 +980,15 @@ app.post(
       throw new Error(
         "Add sources and learning goals before planning an episode.",
       );
-    const e = await planEpisode(n, requestSignals.get(req));
+    const e = await planEpisode(n, requestSignals.get(req), (message) => {
+      const job = jobs.get(n.id);
+      if (job) {
+        job.stage = message;
+        job.label = message;
+      }
+      if (job?.activityId)
+        updateActivity(job.activityId, { progress: message });
+    });
     const latest = getNotebook(n.id);
     latest.episodes.unshift(e);
     res.json(saveNotebook(latest));
@@ -919,16 +1031,22 @@ app.put(
     const settings = settingsSchema.parse({ ...original.settings, ...speech });
     const error = voiceSelectionError(settings);
     if (error) throw new Error(error);
-    const hasAudio = !!original.previewFile || original.chapters.some((chapter) => {
-      if (chapter.audioFile || chapter.audioLocked) return true;
-      const dir = path.join(audioDir, chapter.id);
-      return existsSync(dir) && readdirSync(dir).some(file => /^\d+\.wav$/.test(file));
-    });
+    const hasAudio =
+      !!original.previewFile ||
+      original.chapters.some((chapter) => {
+        if (chapter.audioFile || chapter.audioLocked) return true;
+        const dir = path.join(audioDir, chapter.id);
+        return (
+          existsSync(dir) &&
+          readdirSync(dir).some((file) => /^\d+\.wav$/.test(file))
+        );
+      });
     const episode = hasAudio ? createEpisodeRevision(n, original) : original;
     episode.settings = settings;
     delete episode.error;
     episode.status = "draft";
-    episode.progress = "Voice settings saved. Preview the voices before generating audio.";
+    episode.progress =
+      "Voice settings saved. Preview the voices before generating audio.";
     if (hasAudio) n.episodes.unshift(episode);
     saveNotebook(n);
     res.json({ episodeId: episode.id, copied: hasAudio });
@@ -969,7 +1087,8 @@ app.post(
     const e = n.episodes.find((e) => e.id === req.params.eid);
     if (!e) throw new Error("Episode not found.");
     if (e.settings.ttsProvider === "cartesia") {
-      if (!cartesiaKey()) throw new Error("Connect Cartesia in Settings first.");
+      if (!cartesiaKey())
+        throw new Error("Connect Cartesia in Settings first.");
     } else if (!googleProject()) {
       throw new Error("Configure Google Cloud in Settings first.");
     }

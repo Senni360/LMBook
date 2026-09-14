@@ -16,6 +16,7 @@ const {
 const { randomBytes } = require("node:crypto");
 const { existsSync, mkdirSync, appendFileSync } = require("node:fs");
 const path = require("node:path");
+const { createDownloadManager } = require("./downloads.cjs");
 const appOrigin = "sennibook://app";
 protocol.registerSchemesAsPrivileged([
   {
@@ -48,12 +49,15 @@ app.setName("SenniBook");
 if (process.env.SENNIBOOK_USER_DATA)
   app.setPath("userData", path.resolve(process.env.SENNIBOOK_USER_DATA));
 const hasLock = app.requestSingleInstanceLock();
-let window, backend, tray, origin, poll, blocker;
+let window, backend, tray, origin, poll, blocker, downloads;
 let quitting = false,
   closePrompt = false,
   activeJobs = 0;
 const token = randomBytes(32).toString("hex");
-const root = app.getAppPath();
+// Resolve assets relative to this entry point in both source and app.asar.
+// Electron's app path is the electron/ folder when a diagnostic launches this
+// file directly, which otherwise duplicates electron/ in the backend path.
+const root = path.resolve(__dirname, "..");
 const userData = app.getPath("userData");
 mkdirSync(userData, { recursive: true });
 const logPath = path.join(userData, "desktop.log");
@@ -202,7 +206,7 @@ function verifySender(event) {
     event.senderFrame !== window.webContents.mainFrame ||
     !isAppUrl(event.senderFrame.url)
   )
-    throw new Error("Untrusted desktop request.");
+  throw new Error("Untrusted desktop request.");
 }
 async function setup() {
   origin = await startBackend();
@@ -237,6 +241,7 @@ async function setup() {
     height: 940,
     minWidth: 700,
     minHeight: 560,
+    autoHideMenuBar: true,
     backgroundColor: "#f5f6f2",
     show: false,
     icon: path.join(root, "electron", "icon.png"),
@@ -247,6 +252,16 @@ async function setup() {
       sandbox: true,
       webSecurity: true,
       spellcheck: true,
+    },
+  });
+  downloads = createDownloadManager({
+    getWindow: () => window,
+    getOrigin: () => origin,
+    token,
+    showSaveDialog: (owner, options) => dialog.showSaveDialog(owner, options),
+    onProgress: (info) => {
+      if (!window || window.isDestroyed()) return;
+      window.webContents.send("desktop:download-progress", info);
     },
   });
   const ses = window.webContents.session;
@@ -295,6 +310,14 @@ async function setup() {
       throw new Error("Clipboard text is too long.");
     clipboard.writeText(text);
   });
+  ipcMain.handle("desktop:download", (event, input) => {
+    verifySender(event);
+    return downloads.download(input);
+  });
+  ipcMain.handle("desktop:download-cancel", (event, id) => {
+    verifySender(event);
+    return downloads.cancelDownload(id);
+  });
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
@@ -327,6 +350,9 @@ async function setup() {
       },
     ]),
   );
+  // Keep native window controls and menu accelerators without a second bar.
+  // Alt temporarily reveals the menu on Windows/Linux.
+  window.setMenuBarVisibility(false);
   tray = new Tray(
     nativeImage.createFromPath(path.join(root, "electron", "icon.png")),
   );
@@ -377,32 +403,49 @@ app.on("window-all-closed", () => {
   if (quitting) app.quit();
 });
 let shutdownStarted = false;
+async function finishShutdown() {
+  clearInterval(poll);
+  if (blocker !== undefined && powerSaveBlocker.isStarted(blocker))
+    powerSaveBlocker.stop(blocker);
+  tray?.destroy();
+  tray = undefined;
+  // A download owns a temporary file and an open response body. Abort and
+  // await those operations before the backend is torn down so no partial
+  // file is mistaken for a completed export.
+  if (downloads) {
+    await Promise.race([
+      downloads.cancelAll(),
+      new Promise((resolve) => setTimeout(resolve, 15000)),
+    ]);
+  }
+  const worker = backend;
+  if (!worker) {
+    app.exit(0);
+    return;
+  }
+  await new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      worker.kill();
+      resolve();
+    }, 15000);
+    worker.once("exit", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+    worker.postMessage({ type: "shutdown" });
+  });
+  app.exit(0);
+}
 app.on("before-quit", (event) => {
   if (!quitting) {
     event.preventDefault();
     void requestQuit();
     return;
   }
-  if (backend) {
-    event.preventDefault();
-    if (shutdownStarted) return;
-    shutdownStarted = true;
-    clearInterval(poll);
-    if (blocker !== undefined && powerSaveBlocker.isStarted(blocker))
-      powerSaveBlocker.stop(blocker);
-    tray?.destroy();
-    tray = undefined;
-    const worker = backend;
-    const timer = setTimeout(() => {
-      worker.kill();
-      app.exit(0);
-    }, 15000);
-    worker.once("exit", () => {
-      clearTimeout(timer);
-      app.exit(0);
-    });
-    worker.postMessage({ type: "shutdown" });
-  }
+  event.preventDefault();
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  void finishShutdown();
 });
 if (!hasLock) app.quit();
 else

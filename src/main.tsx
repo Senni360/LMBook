@@ -51,12 +51,22 @@ import {
   uid,
   words,
   estimateSpeech,
+  settingsSchema,
 } from "../shared/model";
 import "./style.css";
 import { evaluateEpisodeQuality } from "../shared/quality";
 import { EpisodePlayer } from "./components/EpisodePlayer";
 import { GoogleSetup } from "./components/GoogleSetup";
+import { CartesiaSetup } from "./components/CartesiaSetup";
+import { SpeechSettings } from "./components/SpeechSettings";
+import {
+  cartesiaCredits,
+  speechSettingsSchema,
+  voiceSelectionError,
+} from "../shared/speech";
 import { ActivityHistory } from "./components/ActivityHistory";
+import { NotebookTrash } from "./components/NotebookTrash";
+import { DownloadLink, DownloadProvider } from "./components/Downloads";
 import { SourceAudio } from "./components/SourceAudio";
 import { LocalTranscriptionSetup } from "./components/LocalTranscriptionSetup";
 import { locateEvidence, locateSourceRange } from "../shared/evidence-location";
@@ -66,6 +76,8 @@ import { SourceOcr } from "./components/SourceOcr";
 import { SourceImage } from "./components/SourceImage";
 import { parseEditedScript } from "../shared/script-editor";
 import { useDraftText } from "./hooks/useDraftText";
+import { useObjectDraft } from "./hooks/useObjectDraft";
+import { version as appVersion } from "../package.json";
 
 /* THESIS: a course becomes a conversation through visible evidence and goals.
 OWN-WORLD: forest navigation, mineral paper, ochre listening controls, serif titles and quiet ledgers.
@@ -215,6 +227,15 @@ function App() {
   const [notebooks, setNotebooks] = useState<Summary[]>([]);
   const [n, setN] = useState<Notebook | null>(null);
   const [tab, setTab] = useState<Tab>("sources");
+  const previousTab = useRef<Exclude<Tab, "settings">>("sources");
+  const openSettings = () => {
+    if (tab !== "settings") previousTab.current = tab;
+    setTab("settings");
+  };
+  const leaveSettings = () => setTab(previousTab.current);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [tab]);
   const [sourceRequest, setSourceRequest] = useState<SourceRequest | null>(
     null,
   );
@@ -229,6 +250,8 @@ function App() {
   const [status, setStatus] = useState<Capabilities | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const busyRef = useRef(false);
+  const [activityRevision, setActivityRevision] = useState(0);
   const [openingNotebook, setOpeningNotebook] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -237,6 +260,7 @@ function App() {
   const selected = useRef<string | null>(null);
   const selectionRequest = useRef(0);
   const dialog = useRef<HTMLDialogElement>(null);
+  const newTitleInput = useRef<HTMLInputElement>(null);
   const loadList = async () => {
     const list = await api<Summary[]>("/notebooks");
     setNotebooks(list);
@@ -250,7 +274,7 @@ function App() {
     }
     await loadList();
   };
-  const choose = async (id: string) => {
+  const choose = async (id: string, fallbackId = n?.id || null) => {
     const request = ++selectionRequest.current;
     setOpeningNotebook(id);
     setSourceRequest(null);
@@ -266,7 +290,7 @@ function App() {
       if (selectionRequest.current === request) setN(book);
     } catch (error) {
       if (selectionRequest.current === request) {
-        selected.current = n?.id || null;
+        selected.current = fallbackId;
         throw error;
       }
     } finally {
@@ -297,8 +321,10 @@ function App() {
     })();
   }, []);
   useEffect(() => {
-    if (createOpen) dialog.current?.showModal();
-    else dialog.current?.close();
+    if (createOpen) {
+      dialog.current?.showModal();
+      newTitleInput.current?.focus();
+    } else dialog.current?.close();
   }, [createOpen]);
   const pendingSourceProcessing = !!n?.sources.some((source) =>
     ["recognizing", "transcribing"].includes(source.processing?.status || ""),
@@ -326,22 +352,37 @@ function App() {
     return () => clearTimeout(timer);
   }, [notice]);
   async function run(label: string, work: () => Promise<void>) {
-    if (busy && label !== "Cancelling") return;
-    setBusy(label);
+    const cancelling = label === "Cancelling";
+    if (busyRef.current && !cancelling) return;
+    if (!cancelling) {
+      busyRef.current = true;
+      setBusy(label);
+    }
     setError("");
     try {
       await work();
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setBusy("");
+      if (!cancelling) {
+        busyRef.current = false;
+        setBusy("");
+      }
+      setActivityRevision((value) => value + 1);
     }
   }
   const change = async (url: string, method = "POST", body?: unknown) => {
-    const current = selected.current;
     const book = await api<Notebook>(url, method, body);
-    if (book.id && selected.current === current) setN(book);
-    await loadList();
+    // A multi-file import can continue after the user switches notebooks.
+    // Only the response's actual notebook may update the visible workspace.
+    if (book.id && book.id === selected.current) setN(book);
+    try {
+      await loadList();
+    } catch {
+      setError(
+        "Your change was saved, but the notebook list could not refresh. Reload the app to update the list.",
+      );
+    }
   };
   const create = async (example = false) => {
     const book = await api<Notebook>("/notebooks", "POST", {
@@ -352,13 +393,49 @@ function App() {
     });
     setCreateOpen(false);
     setNewTitle("");
+    await openSavedNotebook(book);
+  };
+  const openSavedNotebook = async (book: Notebook) => {
+    ++selectionRequest.current;
+    selected.current = book.id;
+    setOpeningNotebook(null);
+    setSourceRequest(null);
+    setN(book);
+    setNotebooks((previous) => [
+      {
+        id: book.id,
+        title: book.title,
+        subject: book.settings.subject,
+        sourceCount: book.sources.length,
+        example: book.example,
+      },
+      ...previous.filter((item) => item.id !== book.id),
+    ]);
+    try {
+      localStorage.setItem("sennibook:last", book.id);
+    } catch {
+      /* Remembering the selected notebook is optional. */
+    }
     setTab("sources");
-    await loadList();
-    await choose(book.id);
+    try {
+      await loadList();
+    } catch {
+      setError(
+        "Your notebook was saved and is open. The library list could not refresh; reload the app to update the list.",
+      );
+    }
   };
   const job = !!(n && status?.activeJobs[n.id]);
   const disabled = !!busy || job || !!openingNotebook;
   const saveSettings = async (settings: Settings) => {
+    if (settings.assumedKnowledge.length > 5000)
+      throw new Error(
+        "The starting-knowledge brief can contain up to 5,000 characters. Shorten it before saving; your draft is still here.",
+      );
+    if (settings.harness.length > 12000)
+      throw new Error(
+        "The subject harness can contain up to 12,000 characters. Shorten it before saving; your draft is still here.",
+      );
     if (n) await change(`/notebooks/${n.id}`, "PATCH", { settings });
   };
   return (
@@ -403,6 +480,7 @@ function App() {
             <button
               key={book.id}
               className={`notebook-item ${n?.id === book.id ? "selected" : ""}`}
+              aria-current={n?.id === book.id ? "page" : undefined}
               onClick={() =>
                 void choose(book.id).catch((error: Error) =>
                   setError(error.message),
@@ -413,7 +491,8 @@ function App() {
               <span>
                 <strong>{book.title}</strong>
                 <small>
-                  {book.subject} · {book.sourceCount} sources
+                  {book.subject} · {book.sourceCount}{" "}
+                  {book.sourceCount === 1 ? "source" : "sources"}
                 </small>
               </span>
             </button>
@@ -435,16 +514,29 @@ function App() {
           </div>
           <button
             className={`rail-settings ${tab === "settings" ? "active" : ""}`}
-            onClick={() => setTab("settings")}
+            onClick={tab === "settings" ? leaveSettings : openSettings}
+            title={tab === "settings" ? "Go back" : "Connections & settings"}
           >
-            <Settings2 size={18} /> Connections & settings
+            {tab === "settings" ? (
+              <>
+                <ArrowLeft size={18} /> Go back
+              </>
+            ) : (
+              <>
+                <Settings2 size={18} /> Connections & settings
+              </>
+            )}
           </button>
           <div className="rail-foot">
-            SenniBook <span>Early edition · 0.2</span>
+            SenniBook{" "}
+            <span>
+              {window.sennibookDesktop ? "Desktop" : "Web preview"} ·{" "}
+              {appVersion}
+            </span>
           </div>
         </div>
       </aside>
-      <main id="main" className="main">
+      <main id="main" className="main" tabIndex={-1}>
         <header className="topbar">
           <span>
             <Library size={15} /> Your learning library{" "}
@@ -459,11 +551,11 @@ function App() {
             {busy || openingNotebook ? (
               <>
                 <LoaderCircle className="spin" size={14} />
-                {busy || "Opening notebook"}
+                {(n && status?.activeJobs[n.id]) || busy || "Opening notebook"}
               </>
             ) : job ? (
               <>
-                <Radio size={14} /> Generation running
+                <Radio size={14} /> {n && status?.activeJobs[n.id]}
               </>
             ) : (
               <>
@@ -475,8 +567,8 @@ function App() {
             )}
           </span>
         </header>
-        {error && (
-          <div className="alert error" role="alert">
+        {error && !createOpen && (
+          <div className="alert error app-error" role="alert">
             <CircleAlert size={19} />
             <span>{error}</span>
             <button
@@ -505,6 +597,12 @@ function App() {
             }}
             restore={(file) =>
               run("Restoring notebook", async () => {
+                if (file.size === 0)
+                  throw new Error(
+                    "This backup file is empty. Choose a SenniBook ZIP backup.",
+                  );
+                if (file.size > 2 * 1024 * 1024 * 1024)
+                  throw new Error("This backup exceeds the 2 GB upload limit.");
                 const data = new FormData();
                 data.append("file", file);
                 const restored = await api<Notebook>(
@@ -512,9 +610,7 @@ function App() {
                   "POST",
                   data,
                 );
-                await loadList();
-                await choose(restored.id);
-                setTab("sources");
+                await openSavedNotebook(restored);
                 setNotice("Notebook restored as a new copy");
               })
             }
@@ -522,42 +618,65 @@ function App() {
             n={n}
             status={status}
             disabled={disabled}
-            save={(settings) =>
+            trashRefreshKey={activityRevision}
+            onNotebookRestored={async (id) => {
+              await loadList();
+              if (!selected.current) await choose(id);
+              setNotice("Notebook restored to your library");
+            }}
+            save={(provider, model, onSaved) =>
               run("Saving settings", async () => {
-                await saveSettings(settings);
+                if (n)
+                  await change(`/notebooks/${n.id}`, "PATCH", {
+                    settings: { provider, model },
+                  });
+                onSaved();
                 setNotice("Settings saved");
               })
             }
-            onBack={() => setTab("sources")}
-            rename={(title, description) =>
+            rename={(title, description, onSaved) =>
               run("Saving notebook", async () => {
                 if (n) {
                   await change(`/notebooks/${n.id}`, "PATCH", {
                     title,
                     description,
                   });
+                  onSaved();
                   setNotice("Notebook updated");
                 }
               })
             }
             remove={() =>
-              run("Removing notebook", async () => {
+              run("Moving notebook to trash", async () => {
                 if (!n) return;
                 await api(`/notebooks/${n.id}`, "DELETE");
-                const list = await loadList();
+                setNotice("Notebook moved to Trash. Restore it in Settings.");
+                setNotebooks((previous) =>
+                  previous.filter((book) => book.id !== n.id),
+                );
                 // A completed removal must not move someone away from a
                 // different notebook they selected while the request ran.
-                if (selected.current !== n.id) return;
-                ++selectionRequest.current;
-                selected.current = null;
-                setN(null);
-                try {
-                  localStorage.removeItem("sennibook:last");
-                } catch {
-                  /* The library remains usable without this preference. */
+                const removedSelection = selected.current === n.id;
+                if (removedSelection) {
+                  ++selectionRequest.current;
+                  selected.current = null;
+                  setN(null);
+                  try {
+                    localStorage.removeItem("sennibook:last");
+                  } catch {
+                    /* The library remains usable without this preference. */
+                  }
+                  setTab("sources");
                 }
-                if (list.length) await choose(list[0].id);
-                setTab("sources");
+                try {
+                  const list = await loadList();
+                  if (removedSelection && !selected.current && list.length)
+                    await choose(list[0].id, null);
+                } catch {
+                  setError(
+                    "The notebook moved to Trash, but the library could not refresh. Reload the app to update it.",
+                  );
+                }
               })
             }
           />
@@ -638,12 +757,13 @@ function App() {
                     "Collect the evidence. Follow the questions. Go a little further."}
                 </p>
               </div>
-              <a
+              <DownloadLink
                 className="button quiet"
                 href={`/api/notebooks/${n.id}/export`}
+                filename={`${n.title}.md`}
               >
                 <Download size={16} /> Export notes
-              </a>
+              </DownloadLink>
             </section>
             <nav className="tabs" aria-label="Notebook sections">
               {(
@@ -676,6 +796,7 @@ function App() {
                 <button
                   key={t.id}
                   className={tab === t.id ? "active" : ""}
+                  aria-current={tab === t.id ? "page" : undefined}
                   onClick={() => setTab(t.id)}
                 >
                   <t.icon size={18} />
@@ -719,8 +840,9 @@ function App() {
                   change={change}
                   next={() => setTab("goals")}
                   refresh={refresh}
-                  settings={() => setTab("settings")}
+                  settings={openSettings}
                   request={sourceRequest}
+                  onCloseReader={() => setSourceRequest(null)}
                 />
               )}
               {tab === "goals" && (
@@ -740,11 +862,12 @@ function App() {
                   n={n}
                   disabled={disabled}
                   status={status}
+                  activityRevision={activityRevision}
                   run={run}
                   change={change}
                   refresh={refresh}
                   saveSettings={saveSettings}
-                  settings={() => setTab("settings")}
+                  settings={openSettings}
                 />
               )}
               {tab === "chat" && (
@@ -767,6 +890,7 @@ function App() {
       </main>
       <dialog
         ref={dialog}
+        aria-labelledby="create-notebook-heading"
         onCancel={() => setCreateOpen(false)}
         className="create-dialog"
       >
@@ -777,7 +901,7 @@ function App() {
           }}
         >
           <div className="section-heading">
-            <h2>A new place to learn</h2>
+            <h2 id="create-notebook-heading">A new place to learn</h2>
             <button
               type="button"
               className="icon-button"
@@ -788,9 +912,15 @@ function App() {
             </button>
           </div>
           <p>One notebook for a course, topic or question.</p>
+          {error && (
+            <div className="alert error" role="alert">
+              <CircleAlert size={19} />
+              <span>{error}</span>
+            </div>
+          )}
           <Field label="Notebook name">
             <input
-              autoFocus
+              ref={newTitleInput}
               required
               maxLength={150}
               value={newTitle}
@@ -829,11 +959,13 @@ function Sources({
   refresh,
   settings,
   request,
+  onCloseReader,
 }: WorkProps & {
   next: () => void;
   refresh: () => Promise<void>;
   settings: () => void;
   request: SourceRequest | null;
+  onCloseReader: () => void;
 }) {
   const sourceTitleDraft = useDraftText(`${n.id}:source-title`, "", 200);
   const sourceTextDraft = useDraftText(`${n.id}:source-text`, "", 1_000_000);
@@ -885,11 +1017,34 @@ function Sources({
     target?.focus({ preventScroll: true });
   }, [reading]);
   const [query, setQuery] = useState("");
+  const sourceWordCounts = useMemo(
+    () => new Map(n.sources.map((source) => [source.id, words(source.text)])),
+    [n.sources],
+  );
+  const totalSourceWords = useMemo(
+    () =>
+      Array.from(sourceWordCounts.values()).reduce(
+        (sum, count) => sum + count,
+        0,
+      ),
+    [sourceWordCounts],
+  );
+  const visibleSources = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return search
+      ? n.sources.filter(
+          (source) =>
+            source.title.toLowerCase().includes(search) ||
+            source.text.toLowerCase().includes(search),
+        )
+      : n.sources;
+  }, [n.sources, query]);
   const file = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
     await run("Importing sources", async () => {
+      let imported = 0;
       for (const f of Array.from(files)) {
         const data = new FormData();
         data.append("file", f);
@@ -897,11 +1052,30 @@ function Sources({
         const audio = /\.(mp3|wav|m4a|mp4|flac|ogg|opus|aac|webm)$/i.test(
           f.name,
         );
-        await change(
-          `/notebooks/${n.id}/${audio ? "audio-source" : "upload"}`,
-          "POST",
-          data,
-        );
+        try {
+          if (f.size === 0)
+            throw new Error(
+              "This file is empty. Choose a file containing source material.",
+            );
+          if (f.size > (audio ? 500 : 20) * 1024 * 1024)
+            throw new Error(
+              `This file exceeds the ${audio ? "500 MB recording" : "20 MB document"} upload limit.`,
+            );
+          await change(
+            `/notebooks/${n.id}/${audio ? "audio-source" : "upload"}`,
+            "POST",
+            data,
+          );
+          imported++;
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "This file could not be imported.";
+          throw new Error(
+            `${f.name}: ${message} ${imported ? `${imported} ${imported === 1 ? "file was" : "files were"} imported before this error. Retry only the remaining files.` : "No files in this batch were imported."}`,
+          );
+        }
       }
     });
     if (file.current) file.current.value = "";
@@ -1027,10 +1201,7 @@ function Sources({
       <div className="source-toolbar">
         <span>
           {n.sources.length} source{n.sources.length !== 1 ? "s" : ""} ·{" "}
-          {n.sources
-            .reduce((sum, s) => sum + words(s.text), 0)
-            .toLocaleString()}{" "}
-          words
+          {totalSourceWords.toLocaleString()} words
         </span>
         <label className="search">
           <Search size={16} />
@@ -1047,80 +1218,86 @@ function Sources({
           Add a chapter, a lecture or your own notes. You can add learning
           objectives next.
         </Empty>
+      ) : !visibleSources.length ? (
+        <Empty
+          icon={Search}
+          title="No sources match your search"
+          action={
+            <Button variant="quiet" onClick={() => setQuery("")}>
+              Clear search
+            </Button>
+          }
+        >
+          Try a different term or clear the search to see all your sources.
+        </Empty>
       ) : (
         <div className="source-list">
-          {n.sources
-            .filter((s) =>
-              `${s.title} ${s.text}`
-                .toLowerCase()
-                .includes(query.toLowerCase()),
-            )
-            .map((s, i) => (
-              <div className="source-row" key={s.id}>
-                <div className="file-symbol">
-                  {s.attachment?.mediaType.startsWith("audio/") ? (
-                    <Headphones size={20} />
-                  ) : (
-                    <FileText size={20} />
-                  )}
-                </div>
-                <button
-                  className="source-open"
-                  onClick={() =>
-                    setReading({ sourceId: s.id, nonce: Date.now() })
-                  }
-                >
-                  <strong>{s.title}</strong>
-                  <span>
-                    {s.kind === "course" ? "Course material" : "Supplementary"}{" "}
-                    <b>·</b>{" "}
-                    {s.processing?.status === "transcribing"
-                      ? "Transcribing…"
-                      : s.processing?.status === "recognizing"
-                        ? "Reading scanned text…"
-                        : s.processing?.status === "pending"
-                          ? s.processing.task === "ocr"
-                            ? "Ready to read scanned text"
-                            : "Ready to transcribe"
-                          : s.processing?.status === "failed"
-                            ? s.processing.task === "ocr"
-                              ? "Scanned text needs attention"
-                              : "Transcription needs attention"
-                            : `${words(s.text).toLocaleString()} words`}
-                  </span>
-                </button>
-                <span className="source-index">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <button
-                  className="icon-button"
-                  title="Read source"
-                  aria-label={`Read ${s.title}`}
-                  onClick={() =>
-                    setReading({ sourceId: s.id, nonce: Date.now() })
-                  }
-                >
-                  <ArrowUpRight size={18} />
-                </button>
-                <button
-                  disabled={disabled}
-                  className="icon-button delete"
-                  aria-label={`Remove ${s.title}`}
-                  onClick={() => {
-                    if (
-                      confirm(
-                        `Remove “${s.title}” from this notebook? Existing episodes retain their saved source snapshots. The current coverage map will be cleared.`,
-                      )
-                    )
-                      void run("Removing source", () =>
-                        change(`/notebooks/${n.id}/sources/${s.id}`, "DELETE"),
-                      );
-                  }}
-                >
-                  <Trash2 size={16} />
-                </button>
+          {visibleSources.map((s, i) => (
+            <div className="source-row" key={s.id}>
+              <div className="file-symbol">
+                {s.attachment?.mediaType.startsWith("audio/") ? (
+                  <Headphones size={20} />
+                ) : (
+                  <FileText size={20} />
+                )}
               </div>
-            ))}
+              <button
+                className="source-open"
+                onClick={() =>
+                  setReading({ sourceId: s.id, nonce: Date.now() })
+                }
+              >
+                <strong>{s.title}</strong>
+                <span>
+                  {s.kind === "course" ? "Course material" : "Supplementary"}{" "}
+                  <b>·</b>{" "}
+                  {s.processing?.status === "transcribing"
+                    ? "Transcribing…"
+                    : s.processing?.status === "recognizing"
+                      ? "Reading scanned text…"
+                      : s.processing?.status === "pending"
+                        ? s.processing.task === "ocr"
+                          ? "Ready to read scanned text"
+                          : "Ready to transcribe"
+                        : s.processing?.status === "failed"
+                          ? s.processing.task === "ocr"
+                            ? "Scanned text needs attention"
+                            : "Transcription needs attention"
+                          : `${sourceWordCounts.get(s.id)?.toLocaleString()} words`}
+                </span>
+              </button>
+              <span className="source-index">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <button
+                className="icon-button"
+                title="Read source"
+                aria-label={`Read ${s.title}`}
+                onClick={() =>
+                  setReading({ sourceId: s.id, nonce: Date.now() })
+                }
+              >
+                <ArrowUpRight size={18} />
+              </button>
+              <button
+                disabled={disabled}
+                className="icon-button delete"
+                aria-label={`Remove ${s.title}`}
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Remove “${s.title}” from this notebook? Existing episodes retain their saved source snapshots. The current coverage map will be cleared.`,
+                    )
+                  )
+                    void run("Removing source", () =>
+                      change(`/notebooks/${n.id}/sources/${s.id}`, "DELETE"),
+                    );
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
       {n.sources.length > 0 && (
@@ -1152,18 +1329,25 @@ function Sources({
               <span className="kicker">Source text</span>
               <h2>{selected.title}</h2>
             </div>
-            <Button icon={X} onClick={() => setReading(null)}>
+            <Button
+              icon={X}
+              onClick={() => {
+                setReading(null);
+                onCloseReader();
+              }}
+            >
               Close reader
             </Button>
           </div>
           {selected.attachment && (
-            <a
+            <DownloadLink
               className="button quiet"
               href={`/api/notebooks/${n.id}/sources/${selected.id}/original`}
+              filename={selected.attachment.filename}
               download
             >
               <Download size={16} /> Download original
-            </a>
+            </DownloadLink>
           )}
           {selected.attachment &&
             ["application/pdf", "image/png", "image/jpeg"].includes(
@@ -1285,6 +1469,12 @@ function Goals({
   const [fromSource, setFromSource] = useState("");
   const covered = n.coverage.filter((c) => c.status === "covered").length;
   const partial = n.coverage.filter((c) => c.status === "partial").length;
+  const visibleGoals = n.objectives.filter(
+    (objective) =>
+      filter === "all" ||
+      n.coverage.find((coverage) => coverage.objectiveId === objective.id)
+        ?.status === filter,
+  );
   const save = (objectives: Notebook["objectives"]) =>
     change(`/notebooks/${n.id}/objectives`, "PUT", objectives);
   return (
@@ -1313,7 +1503,7 @@ function Goals({
             e.preventDefault();
             const lines = text
               .split("\n")
-              .map((s) => s.replace(/^\s*[-*•\d.)]+\s*/, "").trim())
+              .map((s) => s.replace(/^\s*(?:[-*•]\s+|\d+[.)]\s+)/, "").trim())
               .filter(Boolean);
             void run("Adding learning goals", async () => {
               const seen = new Set(
@@ -1414,6 +1604,7 @@ function Goals({
             <button
               key={value}
               className={filter === value ? "selected" : ""}
+              aria-pressed={filter === value}
               onClick={() => setFilter(value)}
             >
               {label}
@@ -1434,135 +1625,157 @@ function Goals({
           Paste your learning objectives or concepts above. These become the
           backbone of the conversation.
         </Empty>
+      ) : !visibleGoals.length ? (
+        <Empty
+          icon={Target}
+          title="No goals match this filter"
+          action={
+            <Button variant="quiet" onClick={() => setFilter("all")}>
+              Show all goals
+            </Button>
+          }
+        >
+          {n.coverage.length
+            ? "Choose another coverage filter to see your goals."
+            : "Coverage has not been assessed yet. Your goals are still in the notebook."}
+        </Empty>
       ) : (
         <div className="objective-list">
-          {n.objectives
-            .filter(
-              (o) =>
-                filter === "all" ||
-                n.coverage.find((c) => c.objectiveId === o.id)?.status ===
-                  filter,
-            )
-            .map((o, i) => {
-              const c = n.coverage.find((c) => c.objectiveId === o.id);
-              return (
-                <div key={o.id} className="objective">
-                  <div className="objective-row">
-                    <span className="objective-number">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <button
-                      className={`bookmark ${o.important ? "marked" : ""}`}
-                      aria-label={`${o.important ? "Unmark" : "Mark"} ${o.text} as important`}
-                      disabled={disabled}
-                      onClick={() =>
-                        void run("Updating goal", () =>
-                          save(
-                            n.objectives.map((item) =>
-                              item.id === o.id
-                                ? { ...item, important: !item.important }
-                                : item,
-                            ),
+          {visibleGoals.map((o) => {
+            const i = n.objectives.findIndex(
+              (objective) => objective.id === o.id,
+            );
+            const c = n.coverage.find((c) => c.objectiveId === o.id);
+            return (
+              <div key={o.id} className="objective">
+                <div className="objective-row">
+                  <span className="objective-number">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <button
+                    className={`bookmark ${o.important ? "marked" : ""}`}
+                    aria-pressed={o.important}
+                    aria-label={`${o.important ? "Unmark" : "Mark"} ${o.text} as important`}
+                    disabled={disabled}
+                    onClick={() =>
+                      void run("Updating goal", () =>
+                        save(
+                          n.objectives.map((item) =>
+                            item.id === o.id
+                              ? { ...item, important: !item.important }
+                              : item,
                           ),
-                        )
-                      }
-                    >
-                      <Bookmark
-                        size={18}
-                        fill={o.important ? "currentColor" : "none"}
-                      />
-                    </button>
-                    <button
-                      className="objective-main"
-                      onClick={() =>
-                        setExpanded(expanded === o.id ? null : o.id)
-                      }
-                    >
-                      <span className="item-kind">
-                        {o.kind === "goal" ? "Learning objective" : "Concept"}
-                      </span>
-                      <strong>{o.text}</strong>
-                    </button>
-                    <span className={`badge ${c?.status || "unmapped"}`}>
-                      {c?.status === "covered" ? <Check size={13} /> : null}
-                      {c?.status === "missing"
-                        ? "Not established"
-                        : c?.status || "Not mapped"}
+                        ),
+                      )
+                    }
+                  >
+                    <Bookmark
+                      size={18}
+                      fill={o.important ? "currentColor" : "none"}
+                    />
+                  </button>
+                  <button
+                    className="objective-main"
+                    aria-expanded={expanded === o.id}
+                    aria-controls={
+                      expanded === o.id ? `goal-evidence-${o.id}` : undefined
+                    }
+                    onClick={() => setExpanded(expanded === o.id ? null : o.id)}
+                  >
+                    <span className="item-kind">
+                      {o.kind === "goal" ? "Learning objective" : "Concept"}
                     </span>
-                    <button
-                      className="icon-button"
-                      aria-label="Expand evidence"
-                      onClick={() =>
-                        setExpanded(expanded === o.id ? null : o.id)
-                      }
-                    >
-                      {expanded === o.id ? (
-                        <ChevronDown size={18} />
-                      ) : (
-                        <ChevronRight size={18} />
-                      )}
-                    </button>
-                    <button
-                      className="icon-button delete"
-                      aria-label={`Remove goal ${i + 1}`}
-                      disabled={disabled}
-                      onClick={() =>
-                        void run("Removing goal", () =>
-                          save(n.objectives.filter((item) => item.id !== o.id)),
-                        )
-                      }
-                    >
-                      <X size={15} />
-                    </button>
-                  </div>
-                  {expanded === o.id && (
-                    <div className="objective-detail">
-                      {c ? (
-                        <>
-                          <p>{c.explanation}</p>
-                          <EvidenceList
-                            evidence={c.evidence}
-                            n={n}
+                    <strong>{o.text}</strong>
+                  </button>
+                  <span className={`badge ${c?.status || "unmapped"}`}>
+                    {c?.status === "covered" ? <Check size={13} /> : null}
+                    {c?.status === "missing"
+                      ? "Not established"
+                      : c?.status || "Not mapped"}
+                  </span>
+                  <button
+                    className="icon-button"
+                    aria-label={
+                      expanded === o.id
+                        ? "Collapse evidence"
+                        : "Expand evidence"
+                    }
+                    aria-expanded={expanded === o.id}
+                    aria-controls={
+                      expanded === o.id ? `goal-evidence-${o.id}` : undefined
+                    }
+                    onClick={() => setExpanded(expanded === o.id ? null : o.id)}
+                  >
+                    {expanded === o.id ? (
+                      <ChevronDown size={18} />
+                    ) : (
+                      <ChevronRight size={18} />
+                    )}
+                  </button>
+                  <button
+                    className="icon-button delete"
+                    aria-label={`Remove goal ${i + 1}`}
+                    disabled={disabled}
+                    onClick={() =>
+                      void run("Removing goal", () =>
+                        save(n.objectives.filter((item) => item.id !== o.id)),
+                      )
+                    }
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+                {expanded === o.id && (
+                  <div
+                    className="objective-detail"
+                    id={`goal-evidence-${o.id}`}
+                  >
+                    {c ? (
+                      <>
+                        <p>{c.explanation}</p>
+                        <EvidenceList
+                          evidence={c.evidence}
+                          n={n}
+                          onOpenSource={openSource}
+                        />
+                        {c.context && (
+                          <ContextSummary
+                            summary={c.context}
+                            sources={n.sources}
                             onOpenSource={openSource}
                           />
-                          {c.context && (
-                            <ContextSummary
-                              summary={c.context}
-                              sources={n.sources}
-                              onOpenSource={openSource}
-                            />
-                          )}
-                          {c.status !== "covered" && (
-                            <div className="gap-action">
-                              <span>
-                                Suggested research: {c.searchQuery || o.text}
-                              </span>
-                              <a
-                                className="button"
-                                href={`https://www.google.com/search?q=${encodeURIComponent(c.searchQuery || o.text)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                <Search size={15} /> Search the gap
-                              </a>
-                              <Button icon={Plus} onClick={() => openSource()}>
-                                Add a source
-                              </Button>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <p>
-                          Run “Map source coverage” to find supporting passages
-                          and gaps. The model proposes coverage; exact quotes
-                          are checked against your sources.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                        )}
+                        {c.status !== "covered" && (
+                          <div className="gap-action">
+                            <span>
+                              Suggested research: {c.searchQuery || o.text}
+                            </span>
+                            <a
+                              className="button"
+                              href={`https://www.google.com/search?q=${encodeURIComponent(c.searchQuery || o.text)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <Search size={15} /> Search the gap
+                            </a>
+                            <Button icon={Plus} onClick={() => openSource()}>
+                              Add a source
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p>
+                        Run “Map source coverage” to find supporting passages
+                        and gaps. The model proposes coverage; exact quotes are
+                        checked against your sources.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       <p className="fine-print">
@@ -1593,6 +1806,7 @@ function Studio({
   n,
   disabled,
   status,
+  activityRevision,
   run,
   change,
   refresh,
@@ -1600,13 +1814,36 @@ function Studio({
   settings,
 }: WorkProps & {
   status: Capabilities | null;
+  activityRevision: number;
   refresh: () => Promise<void>;
   saveSettings: (s: Settings) => Promise<void>;
   settings: () => void;
 }) {
-  const [draft, setDraft] = useState<Settings>(n.settings);
-  const [eid, setEid] = useState(n.episodes[0]?.id || "");
-  const [cid, setCid] = useState("");
+  const configurationDraft = useObjectDraft(
+    `${n.id}:episode-configuration`,
+    n.settings,
+    (Object.keys(n.settings) as (keyof Settings)[]).filter(
+      (key) => key !== "provider" && key !== "model",
+    ),
+  );
+  const { value: draft, setValue: setDraft } = configurationDraft;
+  const savedSelection = useMemo(() => {
+    try {
+      const value = JSON.parse(
+        localStorage.getItem(`sennibook:studio:${n.id}`) || "null",
+      );
+      return {
+        episodeId: typeof value?.episodeId === "string" ? value.episodeId : "",
+        chapterId: typeof value?.chapterId === "string" ? value.chapterId : "",
+      };
+    } catch {
+      return { episodeId: "", chapterId: "" };
+    }
+  }, [n.id]);
+  const [eid, setEid] = useState(
+    savedSelection.episodeId || n.episodes[0]?.id || "",
+  );
+  const [cid, setCid] = useState(savedSelection.chapterId);
   const [editing, setEditing] = useState(false);
   const [sourceReader, setSourceReader] = useState<{
     episodeId: string;
@@ -1617,7 +1854,25 @@ function Studio({
   } | null>(null);
   const [showHarness, setShowHarness] = useState(false);
   const e = n.episodes.find((ep) => ep.id === eid) || n.episodes[0];
+  const episodeVoiceDraft = useObjectDraft(
+    `${n.id}:${e?.id || "none"}:episode-voices`,
+    e?.settings || n.settings,
+    Object.keys(speechSettingsSchema.shape) as (keyof Settings)[],
+  );
+  const { value: episodeVoices, setValue: setEpisodeVoices } =
+    episodeVoiceDraft;
   const c = e?.chapters.find((ch) => ch.id === cid) || e?.chapters[0];
+  useEffect(() => {
+    if (!e) return;
+    try {
+      localStorage.setItem(
+        `sennibook:studio:${n.id}`,
+        JSON.stringify({ episodeId: e.id, chapterId: c?.id || "" }),
+      );
+    } catch {
+      // Remembering the selected chapter is optional; playback remains usable.
+    }
+  }, [n.id, e?.id, c?.id]);
   const savedScript = useMemo(
     () => c?.turns.map((t) => `${t.speaker}: ${t.text}`).join("\n\n") || "",
     [c?.turns],
@@ -1643,6 +1898,24 @@ function Studio({
     totalWords ? totalWords / 145 : draft.minutes,
     e?.settings.ttsModel || draft.ttsModel,
   );
+  const episodeCartesia = e?.settings.ttsProvider === "cartesia";
+  const speechConnected =
+    (e?.settings || draft).ttsProvider === "cartesia"
+      ? !!status?.cartesia
+      : !!status?.googleProject;
+  const episodeCredits = cartesiaCredits(
+    e?.chapters.flatMap((ch) => ch.turns.map((turn) => turn.text)).join("") ||
+      "",
+  );
+  const speechEstimate = episodeCartesia
+    ? `~${episodeCredits.toLocaleString()} credits`
+    : priceLabel(ttsCost);
+  const draftVoiceError = voiceSelectionError(draft);
+  const episodeVoiceError = voiceSelectionError(episodeVoices);
+  const episodeVoicesChanged =
+    !!e &&
+    JSON.stringify(speechSettingsSchema.parse(episodeVoices)) !==
+      JSON.stringify(speechSettingsSchema.parse(e.settings));
   useEffect(() => {
     setEditing(false);
     setSourceReader(null);
@@ -1672,6 +1945,19 @@ function Studio({
           <h2>Shape the conversation</h2>
         </div>
         <p className="muted">These settings apply to your next episode.</p>
+        <DraftNotice
+          error={configurationDraft.error}
+          restored={configurationDraft.restored}
+        />
+        {(configurationDraft.changed || configurationDraft.error) && (
+          <Button
+            variant="quiet"
+            disabled={disabled}
+            onClick={configurationDraft.discard}
+          >
+            Discard setup draft
+          </Button>
+        )}
         <Field label="Subject profile">
           <select
             value={draft.subject}
@@ -1778,74 +2064,44 @@ function Studio({
           <summary>
             Voice settings{" "}
             <span>
-              {draft.voiceA} & {draft.voiceB}
+              {draft.ttsProvider === "cartesia"
+                ? "Cartesia · Sonic 3.6"
+                : `${draft.voiceA} & ${draft.voiceB}`}
             </span>
           </summary>
-          <Field label="Speech model">
-            <select
-              value={draft.ttsModel}
-              disabled={disabled}
-              onChange={(ev) =>
-                update("ttsModel", ev.target.value as Settings["ttsModel"])
-              }
-            >
-              <option value="gemini-2.5-flash-tts">Gemini 2.5 Flash TTS</option>
-              <option value="gemini-3.1-flash-tts-preview">
-                Gemini 3.1 Flash TTS · preview
-              </option>
-              <option value="gemini-2.5-pro-tts">Gemini 2.5 Pro TTS</option>
-            </select>
-          </Field>
-          <div className="form-row">
-            {(["voiceA", "voiceB"] as const).map((key, i) => (
-              <Field key={key} label={`Host ${i ? "B" : "A"}`}>
-                <select
-                  value={draft[key]}
-                  disabled={disabled}
-                  onChange={(ev) =>
-                    update(key, ev.target.value as Settings["voiceA"])
-                  }
-                >
-                  {[
-                    "Kore",
-                    "Charon",
-                    "Puck",
-                    "Aoede",
-                    "Fenrir",
-                    "Leda",
-                    "Orus",
-                    "Zephyr",
-                  ].map((v) => (
-                    <option key={v}>{v}</option>
-                  ))}
-                </select>
-              </Field>
-            ))}
-          </div>
+          <SpeechSettings
+            value={draft}
+            onChange={setDraft}
+            disabled={disabled}
+            connected={!!status?.cartesia}
+          />
         </details>
         <div className="cost-note">
           <span>Next episode · target estimate</span>
           <strong>
-            {priceLabel(estimateSpeech(draft.minutes, draft.ttsModel))}{" "}
-            <small>USD</small>
+            {draft.ttsProvider === "cartesia" ? (
+              `~${Math.round(draft.minutes * 870).toLocaleString()} credits`
+            ) : (
+              <>
+                {priceLabel(estimateSpeech(draft.minutes, draft.ttsModel))}{" "}
+                <small>USD</small>
+              </>
+            )}
           </strong>
           <p>
-            Before input, retries and taxes. Cloud credits are not checked by
-            this app.
+            {draft.ttsProvider === "cartesia"
+              ? "Assumes 145 words per minute and 6 characters per word. Actual usage follows the script; retries use extra credits. Balance is not checked."
+              : "Before input, retries and taxes. Cloud credits are not checked by this app."}
           </p>
         </div>
         <Button
           variant="primary wide"
           icon={Sparkles}
-          disabled={
-            disabled ||
-            !n.sources.length ||
-            !n.objectives.length ||
-            draft.voiceA === draft.voiceB
-          }
+          disabled={disabled || !n.sources.length || !n.objectives.length}
           onClick={() =>
             void run("Planning your episode", async () => {
               await saveSettings(draft);
+              configurationDraft.accept();
               await change(`/notebooks/${n.id}/episodes`);
               setEid("");
               setCid("");
@@ -1854,9 +2110,9 @@ function Studio({
         >
           Plan an episode
         </Button>
-        {draft.voiceA === draft.voiceB && (
-          <p className="inline-error">
-            Choose different voices for the two hosts.
+        {draftVoiceError && (
+          <p className="fine-print">
+            Before generating audio: {draftVoiceError}
           </p>
         )}
         <p className="fine-print">
@@ -1877,12 +2133,16 @@ function Studio({
           </div>
           <Headphones size={26} strokeWidth={1.5} />
         </div>
-        {!status?.googleProject && (
+        {!speechConnected && (
           <div className="connection-note">
             <Volume2 size={18} />
             <p>
-              Connect Google Cloud to bring your episodes to life. You can plan
-              and edit scripts first.
+              Connect{" "}
+              {(e?.settings || draft).ttsProvider === "cartesia"
+                ? "Cartesia"
+                : "Google Cloud"}{" "}
+              in Settings to create audio, or choose a connected provider in
+              voice settings. You can plan and edit scripts first.
             </p>
             <Button icon={ArrowUpRight} variant="quiet" onClick={settings}>
               Set up
@@ -1945,6 +2205,7 @@ function Studio({
                 {e.settings.language === "nl" ? "Nederlands" : "English"} ·{" "}
                 {e.settings.depth} · {e.settings.minutes} min target
                 {totalWords > 0 && ` · ${durationLabel(totalWords)} scripted`}
+                {` · ${episodeCartesia ? "Cartesia · Sonic 3.6" : "Google speech"}`}
               </p>
             </div>
             {e.error && (
@@ -2013,6 +2274,65 @@ function Studio({
                 </ul>
               </details>
             )}
+            <details className="script-checks episode-voice-change">
+              <summary>Voices for this episode</summary>
+              <p>
+                Change the voices or audio quality without rewriting the script.
+                If audio already exists, saving creates a separate episode copy.
+              </p>
+              <SpeechSettings
+                value={episodeVoices}
+                onChange={setEpisodeVoices}
+                disabled={disabled}
+                connected={!!status?.cartesia}
+              />
+              <DraftNotice
+                error={episodeVoiceDraft.error}
+                restored={episodeVoiceDraft.restored}
+              />
+              {episodeVoiceError && (
+                <p className="inline-error">{episodeVoiceError}</p>
+              )}
+              <Button
+                icon={Check}
+                disabled={
+                  disabled || !!episodeVoiceError || !episodeVoicesChanged
+                }
+                onClick={() =>
+                  void run("Saving episode voices", async () => {
+                    const result = await api<{
+                      episodeId: string;
+                      copied: boolean;
+                    }>(
+                      `/notebooks/${n.id}/episodes/${e.id}/speech`,
+                      "PUT",
+                      speechSettingsSchema.parse(episodeVoices),
+                    );
+                    episodeVoiceDraft.accept();
+                    await refresh();
+                    setEid(result.episodeId);
+                    if (result.copied) setCid("");
+                  })
+                }
+              >
+                Save episode voices
+              </Button>
+              {(episodeVoiceDraft.changed || episodeVoiceDraft.error) && (
+                <Button
+                  variant="quiet"
+                  disabled={disabled}
+                  onClick={episodeVoiceDraft.discard}
+                >
+                  Discard voice draft
+                </Button>
+              )}
+            </details>
+            {episodeVoicesChanged && (
+              <p className="fine-print" role="status">
+                Save episode voices to use your changes in the next preview or
+                generation.
+              </p>
+            )}
             <div className="episode-actions">
               {!hasScript && (
                 <Button
@@ -2028,7 +2348,12 @@ function Studio({
                 <>
                   <Button
                     icon={Volume2}
-                    disabled={disabled || !status?.googleProject}
+                    disabled={
+                      disabled ||
+                      !speechConnected ||
+                      episodeVoicesChanged ||
+                      !!voiceSelectionError(e.settings)
+                    }
                     onClick={() => audioAction(true)}
                   >
                     Voice preview
@@ -2037,19 +2362,25 @@ function Studio({
                     <Button
                       icon={Headphones}
                       variant="audio-button"
-                      disabled={disabled || !status?.googleProject}
+                      disabled={
+                        disabled ||
+                        !speechConnected ||
+                        episodeVoicesChanged ||
+                        !!voiceSelectionError(e.settings)
+                      }
                       onClick={() => audioAction(false)}
                     >
-                      Generate audio · {priceLabel(ttsCost)}
+                      Generate audio · {speechEstimate}
                     </Button>
                   ) : (
-                    <a
+                    <DownloadLink
                       className="button primary"
                       href={`/api/notebooks/${n.id}/episodes/${e.id}/download?format=${status?.mp3 ? "mp3" : "wav"}`}
+                      filename={`${e.title}.${status?.mp3 ? "mp3" : "wav"}`}
                     >
                       <Download size={17} /> Download{" "}
                       {status?.mp3 ? "MP3" : "WAV"}
-                    </a>
+                    </DownloadLink>
                   )}
                 </>
               )}
@@ -2083,9 +2414,9 @@ function Studio({
             )}
             {hasScript && !fullAudio && (
               <p className="fine-print">
-                Estimate is based on this script. Preview generates the first
-                short segment. Full generation uses paid Google Cloud speech;
-                eligible credits may offset it. Completed segments are reused.
+                {episodeCartesia
+                  ? `Full-script estimate: ~${episodeCredits.toLocaleString()} credits, before normalization and retries. Preview generates the first segment from each host and uses credits too. Completed segments are reused, so remaining usage may be lower. Check your balance in Cartesia.`
+                  : "Estimate is based on this script. Preview generates the first short segment. Full generation uses paid Google Cloud speech; eligible credits may offset it. Completed segments are reused."}
               </p>
             )}
             {e.previewFile && (
@@ -2293,7 +2624,10 @@ function Studio({
             )}
           </>
         )}
-        <ActivityHistory notebookId={n.id} refreshKey={n.updatedAt} />
+        <ActivityHistory
+          notebookId={n.id}
+          refreshKey={`${n.updatedAt}:${activityRevision}:${status?.activeJobs[n.id] || "idle"}`}
+        />
       </section>
     </div>
   );
@@ -2419,34 +2753,56 @@ function Connections({
   status,
   disabled,
   save,
-  onBack,
   rename,
   remove,
   refreshStatus,
   restore,
+  trashRefreshKey,
+  onNotebookRestored,
 }: {
   n: Notebook | null;
   status: Capabilities | null;
   disabled: boolean;
-  save: (s: Settings) => Promise<void>;
-  onBack: () => void;
-  rename: (title: string, description: string) => Promise<void>;
+  save: (
+    provider: Settings["provider"],
+    model: string,
+    onSaved: () => void,
+  ) => Promise<void>;
+  rename: (
+    title: string,
+    description: string,
+    onSaved: () => void,
+  ) => Promise<void>;
   remove: () => Promise<void>;
   refreshStatus: () => Promise<void>;
   restore: (file: File) => Promise<void>;
+  trashRefreshKey: number;
+  onNotebookRestored: (id: string) => Promise<void>;
 }) {
-  const [draft, setDraft] = useState(n?.settings);
-  const [title, setTitle] = useState(n?.title || "");
-  const [description, setDescription] = useState(n?.description || "");
+  const providerDraft = useObjectDraft(
+    `${n?.id || "none"}:provider`,
+    n?.settings || settingsSchema.parse({}),
+    ["provider", "model"],
+  );
+  const { value: draft, setValue: setDraft } = providerDraft;
+  const detailsDraft = useObjectDraft(
+    `${n?.id || "none"}:notebook-details`,
+    { title: n?.title || "", description: n?.description || "" },
+    ["title", "description"],
+  );
+  const { title, description } = detailsDraft.value;
+  const setTitle = (title: string) =>
+    detailsDraft.setValue({ title, description });
+  const setDescription = (description: string) =>
+    detailsDraft.setValue({ title, description });
+  const [codexCheck, setCodexCheck] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+  const [checkingCodex, setCheckingCodex] = useState(false);
   const bundleInput = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    setDraft(n?.settings);
-  }, [n?.id]);
   return (
     <div className="settings-page">
-      <Button icon={ArrowLeft} variant="quiet" onClick={onBack}>
-        Back to notebook
-      </Button>
       <div className="page-heading">
         <div>
           <span className="kicker">Your tools, connected</span>
@@ -2485,8 +2841,37 @@ function Connections({
               </div>
             ))}
           </div>
-          {draft ? (
+          <Button
+            disabled={checkingCodex || disabled || !status?.codex}
+            onClick={() => {
+              setCheckingCodex(true);
+              void api<{ ok: boolean; message: string }>(
+                "/connections/codex/check",
+                "POST",
+              )
+                .then(setCodexCheck)
+                .catch((error) =>
+                  setCodexCheck({ ok: false, message: error.message }),
+                )
+                .finally(() => setCheckingCodex(false));
+            }}
+          >
+            {checkingCodex ? "Checking Codex…" : "Check Codex connection"}
+          </Button>
+          {codexCheck && (
+            <p
+              className={codexCheck.ok ? "fine-print" : "inline-error"}
+              role="status"
+            >
+              {codexCheck.message}
+            </p>
+          )}
+          {n ? (
             <>
+              <DraftNotice
+                error={providerDraft.error}
+                restored={providerDraft.restored}
+              />
               <Field label="Notebook provider">
                 <select
                   value={draft.provider}
@@ -2519,6 +2904,7 @@ function Connections({
               >
                 <input
                   value={draft.model}
+                  maxLength={100}
                   onChange={(e) =>
                     setDraft({ ...draft, model: e.target.value })
                   }
@@ -2535,10 +2921,21 @@ function Connections({
                 variant="primary"
                 icon={Check}
                 disabled={disabled}
-                onClick={() => void save(draft)}
+                onClick={() =>
+                  void save(draft.provider, draft.model, providerDraft.accept)
+                }
               >
                 Save provider
               </Button>
+              {(providerDraft.changed || providerDraft.error) && (
+                <Button
+                  variant="quiet"
+                  disabled={disabled}
+                  onClick={providerDraft.discard}
+                >
+                  Discard provider draft
+                </Button>
+              )}
             </>
           ) : (
             <p>Create a notebook to choose its provider.</p>
@@ -2547,15 +2944,20 @@ function Connections({
             <summary>Connection instructions</summary>
             <p>
               <strong>Codex:</strong> install the CLI and run{" "}
-              <code>codex login</code>. SenniBook reuses that local login in a
-              read-only, temporary working directory. Account limits still
-              apply.
+              <code>codex login</code>. SenniBook connects through Codex App
+              Server using your local login. Your subscription or API billing
+              and usage limits apply.
             </p>
             <p>
               <strong>OpenCode Go:</strong> install OpenCode and connect your Go
               account. SenniBook can reuse that local login. Alternatively, add{" "}
               <code>OPENCODE_API_KEY</code> to the local <code>.env</code> file
               and select a chat/completions model.
+            </p>
+            <p>
+              Go describes its subscription as intended for coding-agent
+              traffic. Permission for lesson generation is unconfirmed; use
+              Codex or a normal API service for this workflow.
             </p>
             <p>
               <strong>Ollama:</strong> run Ollama locally and install your
@@ -2596,6 +2998,39 @@ function Connections({
           />
         </div>
       </section>
+      <section className="settings-section" id="cartesia-connection">
+        <div>
+          <h2>Cartesia speech</h2>
+          <p>
+            Use your Cartesia subscription for English and Dutch episode voices.
+            Choose the two hosts in the audio studio.
+          </p>
+        </div>
+        <div className="settings-body">
+          <CartesiaSetup
+            configured={!!status?.cartesia}
+            disabled={
+              disabled || !!Object.keys(status?.activeJobs || {}).length
+            }
+            connect={async (apiKey) => {
+              const result = await api<{ message: string }>(
+                "/connections/cartesia",
+                "POST",
+                { apiKey },
+              );
+              await refreshStatus();
+              return result;
+            }}
+            disconnect={async () => {
+              await api("/connections/cartesia", "DELETE");
+              await refreshStatus();
+            }}
+            check={async () => {
+              await api("/cartesia/voices");
+            }}
+          />
+        </div>
+      </section>
       <section className="settings-section" id="local-transcription">
         <div>
           <h2>Local transcription</h2>
@@ -2623,9 +3058,13 @@ function Connections({
           </p>
           <div className="actions">
             {n && (
-              <a className="button" href={`/api/notebooks/${n.id}/bundle`}>
+              <DownloadLink
+                className="button"
+                href={`/api/notebooks/${n.id}/bundle`}
+                filename={`${n.title}.zip`}
+              >
                 <Download size={16} /> Back up this notebook
-              </a>
+              </DownloadLink>
             )}
             <Button
               icon={Upload}
@@ -2655,9 +3094,13 @@ function Connections({
             <form
               onSubmit={(event) => {
                 event.preventDefault();
-                void rename(title, description);
+                void rename(title, description, detailsDraft.accept);
               }}
             >
+              <DraftNotice
+                error={detailsDraft.error}
+                restored={detailsDraft.restored}
+              />
               <Field label="Notebook title">
                 <input
                   value={title}
@@ -2678,24 +3121,33 @@ function Connections({
                 <Button type="submit" disabled={disabled} icon={Check}>
                   Save notebook details
                 </Button>
+                {(detailsDraft.changed || detailsDraft.error) && (
+                  <Button
+                    variant="quiet"
+                    disabled={disabled}
+                    onClick={detailsDraft.discard}
+                  >
+                    Discard details draft
+                  </Button>
+                )}
                 <Button
                   variant="quiet"
                   disabled={disabled}
                   icon={Trash2}
-                  onClick={() => {
-                    if (
-                      confirm(
-                        `Delete “${n.title}” and its saved notes? Export your notebook first if you want to keep a copy.`,
-                      )
-                    )
-                      void remove();
-                  }}
+                  onClick={() => void remove()}
                 >
-                  Delete notebook
+                  Move notebook to Trash
                 </Button>
               </div>
             </form>
           )}
+          <NotebookTrash
+            disabled={
+              disabled || !!Object.keys(status?.activeJobs || {}).length
+            }
+            refreshKey={trashRefreshKey}
+            onRestored={onNotebookRestored}
+          />
           <h3>Readable Markdown export</h3>
           <p>
             Exports contain sources, objectives and episode transcripts. They
@@ -2703,9 +3155,13 @@ function Connections({
             it later.
           </p>
           {n && (
-            <a className="button" href={`/api/notebooks/${n.id}/export`}>
+            <DownloadLink
+              className="button"
+              href={`/api/notebooks/${n.id}/export`}
+              filename={`${n.title}.md`}
+            >
               <Download size={16} /> Export this notebook
-            </a>
+            </DownloadLink>
           )}
           <details>
             <summary>What this first edition does and doesn’t do</summary>
@@ -2785,6 +3241,8 @@ function DesktopDetails() {
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <DownloadProvider>
+      <App />
+    </DownloadProvider>
   </React.StrictMode>,
 );

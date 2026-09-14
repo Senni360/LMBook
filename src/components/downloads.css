@@ -1,0 +1,54 @@
+.download-status {
+  position: fixed;
+  z-index: 30;
+  inset-inline-end: 20px;
+  inset-block-end: 20px;
+  width: min(370px, calc(100vw - 40px));
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+}
+.download-status-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.download-status-heading > svg {
+  flex-shrink: 0;
+}
+.download-status-heading strong {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.download-status p {
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
+.download-status progress {
+  display: block;
+  width: 100%;
+  height: 7px;
+  margin-top: 12px;
+  accent-color: var(--forest);
+}
+.download-status .button {
+  min-height: 44px;
+  margin-top: 12px;
+}
+.download-status .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.download-error {
+  color: #8a352c;
+}
+a[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: wait;
+}

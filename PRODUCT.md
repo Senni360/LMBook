@@ -3,7 +3,7 @@
 ## Platform
 web
 
-Electron desktop app with a reusable web interface, chosen by the owner on 2026-09-14. Windows is the first desktop target. The local browser edition remains useful for development; phone-friendly listening remains a product requirement.
+Electron desktop app with a reusable web interface, chosen by the owner on 2026-09-14. Windows is the first desktop target. Deliver features and examples in Electron; the browser's separate development library is not the owner's desktop library. Phone-friendly listening remains a product requirement.
 ## Users
 The owner and friends study in Dutch and English, from high school to advanced politics, biology and economics. English is the confirmed default for new notebooks. They listen while walking, sometimes ten hours in a week, sometimes none. The owner listens on an iPhone and does not currently use Obsidian. SenniBook must work independently; vault integration remains optional.
 ## Product Purpose
@@ -17,10 +17,19 @@ The owner's past German-literature course illustrates an annotated reading: pres
 
 Confirmed source formats include selectable and scanned PDFs, slides, audio recordings, Markdown, HTML and Word. Scans and photos are mostly printed course pages and slides, rather than handwriting (confirmed 2026-09-14). Keep original recordings alongside local transcripts with timestamps. Those transcripts provide searchable citation anchors; a later multimodal check can compare uncertain passages with the original audio. Transcription and podcast voice generation are separate features.
 ## Capabilities and Constraints
+
+The owner selected recoverable notebook Trash with an explicit permanent-delete action on 2026-09-14. Moving a notebook out of the library must remain reversible; permanent deletion must preserve files still referenced by another active or trashed notebook, including episode source snapshots. This is implemented in desktop 0.2.8 and verified with isolated libraries. No automatic purge of old unreferenced files is implemented.
 Open source and editable harness. Existing Codex/ChatGPT Pro, OpenCode Go and Google AI Pro subscriptions. Google Cloud credits must be activated and verified separately. RTX 3060/3080 local model options. API speech costs must be transparent. Obsidian integration is exploratory; portable Markdown is the first step.
+
+The owner has a Cartesia Pro subscription and requested its integration on 2026-09-14. Cartesia Sonic 3.6 is now selectable for English/Dutch episodes, with a local API-key connection, separate host voices, delivery speed, previews and resumable audio. Existing scripts can change speech settings; an episode with audio is copied before changing its voices. Display approximate character-based credits rather than assuming an account balance or converting transcription rates into speech-generation costs. Real account access and a short two-host packaged preview passed; long-form listening remains for the owner. Neither the app's estimates nor Google alerts-only budgets impose a spending cap.
+
+The owner preferred the 44.1 kHz sample in a matched Cartesia comparison and approved making it the default. Since desktop 0.2.6, new plans request native 44.1 kHz PCM16 WAV. Older episodes retain their original 24 kHz setting and caches; changing audio quality uses the same separate-copy flow when audio exists. [Comparison evidence and limits](docs/research/cartesia-audio-quality.md) distinguish this listening preference from a universal quality claim.
+
+Codex uses the official App Server integration and the owner's existing login, with SenniBook's own identity and normal account limits. The owner proposed T3 Code's provider approach; a separate API key is not a settled requirement. OpenCode Go's coding-traffic permission remains a separate unresolved issue.
 ## Evidence on Hand
 Detailed user conversation; no actual course pack or audio samples provided. Example notebook content must be visibly labelled illustrative.
 ## Product Principles
+- Desktop navigation: the owner confirmed that the native `SenniBook / Edit / View` menu should be hidden by default, retaining the Windows title bar and in-app status strip. Settings should offer `Go back` at the sidebar bottom and return to the previous notebook section. Navigation must preserve unsaved preparation and listening context. Implementation evidence lives in the [desktop reliability sweep](docs/audits/2026-09-14-no-generation.md).
 - Prioritize interaction behavior and reliability over cosmetic redesign. The owner does not require matching another product's colors or appearance. Review relevant upstream UI issues and verified solutions to avoid repeating them; confirm applicability before changing SenniBook.
 - Coverage must be inspectable, with evidence and unresolved gaps.
 - Depth and assumed knowledge are independent of subject.

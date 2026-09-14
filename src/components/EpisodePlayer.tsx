@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DownloadLink } from "./Downloads";
 import {
   ChevronLeft,
   ChevronRight,
@@ -24,6 +25,7 @@ export type EpisodePlayerProps = {
 };
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+const SPEED_KEY = "sennibook:playback-speed";
 
 function getStorage(): PlaybackStorage | null {
   if (typeof window === "undefined") return null;
@@ -67,7 +69,14 @@ export function EpisodePlayer({
   const lastPersistedAt = useRef(0);
   const continuePlayback = useRef(false);
   const changingSource = useRef(false);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(() => {
+    try {
+      const saved = Number(getStorage()?.getItem(SPEED_KEY));
+      return SPEEDS.includes(saved) ? saved : 1;
+    } catch {
+      return 1;
+    }
+  });
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const speedRef = useRef(speed);
   speedRef.current = speed;
@@ -81,12 +90,6 @@ export function EpisodePlayer({
     activeIndex > 0 ? episode.chapters[activeIndex - 1] : undefined;
   const nextChapter =
     activeIndex >= 0 ? episode.chapters[activeIndex + 1] : undefined;
-  const nextPlayableChapter =
-    activeIndex >= 0
-      ? episode.chapters
-          .slice(activeIndex + 1)
-          .find((chapter) => chapter.audioFile)
-      : undefined;
   const storage = useMemo(() => getStorage(), []);
   const key = activeChapter
     ? playbackStorageKey(episode.id, activeChapter.id)
@@ -181,6 +184,8 @@ export function EpisodePlayer({
     const audio = audioRef.current;
     if (!audio || !key) {
       if (!audio) sourceKeyRef.current = null;
+      continuePlayback.current = false;
+      changingSource.current = false;
       return;
     }
     const absoluteSource = activeSource
@@ -219,7 +224,12 @@ export function EpisodePlayer({
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = speed;
-  }, [speed]);
+    try {
+      storage?.setItem(SPEED_KEY, String(speed));
+    } catch {
+      // The current speed still works if this device cannot save preferences.
+    }
+  }, [speed, storage]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -258,7 +268,7 @@ export function EpisodePlayer({
       [
         "nexttrack",
         () =>
-          nextPlayableChapter && changeChapter(nextPlayableChapter.id, true),
+          nextChapter && changeChapter(nextChapter.id, !!nextChapter.audioFile),
       ],
     ];
     for (const [action, handler] of actions) {
@@ -281,7 +291,6 @@ export function EpisodePlayer({
     activeChapter,
     changeChapter,
     episode.title,
-    nextPlayableChapter,
     nextChapter,
     playAudio,
     previousChapter,
@@ -329,8 +338,8 @@ export function EpisodePlayer({
           onPause={() => persistPosition(true)}
           onEnded={() => {
             if (key) clearPlaybackPosition(storage, key);
-            if (nextPlayableChapter)
-              changeChapter(nextPlayableChapter.id, true);
+            if (nextChapter)
+              changeChapter(nextChapter.id, !!nextChapter.audioFile);
           }}
         />
       ) : (
@@ -408,14 +417,15 @@ export function EpisodePlayer({
           <ChevronRight size={17} aria-hidden="true" />
         </button>
         {activeChapter.audioFile && (
-          <a
+          <DownloadLink
             className="episode-player-download"
             href={chapterFileUrl(activeChapter.audioFile)}
+            filename={`${activeChapter.title}.wav`}
             download
           >
             <Download size={16} aria-hidden="true" />
             Download chapter
-          </a>
+          </DownloadLink>
         )}
       </div>
       <label className="episode-player-chapter">

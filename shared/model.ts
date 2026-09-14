@@ -28,6 +28,10 @@ export const profiles: Record<string, string> = {
   General:
     "Explain mechanisms, evidence and connections. Preserve terminology and qualifications. Separate source claims from interpretation. Use examples only when they improve understanding.",
 };
+export const cartesiaSampleRateSchema = z.union([
+  z.literal(24000),
+  z.literal(44100),
+]);
 export const settingsSchema = z.object({
   subject: z.enum(subjects).default("Politics"),
   language: z.enum(["en", "nl"]).default("en"),
@@ -47,6 +51,7 @@ export const settingsSchema = z.object({
   cartesiaVoiceA: z.union([z.string().uuid(), z.literal("")]).default(""),
   cartesiaVoiceB: z.union([z.string().uuid(), z.literal("")]).default(""),
   cartesiaSpeed: z.number().min(0.6).max(1.5).default(1),
+  cartesiaSampleRate: cartesiaSampleRateSchema.default(44100),
   ttsModel: z
     .enum([
       "gemini-2.5-flash-tts",

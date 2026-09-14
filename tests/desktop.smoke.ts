@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { _electron as electron } from "@playwright/test";
-import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -44,7 +44,9 @@ test(
         node: typeof (window as any).process,
       }));
       assert.deepEqual(sandbox, { require: "undefined", node: "undefined" });
-      assert.equal((await fetch(page.url() + "api/notebooks")).status, 403);
+      const backendOrigin = readFileSync(path.join(data, "desktop.log"), "utf8").match(/ready at (http:\/\/127\.0\.0\.1:\d+)/)?.[1];
+      assert.ok(backendOrigin);
+      assert.equal((await fetch(backendOrigin + "/api/notebooks")).status, 403);
       await page
         .getByRole("button", { name: "Create your first notebook" })
         .click();
@@ -56,8 +58,12 @@ test(
       await page
         .getByRole("heading", { name: "Desktop biology", exact: true })
         .waitFor();
-      mkdirSync("test-results", { recursive: true });
-      await page.screenshot({ path: "test-results/desktop-app.png" });
+      // Hidden packaged windows can stall Windows screenshot capture. The
+      // diagnostic image is optional; persistence and sandbox checks are not.
+      if (process.env.SENNIBOOK_TEST_SCREENSHOT === "1") {
+        mkdirSync("test-results", { recursive: true });
+        await page.screenshot({ path: "test-results/desktop-app.png" });
+      }
       assert.deepEqual(errors, []);
       await desktop.close();
       desktop = await launch();

@@ -12,6 +12,10 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 
 ## Desktop foundation — implemented, packaging checks continue
 
+- Release 0.2.9 wraps up the current development sweep for publication to the private `Senni360/SenniBook` GitHub repository. It includes the 0.2.8 features below plus v3 compact source backups, keyboard focus fixes and upload-size preflight. All 38 application tests and the packaged desktop smoke check pass. Small backups remain v2; v1/v2 restore remains supported. See [release highlights](docs/releases/0.2.9.md). Further product work waits for the owner's next direction.
+
+- Desktop 0.2.8 is built under `release/0.2.8/`. The [no-generation sweep](docs/audits/2026-09-14-no-generation.md) adds recoverable Trash, shared-file-safe permanent deletion, streamed desktop downloads with visible errors/cancellation, cached library summaries and clearer import/refresh failures. All 35 existing application checks and packaged startup/sandbox/persistence/restart passed. Packaged UI checks passed Trash/restore/purge, shared historical source preservation, activity/draft cleanup, download success/failure/cancellation, empty-file handling and filter resets. It includes the previously verified 0.2.7 navigation, draft, playback and source-integrity fixes. The later compact backup work is included in 0.2.9.
+
 - Completed the first T3 Code public-issue review and root follow-through in `docs/research/ui-reference-review.md`. Draft recovery, guarded navigation, specific script validation and reachable mobile editor actions were exercised. Continue the documented large-library and interrupted-operation checks when relevant; appearance is not being copied.
 
 - Electron launches its own isolated backend and stores data in the user's application-data directory.
@@ -19,9 +23,12 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 - Safe navigation, narrow desktop bridge, single instance, startup errors and graceful job cancellation on exit.
 - Continue active work in the background when the user chooses; expose an obvious route to quit.
 - Verify packaged startup, notebook persistence, imports, downloads and provider discovery.
-- Preview 0.2.2 is built under `release/0.2.2/`. Portable startup, printed PDF recognition and draft retention across a full process restart passed in an isolated library; a real packaged OpenCode chat returned verified source quotations. Full speech and long-form listening validation remain pending.
+- Preview 0.2.4 is built under `release/0.2.4/`. It adds native hidden Codex App Server startup, a connection check, visible planning progress/history and Cartesia streaming-WAV finalization. Real Codex outline/script generation, packaged Codex login and a short packaged two-host Cartesia preview passed. All 26 existing app checks and the desktop restart/persistence check pass. The owner's desktop library contains the ready houseplant demo; full audio generation and listening remain for the owner.
+- Desktop 0.2.6 is built under `release/0.2.6/`. Cartesia defaults to native 44.1 kHz following the owner's matched-sample preference. Older episodes keep 24 kHz caches and original audio; selecting higher quality for a recorded episode creates a script copy. All 35 application tests and the packaged desktop smoke check passed. The packaged UI upgrade flow produced a real 8.4-second two-host preview at 44.1 kHz in an isolated library and preserved the original recording.
 
 ## Learning quality and generation
+
+- Desktop 0.2.5 fixes outline failures caused by oversized chapter summaries: explicit output limits, one bounded repair request, goal-coverage revalidation and readable errors. A real Codex run against the owner's 38-goal notebook produced a valid 2,202-character chapter summary with every goal assigned. This checks outline structure, not whether five minutes can teach all 38 goals sufficiently.
 
 - Implemented deterministic lexical passage selection for large source packs in English and Dutch, with exact source offsets, consulted-material disclosures and bounded cloud/Ollama request context.
 - Implemented coverage batches of up to 12 objectives; missing evidence from a selected subset is reported as not established rather than as proof of absence.
@@ -58,7 +65,8 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 - Detect available local Codex, OpenCode and Ollama installations and explain actual readiness.
 - Keep credentials on the host; allow provider setup without source-code edits.
 - Google speech preview, usage estimates and clear billing boundaries.
-- Local speech provider experiment after the primary cloud pipeline is verified.
+- Cartesia Sonic 3.6 connection, voice search, two-host synthesis, previews, credit estimates and safe voice/quality changes implemented. Script/voice mapping, cached retries, exports and credential exclusion exercised with simulated provider responses; real account access and short packaged previews also passed. The owner's short-sample preference supports 44.1 kHz as the default. Broader pronunciation and long-form listening remain to be evaluated.
+- Local speech feasibility is measured in `docs/research/local-tts-v3-experiment.md`: short Chatterbox calls fit the RTX 3060, longer calls fail fidelity checks, and exact sentence grouping improves the transcript comparison. Technical-term pronunciation, two stable hosts and listening quality remain open; a separate maintained-Piper control is underway. Keep production integration separate from this experiment and the other agent's cloud credentials work.
 - Durable generation queue, retry/backoff and crash recovery with a visible activity history.
 - Signed releases and update delivery when a publishing destination and signing identity exist.
 

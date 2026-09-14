@@ -1,131 +1,24 @@
-import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { GoogleAuth } from "google-auth-library";
 import { baseInstructions, type Settings } from "../shared/model.ts";
 import { generateWithOpenCode } from "./opencode.ts";
 import { googleProject } from "./preferences.ts";
-import { stopProcess } from "./process-lifecycle.ts";
 import { synthesizeCartesia } from "./cartesia.ts";
+import { codexCommand } from "./codex-command.ts";
 
-export const codexPath =
-  process.env.CODEX_CLI_PATH ||
-  path.join(
-    process.env.APPDATA || "",
-    "npm",
-    "node_modules",
-    "@openai",
-    "codex",
-    "bin",
-    "codex.js",
-  );
-export const codexAvailable = () => existsSync(codexPath);
+import { generateWithCodex } from "./codex-app-server.ts";
+
+export { codexPath } from "./codex-command.ts";
+export const codexAvailable = () => !!codexCommand();
 export async function generate(
   settings: Settings,
   task: string,
   signal?: AbortSignal,
+  onProgress?: (message: string) => void,
 ): Promise<string> {
   signal?.throwIfAborted();
   const prompt = `${baseInstructions}\n\nSubject profile:\n${settings.harness}\nLanguage: ${settings.language === "nl" ? "Dutch" : "English"}. Depth: ${settings.depth}. Purpose: ${settings.purpose}. Assumed knowledge: ${settings.assumedKnowledge || "Not specified; do not assume mastery."}\n\n${task}`;
-  if (settings.provider === "codex") {
-    if (!codexAvailable())
-      throw new Error(
-        "Codex CLI was not found. Install it and sign in, or select OpenCode Go or Ollama in Settings.",
-      );
-    const dir = mkdtempSync(path.join(tmpdir(), "sennibook-"));
-    const output = path.join(dir, "answer.txt");
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const args = [
-          codexPath,
-          "exec",
-          "--ignore-user-config",
-          "--sandbox",
-          "read-only",
-          "--skip-git-repo-check",
-          "--ephemeral",
-          "--color",
-          "never",
-          "-o",
-          output,
-        ];
-        if (settings.model) args.push("-m", settings.model);
-        args.push("-");
-        const child = spawn(
-          process.env.SENNIBOOK_NODE_EXEC || process.execPath,
-          args,
-          {
-            cwd: dir,
-            windowsHide: true,
-            env: {
-              ...Object.fromEntries(
-                Object.entries(process.env).filter(([key]) =>
-                  /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|CODEX_HOME|LANG|LC_ALL)$/i.test(
-                    key,
-                  ),
-                ),
-              ),
-              ...(process.env.SENNIBOOK_NODE_EXEC
-                ? { ELECTRON_RUN_AS_NODE: "1" }
-                : {}),
-            },
-            stdio: ["pipe", "ignore", "pipe"],
-          },
-        );
-        let diagnostic = "";
-        let stopReason: Error | undefined;
-        const stop = (reason: Error) => {
-          if (stopReason) return;
-          stopReason = reason;
-          stopProcess(child);
-        };
-        const abort = () =>
-          stop(new Error("Generation cancelled. Completed work is saved."));
-        child.stderr.on("data", (d) => {
-          diagnostic = (diagnostic + d.toString()).slice(-500);
-        });
-        const timeout = setTimeout(() => {
-          stop(
-            new Error(
-              "Codex took longer than 10 minutes. Try a smaller chapter or another model.",
-            ),
-          );
-        }, 600000);
-        const cleanup = () => {
-          clearTimeout(timeout);
-          signal?.removeEventListener("abort", abort);
-        };
-        child.on("error", (e) => {
-          cleanup();
-          reject(e);
-        });
-        child.on("close", (code) => {
-          cleanup();
-          if (stopReason) {
-            reject(stopReason);
-            return;
-          }
-          code === 0
-            ? resolve()
-            : reject(
-                new Error(
-                  /auth|login|401/i.test(diagnostic)
-                    ? "Codex needs authentication. Run codex login in a terminal, then retry."
-                    : "Codex could not complete this request. Check your CLI login and usage limits, or choose another provider.",
-                ),
-              );
-        });
-        signal?.addEventListener("abort", abort, { once: true });
-        if (signal?.aborted) abort();
-        child.stdin.on("error", () => {});
-        child.stdin.end(stopReason ? undefined : prompt);
-      });
-      return readFileSync(output, "utf8");
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  }
+  if (settings.provider === "codex")
+    return generateWithCodex(prompt, settings.model, signal, onProgress);
   const combinedSignal = signal
     ? AbortSignal.any([signal, AbortSignal.timeout(600000)])
     : AbortSignal.timeout(600000);

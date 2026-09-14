@@ -1,0 +1,59 @@
+.cartesia-setup {
+  display: grid;
+  gap: 14px;
+}
+.cartesia-setup form {
+  display: grid;
+  gap: 12px;
+}
+.cartesia-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cartesia-actions .button {
+  white-space: normal;
+  text-align: left;
+}
+.cartesia-feedback {
+  color: var(--forest);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cartesia-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  font-size: 14px;
+}
+.speech-settings-fields {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  min-width: 0;
+}
+.speech-settings-fields .field {
+  min-width: 0;
+}
+.speech-settings-fields select,
+.speech-settings-fields input {
+  width: 100%;
+  min-width: 0;
+}
+.speech-settings-fields input[type="range"] {
+  margin-inline: 0;
+}
+.speech-settings-fields small {
+  overflow-wrap: anywhere;
+}
+.speech-settings-fields .form-row {
+  margin: 0;
+}
+.episode-voice-change {
+  margin: 18px 0;
+}
+.episode-voice-change .speech-settings-fields {
+  max-width: 480px;
+}

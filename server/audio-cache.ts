@@ -51,15 +51,24 @@ export function chapterFingerprint(chapter: Chapter, settings: Settings) {
           text: turn.text,
         })),
         language: settings.language,
-        ...(settings.ttsProvider === "cartesia" ? {
-          provider: "cartesia", model: settings.cartesiaModel,
-          voiceA: settings.cartesiaVoiceA, voiceB: settings.cartesiaVoiceB,
-          speed: settings.cartesiaSpeed, segmentation: "per-turn-v1",
-        } : {
-          voiceA: settings.voiceA,
-          voiceB: settings.voiceB,
-          ttsModel: settings.ttsModel,
-        }),
+        ...(settings.ttsProvider === "cartesia"
+          ? {
+              provider: "cartesia",
+              model: settings.cartesiaModel,
+              voiceA: settings.cartesiaVoiceA,
+              voiceB: settings.cartesiaVoiceB,
+              speed: settings.cartesiaSpeed,
+              segmentation: "per-turn-v1",
+              // Preserve pre-quality-setting fingerprints for 24 kHz audio.
+              ...((settings.cartesiaSampleRate ?? 44100) !== 24000
+                ? { sampleRate: settings.cartesiaSampleRate ?? 44100 }
+                : {}),
+            }
+          : {
+              voiceA: settings.voiceA,
+              voiceB: settings.voiceB,
+              ttsModel: settings.ttsModel,
+            }),
       }),
     )
     .digest("hex");

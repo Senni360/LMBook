@@ -437,6 +437,10 @@ export function SourceAudio({
           )
         }
         onLoadedData={() => setAudioError("")}
+        onPlay={() => {
+          setAudioError("");
+          setPlaybackNotice("");
+        }}
         src={mediaUrl}
       >
         Your browser does not support audio playback.

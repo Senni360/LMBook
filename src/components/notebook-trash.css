@@ -1,0 +1,51 @@
+.notebook-trash {
+  border-block: 1px solid var(--line);
+  margin-block: 24px;
+  padding-block: 16px;
+}
+.notebook-trash > summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding-block: 4px;
+}
+.notebook-trash > summary svg {
+  margin-inline: 5px 8px;
+}
+.notebook-trash > p,
+.notebook-trash > .trash-error {
+  margin-top: 14px;
+  font-size: 13px;
+}
+.trash-entry {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+.trash-entry h3 {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.trash-entry p {
+  margin-top: 5px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.trash-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.trash-entry-actions .button {
+  min-height: 44px;
+}
+.trash-error,
+.trash-purge {
+  color: #8a352c;
+}
+div.trash-error {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+}

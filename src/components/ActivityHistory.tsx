@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, History, LoaderCircle } from "lucide-react";
 import "./activity-history.css";
 
-type ActivityOperation = "script" | "audio" | "preview";
+type ActivityOperation = "plan" | "script" | "audio" | "preview";
 type ActivityState =
   "running" | "completed" | "cancelled" | "interrupted" | "failed";
 
@@ -25,6 +25,7 @@ export type ActivityHistoryProps = {
 };
 
 const operationLabels: Record<ActivityOperation, string> = {
+  plan: "Episode planning",
   script: "Script generation",
   audio: "Audio generation",
   preview: "Voice preview",

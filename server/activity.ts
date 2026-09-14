@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./store.ts";
 
-export type ActivityOperation = "script" | "audio" | "preview";
+export type ActivityOperation = "plan" | "script" | "audio" | "preview";
 export type ActivityState =
   "running" | "completed" | "cancelled" | "interrupted" | "failed";
 
@@ -28,12 +28,24 @@ const terminalStates = new Set<ActivityState>([
   "failed",
 ]);
 
-db.exec(`
+// Preserve existing history while extending the old CHECK constraint for outlines.
+const previousSchema = db
+  .prepare(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name='generation_activity'",
+  )
+  .get() as { sql: string } | undefined;
+const migratePlans = !!previousSchema && !previousSchema.sql.includes("'plan'");
+if (migratePlans)
+  db.exec(
+    "BEGIN IMMEDIATE; ALTER TABLE generation_activity RENAME TO generation_activity_before_plans;",
+  );
+try {
+  db.exec(`
   CREATE TABLE IF NOT EXISTS generation_activity (
     id TEXT PRIMARY KEY,
     notebook_id TEXT NOT NULL,
     episode_id TEXT NOT NULL,
-    operation TEXT NOT NULL CHECK (operation IN ('script', 'audio', 'preview')),
+    operation TEXT NOT NULL CHECK (operation IN ('plan', 'script', 'audio', 'preview')),
     state TEXT NOT NULL CHECK (state IN ('running', 'completed', 'cancelled', 'interrupted', 'failed')),
     progress TEXT NOT NULL DEFAULT '',
     started_at TEXT NOT NULL,
@@ -44,6 +56,17 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS generation_activity_notebook_updated
     ON generation_activity (notebook_id, updated_at DESC);
 `);
+  if (migratePlans)
+    db.exec(`
+  INSERT INTO generation_activity SELECT * FROM generation_activity_before_plans;
+  DROP TABLE generation_activity_before_plans;
+  CREATE INDEX IF NOT EXISTS generation_activity_notebook_updated ON generation_activity (notebook_id, updated_at DESC);
+  COMMIT;
+`);
+} catch (error) {
+  if (migratePlans) db.exec("ROLLBACK");
+  throw error;
+}
 
 function now() {
   return new Date().toISOString();
@@ -56,7 +79,7 @@ function bounded(value: string, length: number) {
 function assertOperation(
   operation: string,
 ): asserts operation is ActivityOperation {
-  if (!(["script", "audio", "preview"] as string[]).includes(operation))
+  if (!(["plan", "script", "audio", "preview"] as string[]).includes(operation))
     throw new Error("Unsupported generation activity operation.");
 }
 

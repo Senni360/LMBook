@@ -99,9 +99,9 @@ function enforceTextLimit(
       "The extracted text exceeds one million characters. Split the file.",
     );
   const readable = text.replace(/\[(?:Page|Slide) \d+\]/gu, "").trim();
-  if (!allowEmpty && readable.length < 20)
+  if (!allowEmpty && !readable.length)
     throw new Error(
-      "No readable text was found. Scanned PDFs need OCR before import; paste the extracted text instead.",
+      "This file contains no readable text. Choose another file or paste the source text instead.",
     );
   return text;
 }

@@ -6,13 +6,17 @@ A local, open-source learning notebook for detailed two-person audio in Dutch an
 
 Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Build artifacts go to `release/`: an installer, a portable executable, and `win-unpacked/SenniBook.exe`.
 
-The checked 0.2.2 preview is under `release/0.2.2/`. Quit an older running preview before opening `SenniBook-0.2.2-portable.exe`; both use the same normal application-data library. This build used the installed matching Electron runtime after Windows blocked the builder's archive-directory rename. The exact fallback command is in WORKLOG.md.
+The latest release is 0.2.9, with Windows installer and portable downloads on the [private GitHub release page](https://github.com/Senni360/SenniBook/releases/tag/v0.2.9). Local artifacts are under `release/0.2.9/`. Quit an older running preview before opening `SenniBook-0.2.9-portable.exe`; both use the same normal application-data library. Desktop is the primary delivery target; the browser preview uses a separate library.
+
+0.2.8 adds recoverable notebook Trash in Settings → Your library. Restore keeps the original notebook; explicit permanent deletion removes its unshared files and activity history, preserving files referenced by other notebooks or episode snapshots. Downloads now use a native save dialog with progress, cancellation and readable errors. Cached library summaries avoid reparsing every notebook for the sidebar, and empty-file/partial-import handling is clearer.
+
+It also includes the hidden native menu bar (Alt reveals it), settings sidebar back button, preparation/voice draft recovery, listening position/selection/speed, and fixes for numeric goals, short imports, background-import navigation, source integrity and malformed restores. 0.2.9 adds compact backups for large notebooks with repeated episode source snapshots, correct keyboard focus, and upload size checks before transfer. See the [no-generation reliability sweep](docs/audits/2026-09-14-no-generation.md) for evidence and remaining work.
 
 The installed app includes its runtime and starts the learning engine automatically. It stores notebooks under `%APPDATA%/SenniBook/data` (the exact folder appears in Connections & settings). The original browser edition's `data/` folder stays untouched. Provider accounts and optional external CLIs still need to be configured separately.
 
 The desktop interface uses a stable private app address, a sandboxed renderer and a per-launch backend token. External documentation opens in your normal browser. If generation is active when you close the window, you can keep working in the tray or cancel and quit. Completed work is saved. The app prevents automatic system sleep while generation is active; it cannot keep a powered-off computer working.
 
-These local builds are unsigned. A signing identity and release destination have not been configured; automatic updates are not yet enabled.
+These builds are unsigned; automatic updates are not yet enabled.
 
 ## Run locally
 
@@ -34,15 +38,19 @@ Open http://127.0.0.1:4317. The server is deliberately bound to localhost. This 
 4. Map coverage. Proposed verbatim quotes are checked against the original text. This is not a correctness guarantee. Gap searches open in your browser; add supplemental sources yourself.
 5. In Audio studio choose subject, language, assumed knowledge, depth, purpose and target duration. Plan an outline, write chapter scripts, inspect/edit them, then generate a short voice preview or the complete episode.
 
-AI operations are real provider calls, not simulated results. No provider call occurs merely by opening a notebook. Your uploaded material is sent to the selected provider only when requesting analysis, chat or episode generation. Speech generation sends the script to Google Cloud.
+Outline generation specifies title/summary limits and makes at most one automatic repair request if the model returns invalid JSON, an invalid outline, or omits learning goals. The repair uses the same provider and consumes its normal allowance. It keeps the original sources and goals, validates all required goal IDs again, and reports a readable error if repair fails. Provider errors and cancellation do not trigger a repair request.
+
+AI operations are real provider calls, not simulated results. No provider call occurs merely by opening a notebook. Your uploaded material is sent to the selected provider only when requesting analysis, chat or episode generation. Speech generation sends the script to the selected Google Cloud or Cartesia provider.
 
 ## Thinking providers
 
 ### Codex CLI
 
-The Windows npm-installed CLI is detected automatically. Run `codex login` in your terminal first. An alternative CLI JavaScript path can be set with `CODEX_CLI_PATH`. SenniBook uses `codex exec`, a temporary working directory, read-only sandbox and existing authentication. It ignores personal Codex configuration for predictable behavior. Subscription/account limits apply. The CLI adapter is optional; this repository does not promise account eligibility or unlimited use.
+The Windows npm-installed CLI is detected automatically. Run `codex login` in your terminal first, then use **Check Codex connection** in Settings. An alternative CLI launcher or executable path can be set with `CODEX_CLI_PATH`. SenniBook uses the documented `codex app-server` integration with its own client identity and your existing authentication, as T3 Code does. Lesson threads are temporary and read-only, with tools and configured MCP servers disabled for that thread. Windows launches the native binary hidden to avoid empty command windows. Subscription/account limits and provider terms still apply; this integration does not promise account eligibility or unlimited use.
 
 ### OpenCode Go
+
+OpenCode describes Go as intended for coding-agent traffic. Permission to use that subscription for lessons remains unconfirmed; successful authentication alone does not settle it. See the [Go usage guidance](https://opencode.ai/docs/go/#where-can-i-use-it).
 
 Install OpenCode, connect your Go account, and select OpenCode Go in Settings. SenniBook can reuse that local CLI login without copying its key. The CLI defaults to `muse-spark-1.3-contributor`, disables tools for generation, and sends the complete bounded request through standard input. This avoids the CLI attachment reader truncating long source material. Set `OPENCODE_CLI_PATH` if the executable is installed outside the detected npm location.
 
@@ -59,6 +67,17 @@ Chat, coverage, and chapter planning select source passages by lexical overlap i
 Coverage is assessed in batches of up to 12 objectives. A missing result from a selected subset is labelled as not established because other source passages may still contain evidence. Proposed quotes are accepted only when they match the supplied source ranges exactly.
 
 Transcript corrections retain the original text and segment time, while clearing word alignment when edited text no longer matches the machine transcript. Stale edits are rejected so a correction cannot overwrite a newer transcript. Backup and restore retains corrected transcript state.
+
+## Cartesia speech
+
+1. Open **Connections & settings → Cartesia speech**, paste your API key, and choose **Connect Cartesia**. This checks voice-list access without generating speech. The key stays in the host data directory, outside notebook settings and exports; it is stored as a local credential file, not in browser storage. `CARTESIA_API_KEY` in `.env` is an optional fallback. Disconnecting in the app disables that fallback until you reconnect.
+2. In **Audio studio → Voice settings**, choose **Cartesia · Sonic 3.6**, then select a different voice for each host. The searchable voice list follows the notebook's English/Dutch language. Delivery speed is adjustable. New plans default to **High · 44.1 kHz** audio; **Standard · 24 kHz** remains available.
+3. For an existing script, open **Voices for this episode**, choose the provider, voices and audio quality, then **Save episode voices**. Saving creates a separate script copy if audio has already been generated; the original audio is preserved. Older episodes retain their 24 kHz setting until changed. To upgrade one, select **High · 44.1 kHz**, save, then preview or generate the new copy.
+4. Choose **Voice preview** to hear the first segment from each host. Both previews and full episodes consume Cartesia credits. The full-script estimate is approximately one credit per character, before normalization and retries. Target-length estimates assume 145 words/minute and six characters/word; account balances and overage settings are not read or enforced.
+
+Each host turn is synthesized separately, split under the existing UTF-8 request limit when needed. Completed segments are cached and reused, including previews. Cancellation or a provider error can be retried without regenerating valid cached segments. Existing WAV/MP3 downloads work with Cartesia episodes.
+
+The adapter uses Cartesia API version `2026-08-14` and model `sonic-3.6`, requesting native PCM16 WAV at the selected rate. Real account access and short packaged two-host previews passed. The owner preferred 44.1 kHz in a matched comparison; this supports the default, but is not a general pronunciation or long-form quality guarantee. The 0.2.6 packaged app also produced an 8.4-second 44.1 kHz preview after upgrading an isolated legacy episode, preserving the original audio. See [comparison evidence](docs/research/cartesia-audio-quality.md). References: [speech endpoint](https://docs.cartesia.ai/api-reference/tts/bytes), [voice list](https://docs.cartesia.ai/api-reference/voices/list), [credit metering](https://docs.cartesia.ai/pricing).
 
 ## Google Cloud speech and AI Pro credits
 
@@ -99,13 +118,13 @@ References: [Google speech setup](https://docs.cloud.google.com/text-to-speech/d
 
 ## Data and exports
 
-Notebook state lives in `data/sennibook.sqlite`; generated audio lives in `data/audio/`; immutable uploaded source and recording bytes live in `data/originals/`. All are ignored by Git. The portable ZIP v2 notebook backup includes the notebook manifest, episode snapshots, generated audio/cache files and referenced originals without loading long audio into memory. Restore writes a new notebook with remapped IDs and does not overwrite an existing library. Legacy ZIP v1 backups remain importable; older backups may contain extracted text without the original binary.
+Notebook state lives in `data/sennibook.sqlite`; generated audio lives in `data/audio/`; immutable uploaded source and recording bytes live in `data/originals/`. All are ignored by Git. Portable ZIP backups include the notebook manifest, episode snapshots, generated audio/cache files and referenced originals without loading long audio into memory. Small backups retain v2 compatibility. When repeated source snapshots exceed the 20 MiB manifest limit, v3 stores identical source sets once and preserves different historical versions. v3 requires SenniBook 0.2.9 or later to restore; v1/v2 backups remain importable. Restore creates a new notebook with remapped IDs. Limits remain 20 MiB for the compact manifest, 32 MiB per source set, 128 MiB for expanded source snapshots and 2 GiB total uncompressed content. Older backups may contain extracted text without the original binary.
 
 Markdown exports include current sources and objectives plus each episode's saved source/goal snapshots, teaching instructions and transcripts. Uploaded sources include original-byte and extracted-text SHA-256 hashes. Markdown is a readable export for Obsidian, not a complete audio backup.
 
 ## Scope of this edition
 
-Implemented: persistent notebooks, source and audio import, original media retention, printed-page OCR for PDF/PNG/JPEG, timestamped local transcription, objective extraction, quoted coverage, source-grounded chat, editable subject harnesses, chapter planning/scripts, Google two-speaker TTS, previews, cached resumable audio jobs, chapter and full audio downloads, portable ZIP v2 backup/restore and Markdown export.
+Implemented: persistent notebooks with recoverable Trash, source and audio import, original media retention, printed-page OCR for PDF/PNG/JPEG, timestamped local transcription, objective extraction, quoted coverage, source-grounded chat, editable subject harnesses, chapter planning/scripts, Google and Cartesia two-speaker speech, previews, cached resumable audio jobs, streamed desktop downloads, portable ZIP backup/restore and Markdown export.
 
 Not implemented: automatic source discovery/import, live Obsidian synchronization, local TTS, quizzes, diagrams, automatic mastery assessment, collaborative accounts, cloud deployment. OCR does not claim diagram understanding or reliable handwriting quality. Long-form duration is an estimate, not a guaranteed runtime; inspect the scripted-minute count before paying for audio. Transcription quality still needs review against recordings, especially for Dutch; the CPU and CUDA checks are integration checks rather than quality benchmarks.
 
@@ -123,4 +142,4 @@ Release 0.2.2 includes the current context, OCR and draft-preservation work. The
 
 Unsent questions, pasted sources, goal lists and chapter edits are retained in this device's browser storage. They are unfinished drafts, separate from saved notebook content and ZIP backups. Storage failures show a warning while retaining the current input. If another browser tab saves a different draft, copy any local text you want to keep before reopening that view. This is draft recovery, not collaborative editing or cross-device synchronization.
 
-The owner has requested that further automated test writing wait until the explicit project wrap-up. During development, use build checks and manual workflow checks, and retain the existing suites for the final sweep. Active milestones and continuation notes live in ROADMAP.md and WORKLOG.md.
+The owner's explicit release wrap-up permits focused regression tests for the completed fixes. Active milestones and continuation notes live in ROADMAP.md and WORKLOG.md.

@@ -25,7 +25,7 @@ test(
       const body = JSON.parse(raw);
       const prompt = body.messages[0].content;
       let answer: any;
-      if (prompt.includes("Map EVERY objective"))
+      if (prompt.includes("Assess EVERY objective in this batch"))
         answer = {
           coverage: notebook.objectives.map((o, i) => ({
             objectiveId: o.id,

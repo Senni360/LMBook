@@ -25,7 +25,10 @@ const { createAudio } = await import("../server/jobs.ts");
 const store = await import("../server/store.ts");
 const cache = await import("../server/audio-cache.ts");
 
-after(() => rmSync(dataDir, { recursive: true, force: true }));
+after(() => {
+  store.db.close();
+  rmSync(dataDir, { recursive: true, force: true });
+});
 
 function wav(samples = 24000) {
   const buffer = Buffer.alloc(44 + samples * 2);

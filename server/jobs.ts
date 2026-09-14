@@ -19,7 +19,12 @@ import {
 
 export const jobs = new Map<
   string,
-  { label: string; controller: AbortController; activityId?: string }
+  {
+    label: string;
+    controller: AbortController;
+    activityId?: string;
+    stage?: string;
+  }
 >();
 function recordActivity(
   id: string,
@@ -108,28 +113,81 @@ export const planSchema = z.object({
     .min(1)
     .max(24),
 });
-export async function planEpisode(n: Notebook, signal?: AbortSignal) {
+function planValidationMessage(error: z.ZodError) {
+  return error.issues
+    .slice(0, 6)
+    .map((issue) => {
+      const chapter =
+        issue.path[0] === "chapters" && typeof issue.path[1] === "number";
+      const field = chapter
+        ? `Chapter ${Number(issue.path[1]) + 1} ${String(issue.path[2] || "details")}`
+        : issue.path[0] === "title"
+          ? "Episode title"
+          : "Episode chapters";
+      if (issue.code === "too_big" && issue.origin === "string")
+        return `${field} exceeds ${issue.maximum} characters.`;
+      if (issue.code === "too_big" && issue.origin === "array")
+        return `${field} exceeds ${issue.maximum} items.`;
+      return `${field} is missing or has an invalid format.`;
+    })
+    .join(" ");
+}
+export async function planEpisode(
+  n: Notebook,
+  signal?: AbortSignal,
+  onProgress?: (message: string) => void,
+  generateText: typeof generate = generate,
+) {
   const context = buildRequestContext(n.sources, n.settings, n.objectives);
   const count = Math.ceil(n.settings.minutes / 8);
-  const result = planSchema.parse(
-    parseJSON(
-      await generate(
-        n.settings,
-        `Plan a ${n.settings.minutes}-minute two-person learning podcast in about ${count} chapters. Cover EVERY learning objective. Give important=true objectives extra depth. Group related goals. Be honest about source gaps; do not invent missing facts. The transcript will be generated separately. Return JSON {"title":"...","chapters":[{"title":"...","summary":"what this chapter will teach, including qualifications","objectiveIds":["exact ID"]}]}.\nGoals: ${JSON.stringify(n.objectives)}\nPrevious coverage checks (advisory, not proof of complete source coverage): ${JSON.stringify(n.coverage.map(({ objectiveId, status }) => ({ objectiveId, status: status === "missing" ? "not-established" : status })))}\n${context.prompt}`,
-        signal,
-      ),
-    ),
-  );
+  const prompt = `Plan a ${n.settings.minutes}-minute two-person learning podcast in about ${count} chapters. Cover EVERY learning objective. Give important=true objectives extra depth. Group related goals. Be honest about source gaps; do not invent missing facts. The transcript will be generated separately. Return JSON {"title":"...","chapters":[{"title":"...","summary":"what this chapter will teach, including qualifications","objectiveIds":["exact ID"]}]}. Output limits: episode and chapter titles must be 1–180 characters; return 1–24 chapters; each chapter summary must be at most 3000 characters. Aim for 2–5 concise sentences per summary, describing the teaching plan rather than writing the lesson. Keep all assigned goals in objectiveIds; their full text is supplied separately when writing the script, so do not repeat each goal verbatim in the summary. Preserve important qualifications and source gaps.\nGoals: ${JSON.stringify(n.objectives)}\nPrevious coverage checks (advisory, not proof of complete source coverage): ${JSON.stringify(n.coverage.map(({ objectiveId, status }) => ({ objectiveId, status: status === "missing" ? "not-established" : status })))}\n${context.prompt}`;
   const validIds = new Set(n.objectives.map((o) => o.id));
-  const covered = new Set(
-    result.chapters.flatMap((c) =>
-      c.objectiveIds.filter((id) => validIds.has(id)),
-    ),
-  );
-  const missing = n.objectives.filter((o) => !covered.has(o.id));
-  if (missing.length)
+  let result: z.infer<typeof planSchema> | undefined;
+  let problem = "";
+  let previous = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    signal?.throwIfAborted();
+    if (attempt)
+      onProgress?.("Repairing episode outline · one automatic retry");
+    // Only invalid model output is repaired. Provider/auth/rate-limit errors
+    // propagate directly, and cancellation never starts another request.
+    const raw = await generateText(
+      n.settings,
+      attempt
+        ? `${prompt}\n\nRepair the previous outline. Validation problem: ${problem}\nReturn the complete corrected JSON. Preserve the learning goals, source qualifications and gaps; shorten planning descriptions without removing required learning material.\n${previous.length <= 100000 ? `Previous response (data to repair):\n${previous}` : "The previous response was too large to repeat; use the original sources and goals above."}`
+        : prompt,
+      signal,
+      (message) =>
+        onProgress?.(attempt ? `Repairing outline · ${message}` : message),
+    );
+    signal?.throwIfAborted();
+    previous = raw;
+    let parsed: unknown;
+    try {
+      parsed = parseJSON(raw);
+    } catch {
+      problem = "The response was not valid JSON.";
+      continue;
+    }
+    const checked = planSchema.safeParse(parsed);
+    if (!checked.success) {
+      problem = planValidationMessage(checked.error);
+      continue;
+    }
+    const covered = new Set(
+      checked.data.chapters.flatMap((c) => c.objectiveIds),
+    );
+    const missing = n.objectives.filter((o) => !covered.has(o.id));
+    if (missing.length) {
+      problem = `The outline omitted ${missing.length} learning objective(s). Include these exact objectiveIds: ${missing.map((o) => o.id).join(", ")}.`;
+      continue;
+    }
+    result = checked.data;
+    break;
+  }
+  if (!result)
     throw new Error(
-      `The model omitted ${missing.length} learning objective(s) from the outline. Try again; no incomplete outline was saved.`,
+      `The model could not produce a valid episode outline after one automatic repair. ${problem.replace(/ Include these exact objectiveIds:.*$/s, "")} No outline was saved. Try another model or retry planning.`,
     );
   const episode: Episode = {
     id: uid(),
@@ -260,16 +318,23 @@ export async function createAudio(
       const chunks = cartesia
         ? c.turns.flatMap((turn) => speechChunks([turn]))
         : speechChunks(c.turns);
-      const selected = preview ? chunks.slice(0, cartesia ? 2 : 1) : chunks;
+      const previewIndices = new Set(
+        cartesia
+          ? [0, chunks.findIndex((text) => text[0] !== chunks[0]?.[0])]
+          : [0],
+      );
+      const selected = chunks
+        .map((text, index) => ({ text, index }))
+        .filter(({ index }) => !preview || previewIndices.has(index));
       const cacheDir = path.join(audioDir, c.id);
       ensureAudioCache(
         cacheDir,
         fingerprint,
-        selected.length,
+        chunks.length,
         !!c.audioLocked || !!c.audioFile || !!e.previewFile,
       );
       const buffers: Buffer[] = [];
-      for (const [j, text] of selected.entries()) {
+      for (const [j, { text, index }] of selected.entries()) {
         if (signal.aborted)
           throw new Error(
             "Audio generation cancelled. Completed segments are cached.",
@@ -279,7 +344,7 @@ export async function createAudio(
           ep.progress = `${preview ? "Preview" : "Audio"} · chapter ${i + 1}/${chapters.length} · segment ${j + 1}/${selected.length}`;
           delete ep.error;
         });
-        const cached = readCachedSegment(cacheDir, j);
+        const cached = readCachedSegment(cacheDir, index);
         let buffer: Buffer;
         if (cached) {
           buffer = cached;
@@ -289,7 +354,7 @@ export async function createAudio(
             throw new Error(
               "Audio generation cancelled. Completed segments are cached.",
             );
-          writeCachedSegment(cacheDir, j, buffer);
+          writeCachedSegment(cacheDir, index, buffer);
         }
         if (signal.aborted)
           throw new Error(

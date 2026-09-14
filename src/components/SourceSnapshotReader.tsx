@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Download, X } from "lucide-react";
+import { DownloadLink } from "./Downloads";
 import type { Source } from "../../shared/model";
 import { SourceAudio } from "./SourceAudio";
 import { SourceImage } from "./SourceImage";
@@ -100,13 +101,14 @@ export function SourceSnapshotReader({
       </div>
 
       {source.attachment && (
-        <a
+        <DownloadLink
           className="button quiet source-snapshot-download"
           href={downloadUrl}
+          filename={source.attachment.filename}
           download
         >
           <Download size={16} aria-hidden="true" /> Download original
-        </a>
+        </DownloadLink>
       )}
 
       <SourceImage

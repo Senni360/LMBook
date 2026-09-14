@@ -28,9 +28,22 @@ import {
 } from "../shared/model.ts";
 import { transcriptSchema } from "../shared/transcription.ts";
 import { contextSummarySchema } from "../shared/context-summary.ts";
+import { savedEpisodeSettingsSchema } from "../shared/speech.ts";
 import { ocrResultSchema } from "../shared/ocr.ts";
 import { validateWavFile } from "./audio-export.ts";
-import { storeOriginal, verifyOriginal } from "./source-originals.ts";
+import {
+  hashOriginal,
+  storeOriginal,
+  verifyOriginal,
+} from "./source-originals.ts";
+import {
+  decodeSourceSnapshots,
+  encodeSourceSnapshots,
+  MAX_EXPANDED_SOURCE_BYTES,
+  MAX_SOURCE_SET_COUNT,
+  MAX_SOURCE_SNAPSHOT_BYTES,
+  type SourceSnapshotWireNotebook,
+} from "./bundle-source-snapshots.ts";
 
 const BUNDLE_VERSION = 2;
 const NOTEBOOK_ENTRY = "notebook.json";
@@ -42,7 +55,12 @@ const MAX_CACHE_MANIFEST_BYTES = 1024 * 1024;
 const UUID = z.string().uuid();
 
 type BundleEntryKind =
-  "final" | "preview" | "segment" | "cache-manifest" | "original";
+  | "final"
+  | "preview"
+  | "segment"
+  | "cache-manifest"
+  | "original"
+  | "source-snapshot";
 type BundleEntry = {
   path: string;
   kind: BundleEntryKind;
@@ -53,12 +71,19 @@ type BundleEntry = {
   sha256?: string;
 };
 
-type BundleManifest = {
+type BundleManifestBase = {
   format: "sennibook-notebook";
-  version: 1 | 2;
-  notebook: Notebook;
   entries: BundleEntry[];
 };
+type NormalBundleManifest = BundleManifestBase & {
+  version: 1 | 2;
+  notebook: Notebook;
+};
+type V3BundleManifest = BundleManifestBase & {
+  version: 3;
+  notebook: SourceSnapshotWireNotebook;
+};
+type BundleManifest = NormalBundleManifest | V3BundleManifest;
 
 export type NotebookBundleImport = {
   notebook: Notebook;
@@ -149,7 +174,7 @@ const episodeSchema = z
     id: UUID,
     title: z.string().min(1).max(180),
     createdAt: z.string().max(100),
-    settings: settingsSchema,
+    settings: savedEpisodeSettingsSchema,
     sources: z.array(sourceSchema).max(150).optional(),
     objectives: z.array(objectiveSchema).max(150).optional(),
     previewFile: z.string().max(300).optional(),
@@ -187,7 +212,14 @@ const notebookSchema = z
 const bundleEntrySchema = z
   .object({
     path: z.string().min(1).max(500),
-    kind: z.enum(["final", "preview", "segment", "cache-manifest", "original"]),
+    kind: z.enum([
+      "final",
+      "preview",
+      "segment",
+      "cache-manifest",
+      "original",
+      "source-snapshot",
+    ]),
     size: z.number().int().nonnegative().max(MAX_ENTRY_BYTES),
     episodeId: UUID.optional(),
     chapterId: UUID.optional(),
@@ -203,6 +235,26 @@ const manifestSchema = z
     format: z.literal("sennibook-notebook"),
     version: z.union([z.literal(1), z.literal(2)]),
     notebook: notebookSchema,
+    entries: z.array(bundleEntrySchema).max(MAX_ENTRIES),
+  })
+  .strict();
+const sourceSnapshotHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
+const wireEpisodeSchema = episodeSchema
+  .omit({ sources: true })
+  .extend({ sourceRef: sourceSnapshotHashSchema.optional() })
+  .strict();
+const wireNotebookSchema = notebookSchema
+  .omit({ sources: true, episodes: true })
+  .extend({
+    sourceRef: sourceSnapshotHashSchema,
+    episodes: z.array(wireEpisodeSchema).max(100),
+  })
+  .strict();
+const v3ManifestSchema = z
+  .object({
+    format: z.literal("sennibook-notebook"),
+    version: z.literal(3),
+    notebook: wireNotebookSchema,
     entries: z.array(bundleEntrySchema).max(MAX_ENTRIES),
   })
   .strict();
@@ -535,24 +587,72 @@ export function createNotebookBundle(
         throw new Error(
           "Notebook bundle exceeds the 2 GB uncompressed size limit.",
         );
-      const manifest: BundleManifest = {
+      let manifest: BundleManifest = {
         format: "sennibook-notebook",
         version: BUNDLE_VERSION,
         notebook: validated,
         entries: entries.map((item) => item.entry),
       };
+      let manifestText: string;
+      let sourceSnapshotContents: Map<string, Buffer> | undefined;
+      const v2Text = JSON.stringify(manifest);
+      if (Buffer.byteLength(v2Text) <= MAX_NOTEBOOK_BYTES)
+        manifestText = v2Text;
+      else {
+        const snapshots = encodeSourceSnapshots(validated, {
+          validateSources: (raw) => z.array(sourceSchema).max(150).parse(raw),
+        });
+        const sourceSnapshotBytes = snapshots.entries.reduce(
+          (sum, entry) => sum + entry.size,
+          0,
+        );
+        if (totalBytes + sourceSnapshotBytes > MAX_TOTAL_BYTES)
+          throw new Error(
+            "Notebook bundle exceeds the 2 GB uncompressed size limit.",
+          );
+        if (entries.length + snapshots.entries.length > MAX_ENTRIES - 1)
+          throw new Error("Notebook bundle contains too many entries.");
+        manifest = {
+          format: "sennibook-notebook",
+          version: 3,
+          notebook: snapshots.notebook,
+          entries: [
+            ...entries.map((item) => item.entry),
+            ...snapshots.entries.map(
+              ({ content: _content, ...entry }) => entry,
+            ),
+          ],
+        };
+        manifestText = manifestJson(manifest);
+        sourceSnapshotContents = new Map(
+          snapshots.entries.map((entry) => [entry.path, entry.content]),
+        );
+      }
+      throwIfAborted(options.signal);
+      const sourceSnapshotBytes = [
+        ...(sourceSnapshotContents?.values() || []),
+      ].reduce((sum, content) => sum + content.byteLength, 0);
+      if (
+        totalBytes + sourceSnapshotBytes + Buffer.byteLength(manifestText) >
+        MAX_TOTAL_BYTES
+      )
+        throw new Error(
+          "Notebook bundle exceeds the 2 GB uncompressed size limit.",
+        );
       const archive = new ZipArchive({ zlib: { level: 6 } });
       archive.on("error", (error) => output.destroy(error));
       archive.on("warning", (error) => output.destroy(error));
       output.once("close", () => archive.abort());
       archive.pipe(output);
-      archive.append(manifestJson(manifest), { name: NOTEBOOK_ENTRY });
+      archive.append(manifestText, { name: NOTEBOOK_ENTRY });
       for (const item of entries) {
         throwIfAborted(options.signal);
         archive.file(item.absolutePath, {
           name: item.entry.path,
         });
       }
+      for (const [name, content] of sourceSnapshotContents ?? [])
+        archive.append(content, { name });
       if (options.signal) {
         const abort = () => {
           archive.abort();
@@ -586,6 +686,19 @@ function archivePathSafe(filename: string): boolean {
 
 function validateBundleEntryShape(entry: BundleEntry) {
   const parts = entry.path.split("/");
+  if (entry.kind === "source-snapshot") {
+    if (
+      parts.length !== 2 ||
+      parts[0] !== "sources" ||
+      !/^[a-f0-9]{64}\.json$/u.test(parts[1]) ||
+      entry.sha256 !== parts[1].slice(0, -5) ||
+      entry.episodeId !== undefined ||
+      entry.chapterId !== undefined ||
+      entry.index !== undefined
+    )
+      throw new Error(`Invalid source snapshot entry path: ${entry.path}`);
+    return;
+  }
   if (entry.kind === "original") {
     if (
       parts.length !== 2 ||
@@ -667,7 +780,11 @@ function openZip(filename: string): Promise<ZipFile> {
   });
 }
 
-function validateManifestOriginals(manifest: BundleManifest) {
+function validateManifestOriginals(manifest: {
+  version: number;
+  notebook: Notebook;
+  entries: BundleEntry[];
+}) {
   const attachments = attachmentMap(manifest.notebook);
   const originals = new Map<string, BundleEntry>();
   for (const entry of manifest.entries) {
@@ -817,12 +934,31 @@ async function collectArchiveEntries(
   } catch {
     throw new Error("notebook.json is not valid JSON.");
   }
-  const parsed = manifestSchema.safeParse(manifestRaw);
-  if (!parsed.success)
-    throw new Error("Notebook bundle manifest has an invalid schema.");
-  const manifest = parsed.data as BundleManifest;
-  validateNotebookReferences(manifest.notebook);
-  validateManifestOriginals(manifest);
+  const parsedV3 = v3ManifestSchema.safeParse(manifestRaw);
+  const parsedLegacy = manifestSchema.safeParse(manifestRaw);
+  const manifest: BundleManifest = parsedV3.success
+    ? (parsedV3.data as V3BundleManifest)
+    : parsedLegacy.success
+      ? (parsedLegacy.data as NormalBundleManifest)
+      : (() => {
+          throw new Error("Notebook bundle manifest has an invalid schema.");
+        })();
+  for (const entry of manifest.entries) {
+    if (entry.kind === "source-snapshot" && manifest.version !== 3)
+      throw new Error("Source snapshot entries require bundle version 3.");
+    validateBundleEntryShape(entry);
+    if (
+      entry.kind === "source-snapshot" &&
+      entry.size > MAX_SOURCE_SNAPSHOT_BYTES
+    )
+      throw new Error(
+        `Source snapshot ${entry.path} exceeds the ${MAX_SOURCE_SNAPSHOT_BYTES} byte limit.`,
+      );
+  }
+  if (manifest.version !== 3) {
+    validateNotebookReferences(manifest.notebook);
+    validateManifestOriginals(manifest);
+  }
   const expected = new Set([NOTEBOOK_ENTRY]);
   const expectedLower = new Set([NOTEBOOK_ENTRY]);
   const manifestEntries = new Set<string>();
@@ -941,8 +1077,8 @@ function entryTarget(
   episodeMap: Map<string, string>,
   audioDir: string,
 ): { targetName: string; targetPath: string } {
-  if (entry.kind === "original")
-    throw new Error(`Original entry has no audio destination: ${entry.path}`);
+  if (entry.kind === "original" || entry.kind === "source-snapshot")
+    throw new Error(`Entry has no audio destination: ${entry.path}`);
   if (!entry.chapterId || !chapterMap.has(entry.chapterId))
     throw new Error(`Audio entry ${entry.path} refers to an unknown chapter.`);
   const chapterId = chapterMap.get(entry.chapterId)!;
@@ -1095,7 +1231,8 @@ export async function importNotebookBundle(
       const staged = path.join(staging, String(targets.size));
       await mkdir(path.dirname(staged), { recursive: true });
       targets.set(entry.path, staged);
-      if (entry.kind === "original") continue;
+      if (entry.kind === "original" || entry.kind === "source-snapshot")
+        continue;
       const destination = entryTarget(
         entry,
         chapterMap,
@@ -1105,26 +1242,80 @@ export async function importNotebookBundle(
       destinationByEntry.set(entry.path, destination);
     }
     await extractArchive(archivePath, targets, staging, options.signal);
-    const attachments = attachmentMap(manifest.notebook);
+    let notebook: Notebook;
+    if (manifest.version === 3) {
+      const sourceEntries = manifest.entries.filter(
+        (entry) => entry.kind === "source-snapshot",
+      );
+      if (sourceEntries.length > MAX_SOURCE_SET_COUNT)
+        throw new Error(
+          `Bundle contains ${sourceEntries.length} source sets; maximum is ${MAX_SOURCE_SET_COUNT}.`,
+        );
+      let declaredSourceBytes = 0;
+      for (const entry of sourceEntries) {
+        declaredSourceBytes += entry.size;
+        if (declaredSourceBytes > MAX_EXPANDED_SOURCE_BYTES)
+          throw new Error(
+            `Declared source snapshots exceed the ${MAX_EXPANDED_SOURCE_BYTES} byte limit.`,
+          );
+      }
+      const snapshotInputs = [];
+      for (const entry of sourceEntries) {
+        const staged = targets.get(entry.path)!;
+        const info = await stat(staged);
+        if (info.size !== entry.size)
+          throw new Error(`Extracted size mismatch for ${entry.path}.`);
+        if (info.size > MAX_SOURCE_SNAPSHOT_BYTES)
+          throw new Error(
+            `Source snapshot ${entry.path} exceeds its size limit.`,
+          );
+        snapshotInputs.push({
+          path: entry.path,
+          kind: entry.kind,
+          size: entry.size,
+          sha256: entry.sha256,
+          content: await readFile(staged),
+        });
+      }
+      const expanded = decodeSourceSnapshots(
+        manifest.notebook,
+        snapshotInputs,
+        (raw) => z.array(sourceSchema).max(150).parse(raw),
+      );
+      const parsed = notebookSchema.safeParse(expanded);
+      if (!parsed.success)
+        throw new Error(
+          "Notebook bundle manifest has an invalid notebook schema.",
+        );
+      notebook = parsed.data;
+      validateNotebookReferences(notebook);
+      validateManifestOriginals({
+        version: manifest.version,
+        notebook,
+        entries: manifest.entries,
+      });
+    } else {
+      notebook = manifest.notebook;
+    }
+    const attachments = attachmentMap(notebook);
+    // Validate every staged payload before publishing any source original.
+    // In particular, a malformed later audio entry must not leave an earlier
+    // original behind in the shared content-addressed store.
     for (const entry of manifest.entries) {
       throwIfAborted(options.signal);
       const staged = targets.get(entry.path)!;
       const info = await stat(staged);
       if (info.size !== entry.size)
         throw new Error(`Extracted size mismatch for ${entry.path}.`);
+      if (entry.kind === "source-snapshot") continue;
       if (entry.kind === "original") {
         const sha256 = entry.sha256 || entry.path.slice("originals/".length);
         const attachment = attachments.get(sha256);
         if (!attachment)
           throw new Error(`Original entry ${sha256} has no source metadata.`);
-        const stored = await storeOriginal(
-          originalsDir,
-          staged,
-          attachment.filename,
-          attachment.mediaType,
-          options.signal,
-        );
-        if (stored.sha256 !== sha256 || stored.bytes !== entry.size)
+        if (attachment.bytes !== info.size || entry.size !== info.size)
+          throw new Error(`Original source hash mismatch for ${entry.path}.`);
+        if ((await hashOriginal(staged, options.signal)) !== sha256)
           throw new Error(`Original source hash mismatch for ${entry.path}.`);
         continue;
       }
@@ -1153,13 +1344,34 @@ export async function importNotebookBundle(
         );
     }
     const importedNotebook = remapNotebook(
-      manifest.notebook,
+      notebook,
       episodeMap,
       chapterMap,
       manifest.entries,
     );
+    // Publishing is deliberately separate from validation. Originals are
+    // shared by content hash, so a commit-stage failure leaves no safe way to
+    // decide whether an existing path became owned by a concurrent import;
+    // never delete a hash path blindly during rollback.
     for (const entry of manifest.entries) {
-      if (entry.kind === "original") continue;
+      if (entry.kind !== "original") continue;
+      throwIfAborted(options.signal);
+      const staged = targets.get(entry.path)!;
+      const sha256 = entry.sha256 || entry.path.slice("originals/".length);
+      const attachment = attachments.get(sha256)!;
+      const stored = await storeOriginal(
+        originalsDir,
+        staged,
+        attachment.filename,
+        attachment.mediaType,
+        options.signal,
+      );
+      if (stored.sha256 !== sha256 || stored.bytes !== entry.size)
+        throw new Error(`Original source hash mismatch for ${entry.path}.`);
+    }
+    for (const entry of manifest.entries) {
+      if (entry.kind === "original" || entry.kind === "source-snapshot")
+        continue;
       const staged = targets.get(entry.path)!;
       const destination = destinationByEntry.get(entry.path)!;
       await mkdir(path.dirname(destination), { recursive: true });

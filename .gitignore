@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .env
+cartesia-credentials.json*
 data/
 test-results/
 playwright-report/
