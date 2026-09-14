@@ -4,6 +4,10 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 
 ## Learning-experience research — candidate reviewed, learner evaluation pending
 
+- Flashcard follow-up: one editable word list with detected language labels, per-pair autosave and post-generation direction/typing controls. The owner explicitly allows practice while source review is incomplete; verification remains visible and edits invalidate it. See the current flow and evaluation in the [flashcard plan](docs/research/flashcards-plan.md).
+
+- Flashcards are implemented in the 0.3.0 source build: Luna generation with custom prompts and source select/deselect all, HTML/TSV import, source-pair and human coverage review, attributed OCR corrections, single-face study, strict typing, direction-specific progress and backup/Trash integration. The owner's 148-pair reference and isolated Electron/browser/provider/lifecycle checks are recorded in the [flashcard plan](docs/research/flashcards-plan.md). Packaged desktop checks passed; see [release notes](docs/releases/0.3.0.md). Original-idioom comparison, larger model runs, physical controller use and learner evaluation remain pending.
+
 - The first [focused research review](docs/research/learning-experience-findings.md) and [candidate conversation](docs/research/learner-interview.md) are complete. Primary evidence, counterevidence, four alternatives, and fourteen constructed failure cases support a candidate for rehearsal; they do not establish learning effectiveness. Follow [the research plan](docs/research/learning-experience-plan.md) for remaining work. The owner's ten-hour example was not a duration requirement.
 - Rehearse the five required areas, targeted follow-ups, source/requirement distinctions, and shared brief with actual course material. Check annotated reading separately from requirements-based explanation. Confirm that brief reuse catches changed goals and sources. The candidate has not been run with learners or integrated into generation.
 - Address economics method selection and numerical answers alongside conceptual explanation; evaluate optional visuals during walking/listening.

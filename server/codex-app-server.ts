@@ -219,6 +219,7 @@ export async function generateWithCodex(
   model: string,
   signal?: AbortSignal,
   onProgress?: (message: string) => void,
+  instructions = baseInstructions,
 ) {
   return withConnection(async (connection, cwd) => {
     onProgress?.("Checking Codex connection");
@@ -250,8 +251,8 @@ export async function generateWithCodex(
       ephemeral: true,
       approvalPolicy: "never",
       sandbox: "read-only",
-      baseInstructions,
-      developerInstructions: baseInstructions,
+      baseInstructions: instructions,
+      developerInstructions: instructions,
       config,
       ...(model ? { model } : {}),
     });

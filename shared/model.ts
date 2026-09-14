@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { OcrResult } from "./ocr.ts";
 import type { Transcript } from "./transcription.ts";
 import type { ContextSummary } from "./context-summary.ts";
+import type { FlashDeck } from "./flashcards.ts";
 
 export const subjects = [
   "Politics",
@@ -173,6 +174,7 @@ export type ChatMessage = {
   evidence?: Evidence[];
 };
 export type Notebook = {
+  flashcards?: FlashDeck[];
   id: string;
   title: string;
   description: string;

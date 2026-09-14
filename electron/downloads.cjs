@@ -88,6 +88,8 @@ function openExclusiveWriteStream(filename) {
 }
 
 function defaultName(requestPath) {
+  if (requestPath.includes("/flashcards/") && requestPath.endsWith("/export"))
+    return "sennibook-flashcards.json";
   if (requestPath.endsWith("/bundle")) return "sennibook-notebook.zip";
   if (requestPath.endsWith("/export")) return "sennibook-notebook.md";
   if (requestPath.includes("/episodes/") && requestPath.includes("/download"))
@@ -128,6 +130,10 @@ function validatePath(requestPath) {
     new RegExp(`^/api/notebooks/${UUID}/(bundle|export)$`, "iu"),
   );
   if (exportMatch && url.searchParams.size === 0) return url.pathname;
+  if (
+    new RegExp(`^/api/notebooks/${UUID}/flashcards/${UUID}/(?:export|sources/${UUID}/original)$`, "iu").test(url.pathname) &&
+    url.searchParams.size === 0
+  ) return url.pathname;
   if (
     new RegExp(`^/api/notebooks/${UUID}/sources/${UUID}/original$`, "iu").test(
       url.pathname,
