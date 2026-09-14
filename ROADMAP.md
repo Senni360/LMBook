@@ -66,6 +66,8 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 
 ## Connections and operations
 
+- Configure automatic Windows releases for unpublished versions reaching `master`: locked install, existing tests, packaged desktop smoke, draft upload and checksum verification before publication. Version changes and release notes remain explicit in each release PR. Policy and retry behavior live in [the release guide](docs/releasing.md).
+
 - Detect available local Codex, OpenCode and Ollama installations and explain actual readiness.
 - Keep credentials on the host; allow provider setup without source-code edits.
 - Google speech preview, usage estimates and clear billing boundaries.

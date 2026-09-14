@@ -1,5 +1,11 @@
 # Work log
 
+## 2026-09-14 — automatic release configuration
+
+After merging the flashcard PR, the owner asked why GitHub Releases still showed 0.2.9, then authorized configuring releases. Added a Windows release workflow on `master` pushes and manual dispatch. Unpublished package versions build from the exact commit with locked dependencies, existing application checks and the packaged desktop smoke check. A separate write-permission job uploads an unpublished draft, verifies asset sizes and GitHub SHA-256 digests, then publishes it. Existing public releases are skipped; version tags never move. Version bumps and versioned release notes remain explicit; a code merge with an already published version does not create another version. [Release guide](docs/releasing.md) is authoritative.
+
+Inspected current GitHub Actions settings (enabled; default token read-only; no prior workflows), official GitHub/electron-builder documentation and the repository's packaging/test setup. Pinned action commits were resolved from their upstream tags. Actionlint 1.7.12, YAML parsing, Node syntax and whitespace checks passed. Local read-only planning found 0.3.1 unreleased; local artifact staging produced correctly named installer/portable downloads and a checksum manifest. Activation and the first hosted-run result are recorded below when observed. No new automated test files or owner-library changes; separate source/copy edits remain in the original workspace.
+
 ## 2026-09-14 — editable word lists and desktop 0.3.1
 
 The owner corrected the flashcard interaction: generate one word list with detected languages, edit each pair directly in its own box, then choose either practice direction or typing without regeneration. They explicitly chose to allow immediate practice with incomplete source review clearly shown. Implemented the word-list landing view, autosaved pair/example/chapter/language edits, baseline conflict detection and idempotent lost-response retries. Original quotes remain immutable; pair edits clear review. JSON export contains the current saved list and honest review status. Direction and practice mode are visible post-generation controls, with controller/keyboard and prior study options retained.

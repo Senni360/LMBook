@@ -1,0 +1,94 @@
+name: Windows release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Finish an upload before another merge can start publishing a release.
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/master'
+    runs-on: windows-latest
+    timeout-minutes: 35
+    outputs:
+      publish: ${{ steps.plan.outputs.publish }}
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Check whether this version needs a release
+        id: plan
+        run: node scripts/release.mjs plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Install locked dependencies
+        if: steps.plan.outputs.publish == 'true'
+        run: npm ci
+      - name: Install the browser used by existing checks
+        if: steps.plan.outputs.publish == 'true'
+        run: npx playwright install chromium
+      - name: Build and run existing application checks
+        if: steps.plan.outputs.publish == 'true'
+        run: npm test
+      - name: Package Windows installer and portable app
+        if: steps.plan.outputs.publish == 'true'
+        run: |
+          node scripts/build-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npx electron-builder --win --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Check the packaged desktop app
+        if: steps.plan.outputs.publish == 'true'
+        run: |
+          $env:SENNIBOOK_TEST_EXECUTABLE = Join-Path $PWD 'release/win-unpacked/SenniBook.exe'
+          npx tsx --test tests/desktop.smoke.ts
+      - name: Prepare downloads and SHA-256 checksums
+        if: steps.plan.outputs.publish == 'true'
+        run: node scripts/release.mjs stage
+      - name: Transfer checked artifacts to the publishing job
+        if: steps.plan.outputs.publish == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-release-${{ github.sha }}
+          path: .work/release-assets/*
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          compression-level: 0
+
+  publish:
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: windows-release-${{ github.sha }}
+          path: .work/release-assets
+      - name: Publish only after every download is verified
+        run: node scripts/release.mjs publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

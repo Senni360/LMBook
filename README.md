@@ -6,7 +6,9 @@ A local, open-source learning notebook for detailed two-person audio and source-
 
 Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Build artifacts go to `release/`: an installer, a portable executable, and `win-unpacked/SenniBook.exe`.
 
-The latest local desktop build is **0.3.1**, with editable word lists and practice in either direction. Open `release/0.3.1/SenniBook-0.3.1-portable.exe`, or install `release/0.3.1/SenniBook Setup 0.3.1.exe`. Quit an older running preview first; both use the same normal application-data library. The [GitHub release](https://github.com/Senni360/SenniBook/releases/tag/v0.2.9) remains 0.2.9; 0.3.1 has not been published as a remote release. Desktop is the primary delivery target; the browser preview uses a separate library. See [0.3.1 release notes](docs/releases/0.3.1.md).
+Download the current installer or portable executable from [GitHub Releases](https://github.com/Senni360/SenniBook/releases/latest). Merging a new version into `master` automatically builds, checks and publishes its Windows downloads. See [the release workflow](docs/releasing.md) for version bumps, required release notes and retry behavior.
+
+The local **0.3.1** build adds editable word lists and practice in either direction: `release/0.3.1/SenniBook-0.3.1-portable.exe` or `release/0.3.1/SenniBook Setup 0.3.1.exe`. Quit an older running preview first; both use the same normal application-data library. Desktop is the primary delivery target; the browser preview uses a separate library. See [0.3.1 release notes](docs/releases/0.3.1.md).
 
 0.2.8 adds recoverable notebook Trash in Settings → Your library. Restore keeps the original notebook; explicit permanent deletion removes its unshared files and activity history, preserving files referenced by other notebooks or episode snapshots. Downloads now use a native save dialog with progress, cancellation and readable errors. Cached library summaries avoid reparsing every notebook for the sidebar, and empty-file/partial-import handling is clearer.
 
