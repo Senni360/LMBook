@@ -45,9 +45,20 @@ function isAppUrl(value) {
   }
 }
 
-app.setName("SenniBook");
-if (process.env.SENNIBOOK_USER_DATA)
-  app.setPath("userData", path.resolve(process.env.SENNIBOOK_USER_DATA));
+app.setName("LMBook");
+// Keep the existing library, provider configuration and Chromium profile together.
+// The private origin and persisted storage keys also retain their original names.
+const userDataOverride =
+  process.env.LMBOOK_USER_DATA || process.env.SENNIBOOK_USER_DATA;
+const legacyUserData = path.join(app.getPath("appData"), "SenniBook");
+app.setPath(
+  "userData",
+  userDataOverride
+    ? path.resolve(userDataOverride)
+    : existsSync(legacyUserData)
+      ? legacyUserData
+      : path.join(app.getPath("appData"), "LMBook"),
+);
 const hasLock = app.requestSingleInstanceLock();
 let window, backend, tray, origin, poll, blocker, downloads;
 let quitting = false,
@@ -93,10 +104,10 @@ async function requestQuit() {
       title: "Generation is still running",
       message: "Keep your episode generation running?",
       detail:
-        "You can leave SenniBook in the system tray. Quitting cancels active work; completed chapters remain saved.",
+        "You can leave LMBook in the system tray. Quitting cancels active work; completed chapters remain saved.",
       buttons: [
         "Keep working in background",
-        "Stay in SenniBook",
+        "Stay in LMBook",
         "Cancel jobs and quit",
       ],
       defaultId: 0,
@@ -131,7 +142,7 @@ async function startBackend() {
       [],
       {
         cwd: userData,
-        serviceName: "SenniBook learning engine",
+        serviceName: "LMBook learning engine",
         stdio: "pipe",
         env: {
           ...process.env,
@@ -189,8 +200,8 @@ async function startBackend() {
         log("The learning engine stopped unexpectedly.");
         if (!process.env.SENNIBOOK_TEST_HIDDEN)
           dialog.showErrorBox(
-            "SenniBook needs to restart",
-            "The learning engine stopped unexpectedly. Completed work is saved. Reopen SenniBook to continue.\n\nLog: " +
+            "LMBook needs to restart",
+            "The learning engine stopped unexpectedly. Completed work is saved. Reopen LMBook to continue.\n\nLog: " +
               logPath,
           );
         quitting = true;
@@ -236,7 +247,7 @@ async function setup() {
     });
   });
   window = new BrowserWindow({
-    title: "SenniBook",
+    title: "LMBook",
     width: 1400,
     height: 940,
     minWidth: 700,
@@ -321,16 +332,16 @@ async function setup() {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
-        label: "SenniBook",
+        label: "LMBook",
         submenu: [
-          { label: "Show SenniBook", click: showWindow },
+          { label: "Show LMBook", click: showWindow },
           {
             label: "Open data folder",
             click: () => shell.openPath(path.join(userData, "data")),
           },
           { type: "separator" },
           {
-            label: "Quit SenniBook",
+            label: "Quit LMBook",
             accelerator: "CmdOrCtrl+Q",
             click: () => void requestQuit(),
           },
@@ -356,11 +367,11 @@ async function setup() {
   tray = new Tray(
     nativeImage.createFromPath(path.join(root, "electron", "icon.png")),
   );
-  tray.setToolTip("SenniBook");
+  tray.setToolTip("LMBook");
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Open SenniBook", click: showWindow },
-      { label: "Quit SenniBook", click: () => void requestQuit() },
+      { label: "Open LMBook", click: showWindow },
+      { label: "Quit LMBook", click: () => void requestQuit() },
     ]),
   );
   tray.on("double-click", showWindow);
@@ -378,8 +389,8 @@ async function setup() {
       activeJobs = Object.keys(status.activeJobs || {}).length;
       tray?.setToolTip(
         activeJobs
-          ? `SenniBook · ${activeJobs} active task${activeJobs === 1 ? "" : "s"}`
-          : "SenniBook",
+          ? `LMBook · ${activeJobs} active task${activeJobs === 1 ? "" : "s"}`
+          : "LMBook",
       );
       if (activeJobs && blocker === undefined)
         blocker = powerSaveBlocker.start("prevent-app-suspension");
@@ -456,7 +467,7 @@ else
       log(error.stack || error.message);
       if (!process.env.SENNIBOOK_TEST_HIDDEN)
         dialog.showErrorBox(
-          "SenniBook could not start",
+          "LMBook could not start",
           `${error.message}\n\nDetails: ${logPath}`,
         );
       quitting = true;

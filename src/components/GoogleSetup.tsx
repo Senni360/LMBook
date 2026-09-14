@@ -231,9 +231,9 @@ export function GoogleSetup({
           <Cloud size={21} />
         </div>
         <div>
-          <h3>Bring your conversation to life</h3>
+          <h3>Set up Google Cloud speech</h3>
           <p>
-            Set up Google Cloud once for two-speaker audio. SenniBook keeps your
+            Set up Google Cloud once for two-speaker audio. LMBook keeps your
             credentials on this computer and lets you check authentication
             before trying a preview.
           </p>
@@ -263,7 +263,7 @@ export function GoogleSetup({
             <p>
               If you have Google AI Pro, open My benefits and see whether a
               Cloud credit is available for your account. Eligibility and the
-              amount are decided by Google; SenniBook cannot check them.
+              amount are decided by Google; LMBook cannot check them.
             </p>
             <div className="google-setup-actions">
               <StepLink href="https://developers.google.com/profile/help/benefits">
@@ -364,7 +364,7 @@ export function GoogleSetup({
           "Save the project here, then verify",
           <>
             <p>
-              Save the project ID in SenniBook. The connection check verifies
+              Save the project ID in LMBook. The connection check verifies
               local authentication only; it does not verify billing, credit
               eligibility, or voice quality. Try a short preview before a long
               episode.

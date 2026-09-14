@@ -33,8 +33,8 @@ if (
 const tag = `v${version}`;
 const directory = ".work/release-assets";
 const names = [
-  `SenniBook-${version}-portable.exe`,
-  `SenniBook-Setup-${version}.exe`,
+  `LMBook-${version}-portable.exe`,
+  `LMBook-Setup-${version}.exe`,
   "SHA256SUMS.txt",
 ];
 const notes = await readFile(`docs/releases/${version}.md`, "utf8");
@@ -112,8 +112,8 @@ if (command === "plan") {
   if ((await readdir(directory)).length)
     throw new Error("Artifact staging directory must be empty.");
   const sourceNames = [
-    `SenniBook-${version}-portable.exe`,
-    `SenniBook Setup ${version}.exe`,
+    `LMBook-${version}-portable.exe`,
+    `LMBook Setup ${version}.exe`,
   ];
   for (let i = 0; i < 2; i++) {
     const file = path.join("release", sourceNames[i]);
@@ -181,7 +181,7 @@ if (command === "plan") {
       body: {
         tag_name: tag,
         target_commitish: sha,
-        name: `SenniBook ${version}`,
+        name: `LMBook ${version}`,
         body,
         draft: true,
         prerelease: false,

@@ -253,7 +253,7 @@ export function EpisodePlayer({
     if (typeof MediaMetadata !== "undefined")
       mediaSession.metadata = new MediaMetadata({
         title: activeChapter.title,
-        artist: "SenniBook",
+        artist: "LMBook",
         album: episode.title,
       });
     const actions: Array<[MediaSessionAction, MediaSessionActionHandler]> = [
@@ -303,7 +303,6 @@ export function EpisodePlayer({
     <section className="episode-player" aria-label="Episode player">
       <div className="episode-player-heading">
         <div>
-          <span className="episode-player-kicker">Listening workspace</span>
           <strong>{activeChapter.title}</strong>
         </div>
         <label className="episode-player-speed">

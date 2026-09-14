@@ -33,7 +33,7 @@ export async function generateWithOpenCode(
     throw new Error(
       "Enter an OpenCode Go model ID, such as muse-spark-1.3-contributor.",
     );
-  const dir = mkdtempSync(path.join(tmpdir(), "sennibook-opencode-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "lmbook-opencode-"));
   try {
     return await new Promise<string>((resolve, reject) => {
       const env = Object.fromEntries(
@@ -49,13 +49,13 @@ export async function generateWithOpenCode(
           "run",
           "--pure",
           "--agent",
-          "sennibook",
+          "lmbook",
           "--model",
           `opencode-go/${modelId}`,
           "--format",
           "json",
           "--title",
-          "SenniBook generation",
+          "LMBook generation",
           "--dir",
           dir,
         ],
@@ -70,7 +70,7 @@ export async function generateWithOpenCode(
               share: "disabled",
               permission: "deny",
               agent: {
-                sennibook: {
+                lmbook: {
                   mode: "primary",
                   permission: "deny",
                   prompt:

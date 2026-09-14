@@ -1,4 +1,4 @@
-# SenniBook design
+# LMBook design
 
 ## Overview
 Operate mode: a reading-room workbench with forest navigation, mineral-white working surfaces, and an ochre audio accent. Decisions follow the user's instruction to proceed autonomously. The source → learning goals → audio progression is the signature interaction.

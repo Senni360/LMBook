@@ -18,6 +18,6 @@ Inspect **Actions → Windows release**. Failed builds or desktop checks publish
 
 **Run workflow** on `master` can publish an already merged but unreleased version. Re-running a published version skips the build and leaves its downloads unchanged. Runs are serialized so releases cannot upload over each other.
 
-For local packaging, `npm run desktop:dist -- --publish never` builds the Windows artifacts. Local binaries are not uploaded by merging a PR: the workflow produces its own checked build on a clean runner. Installer filenames on GitHub use `SenniBook-Setup-<version>.exe`; portable files use `SenniBook-<version>-portable.exe`.
+For local packaging, `npm run desktop:dist -- --publish never` builds the Windows artifacts. Local binaries are not uploaded by merging a PR: the workflow produces its own checked build on a clean runner. Installer filenames on GitHub use `LMBook-Setup-<version>.exe`; portable files use `LMBook-<version>-portable.exe`.
 
 Implementation references: [GitHub token permissions](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token), [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), [release creation](https://docs.github.com/en/rest/releases/releases#create-a-release), and [electron-builder publishing controls](https://www.electron.build/v26/docs/publish/).

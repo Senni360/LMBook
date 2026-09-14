@@ -1,6 +1,6 @@
 # Learning evidence for preparation and audio teaching
 
-Reviewed: 2026-09-14. Scope: a focused primary-source review for the [learning-experience research plan](learning-experience-plan.md), not a systematic review, production specification, or evaluation of SenniBook learners. Active duration was not measured. No participant sessions, provider experiments, listening trials, or learning gains were produced by this work.
+Reviewed: 2026-09-14. Scope: a focused primary-source review for the [learning-experience research plan](learning-experience-plan.md), not a systematic review, production specification, or evaluation of LMBook learners. Active duration was not measured. No participant sessions, provider experiments, listening trials, or learning gains were produced by this work.
 
 ## Decision-level finding
 
@@ -123,7 +123,7 @@ Wolpaw and colleagues (2022), *A multimodal evaluation of podcast learning, rete
 
 ## Implications to carry into research prototypes
 
-These are design inferences, not experimentally established SenniBook behavior.
+These are design inferences, not experimentally established LMBook behavior.
 
 | Interview or lesson choice | Rationale and boundary | Observable check |
 | --- | --- | --- |
@@ -141,7 +141,7 @@ These are design inferences, not experimentally established SenniBook behavior.
 3. **Effort is not a benefit by itself.** More questioning can displace another productive activity. A harder condition can also lose participants; examining only completers could mislead us about regular use.
 4. **No inspected study established the best phone visual for this use case.** Compare audio alone, a persistent worked calculation/still graph, and a staged visual only when each can address an observed difficulty. Do not make animation an assumed requirement.
 5. **Task-specific success needs appropriate material.** GDP and unemployment topic labels do not specify which quantity, method, population convention, or assessment skill is required. The owner's actual course questions are still needed before validating diagnostic items or scoring calculation outcomes.
-6. **The most consequential evidence gap is ecological.** No inspected experiment combines SenniBook-style preparation, the owner's course material, natural two-person teaching, outdoor walking, optional phone visuals, and independently assessed calculations. An exploratory owner/friends pilot should investigate that combination without claiming a general effect size.
+6. **The most consequential evidence gap is ecological.** No inspected experiment combines LMBook-style preparation, the owner's course material, natural two-person teaching, outdoor walking, optional phone visuals, and independently assessed calculations. An exploratory owner/friends pilot should investigate that combination without claiming a general effect size.
 7. **This review does not determine politics/history/biology curricula or source fidelity.** The annotated German reading and requirements-based history experience remain distinct user needs; learning-strategy studies cannot override those commitments. Biology's eventual scope still requires its learners' perspectives.
 
 ## Next investigation that can change the decision

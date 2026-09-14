@@ -89,16 +89,16 @@ function openExclusiveWriteStream(filename) {
 
 function defaultName(requestPath) {
   if (requestPath.includes("/flashcards/") && requestPath.endsWith("/export"))
-    return "sennibook-flashcards.json";
-  if (requestPath.endsWith("/bundle")) return "sennibook-notebook.zip";
-  if (requestPath.endsWith("/export")) return "sennibook-notebook.md";
+    return "lmbook-flashcards.json";
+  if (requestPath.endsWith("/bundle")) return "lmbook-notebook.zip";
+  if (requestPath.endsWith("/export")) return "lmbook-notebook.md";
   if (requestPath.includes("/episodes/") && requestPath.includes("/download"))
     return requestPath.includes("format=mp3")
-      ? "sennibook-episode.mp3"
-      : "sennibook-episode.wav";
+      ? "lmbook-episode.mp3"
+      : "lmbook-episode.wav";
   if (requestPath.startsWith("/api/audio/"))
     return path.basename(requestPath.split("?", 1)[0]);
-  return "sennibook-download";
+  return "lmbook-download";
 }
 
 function validatePath(requestPath) {
@@ -258,7 +258,7 @@ function createDownloadManager({
     active.set(input.id, operation);
     try {
       const save = await showSaveDialog(getWindow(), {
-        title: "Save SenniBook download",
+        title: "Save LMBook download",
         defaultPath: suggestedName,
         buttonLabel: "Save",
         properties: ["showOverwriteConfirmation"],

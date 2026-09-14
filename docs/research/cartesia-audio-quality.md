@@ -1,6 +1,6 @@
-# Cartesia website versus SenniBook audio
+# Cartesia website versus LMBook audio
 
-2026-09-14. The owner reports that the same voices sound like a phone call in SenniBook and studio recordings on Cartesia's website. The website script was authored by the owner and differs from the app script. This is a timbre/fidelity complaint, not primarily a complaint about dialogue writing.
+2026-09-14. The owner reports that the same voices sound like a phone call in LMBook and studio recordings on Cartesia's website. The website script was authored by the owner and differs from the app script. This is a timbre/fidelity complaint, not primarily a complaint about dialogue writing.
 
 ## Verified behavior before 0.2.6
 

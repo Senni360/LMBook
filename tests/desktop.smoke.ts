@@ -33,7 +33,7 @@ test(
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page
-        .getByRole("heading", { name: "Your material. A deeper conversation." })
+        .getByRole("heading", { name: "Your learning library." })
         .waitFor();
       const info = await page.evaluate(() =>
         window.sennibookDesktop!.getInfo(),

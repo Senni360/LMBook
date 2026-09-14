@@ -29,7 +29,7 @@ Subject and purpose are also independent. History and politics may share source-
 
 ## 2. What the evidence changes
 
-The relevant literature spans survey interviewing, information seeking, mathematics instruction, text learning, spoken explanations, and podcast listening. These settings illuminate individual decisions. None establishes the effectiveness of the complete SenniBook experience.
+The relevant literature spans survey interviewing, information seeking, mathematics instruction, text learning, spoken explanations, and podcast listening. These settings illuminate individual decisions. None establishes the effectiveness of the complete LMBook experience.
 
 ### Clarification can uncover needs people do not volunteer
 
@@ -77,13 +77,13 @@ A randomized crossover study in university physics found higher immediate learni
 
 ## 3. What to take from N.A.G. and the grilling workflow
 
-N.A.G.'s useful contribution is its distinction between the analytical task and the output format, together with explicit rules for resolving prompt settings. That encourages us to establish what the learner needs before choosing how to present it. Its particular system prompt is oriented toward a dinosaur reference collection and contains a tension between exclusive source grounding and permission to supplement when sources are silent. Its source-count confidence labels would also require independent justification. These should not become SenniBook defaults. [N.A.G. system prompt](https://github.com/lrdmora/N_A_G-Narrative-Anchor-and-Guide/blob/master/prompts/SYSTEM_PROMPT.md)
+N.A.G.'s useful contribution is its distinction between the analytical task and the output format, together with explicit rules for resolving prompt settings. That encourages us to establish what the learner needs before choosing how to present it. Its particular system prompt is oriented toward a dinosaur reference collection and contains a tension between exclusive source grounding and permission to supplement when sources are silent. Its source-count confidence labels would also require independent justification. These should not become LMBook defaults. [N.A.G. system prompt](https://github.com/lrdmora/N_A_G-Narrative-Anchor-and-Guide/blob/master/prompts/SYSTEM_PROMPT.md)
 
 The audio template offers host formats, brief duration bands, and a prescribed opening/closing structure. Those can inspire presentation options, but they do not settle completeness or learning outcomes. A short duration preset must yield to an explicitly requested complete reading, or the scope must be renegotiated. The template is a workflow example, not evidence of improved learning. [N.A.G. audio template](https://github.com/lrdmora/N_A_G-Narrative-Anchor-and-Guide/blob/master/prompts/PROMPT_AudioOverview.md)
 
 Matt Pocock's locally inspected grilling workflow contributes dependency-aware questioning: resolve a decision before asking questions that depend on it, and investigate available facts independently. Its exhaustive engineering decision tree is a poor stopping rule for this learner experience. Adopt the dependency principle and finish when consequential teaching decisions are settled. The inspected local snapshot is recorded in the [research plan](learning-experience-plan.md#starting-references).
 
-Develop original SenniBook wording. The research prototype does not require copying either project's prompts, treating uploaded source text as instructions, or adding their complete workflows to the app.
+Develop original LMBook wording. The research prototype does not require copying either project's prompts, treating uploaded source text as instructions, or adding their complete workflows to the app.
 
 ## 4. The recommended conversation
 

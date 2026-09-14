@@ -54,7 +54,7 @@ jobs:
       - name: Check the packaged desktop app
         if: steps.plan.outputs.publish == 'true'
         run: |
-          $env:SENNIBOOK_TEST_EXECUTABLE = Join-Path $PWD 'release/win-unpacked/SenniBook.exe'
+          $env:SENNIBOOK_TEST_EXECUTABLE = Join-Path $PWD 'release/win-unpacked/LMBook.exe'
           npx tsx --test tests/desktop.smoke.ts
       - name: Prepare downloads and SHA-256 checksums
         if: steps.plan.outputs.publish == 'true'

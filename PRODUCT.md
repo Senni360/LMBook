@@ -1,11 +1,11 @@
-# SenniBook
+# LMBook
 <!-- impeccable:product-schema 1 -->
 ## Platform
 web
 
 Electron desktop app with a reusable web interface, chosen by the owner on 2026-09-14. Windows is the first desktop target. Deliver features and examples in Electron; the browser's separate development library is not the owner's desktop library. Phone-friendly listening remains a product requirement.
 ## Users
-The owner and friends study in Dutch and English, from high school to advanced politics, biology and economics. English is the confirmed default for new notebooks. They listen while walking, sometimes ten hours in a week, sometimes none. The owner listens on an iPhone and does not currently use Obsidian. SenniBook must work independently; vault integration remains optional.
+The owner and friends study in Dutch and English, from high school to advanced politics, biology and economics. English is the confirmed default for new notebooks. They listen while walking, sometimes ten hours in a week, sometimes none. The owner listens on an iPhone and does not currently use Obsidian. LMBook must work independently; vault integration remains optional.
 ## Product Purpose
 Turn course sources, begrippen and leerdoelen into detailed, engaging two-person conversations that address what the learner actually needs to understand or do. Objectives establish a minimum; deeper understanding is welcome. The primary audience is the owner and friends who will invest in preparation for a more useful learning experience.
 ## Operating Context
@@ -31,18 +31,20 @@ The owner has a Cartesia Pro subscription and requested its integration on 2026-
 
 The owner preferred the 44.1 kHz sample in a matched Cartesia comparison and approved making it the default. Since desktop 0.2.6, new plans request native 44.1 kHz PCM16 WAV. Older episodes retain their original 24 kHz setting and caches; changing audio quality uses the same separate-copy flow when audio exists. [Comparison evidence and limits](docs/research/cartesia-audio-quality.md) distinguish this listening preference from a universal quality claim.
 
-Codex uses the official App Server integration and the owner's existing login, with SenniBook's own identity and normal account limits. The owner proposed T3 Code's provider approach; a separate API key is not a settled requirement. OpenCode Go's coding-traffic permission remains a separate unresolved issue.
+Codex uses the official App Server integration and the owner's existing login, with LMBook's own identity and normal account limits. The owner proposed T3 Code's provider approach; a separate API key is not a settled requirement. OpenCode Go's coding-traffic permission remains a separate unresolved issue.
 ## Evidence on Hand
 Detailed user conversation and the owner's 148-pair German flashcard HTML. Its original idioom has not been supplied; the HTML is not evidence of fidelity to that textbook. Example notebook content must be visibly labelled illustrative. Feature-specific provider and listening observations are recorded in their research notes.
 ## Product Principles
-- Desktop navigation: the owner confirmed that the native `SenniBook / Edit / View` menu should be hidden by default, retaining the Windows title bar and in-app status strip. Settings should offer `Go back` at the sidebar bottom and return to the previous notebook section. Navigation must preserve unsaved preparation and listening context. Implementation evidence lives in the [desktop reliability sweep](docs/audits/2026-09-14-no-generation.md).
-- Prioritize interaction behavior and reliability over cosmetic redesign. The owner does not require matching another product's colors or appearance. Review relevant upstream UI issues and verified solutions to avoid repeating them; confirm applicability before changing SenniBook.
+- Desktop navigation: the owner confirmed that the native `LMBook / Edit / View` menu should be hidden by default, retaining the Windows title bar and in-app status strip. Settings should offer `Go back` at the sidebar bottom and return to the previous notebook section. Navigation must preserve unsaved preparation and listening context. Implementation evidence lives in the [desktop reliability sweep](docs/audits/2026-09-14-no-generation.md).
+- Prioritize interaction behavior and reliability over cosmetic redesign. The owner does not require matching another product's colors or appearance. Review relevant upstream UI issues and verified solutions to avoid repeating them; confirm applicability before changing LMBook.
 - Coverage must be inspectable, with evidence and unresolved gaps.
 - Depth and assumed knowledge are independent of subject.
 - Natural conversations preserve precision.
 - Preparation should resolve meaningful uncertainty about the learner's needs. Evaluate the value of questions and the burden of repeated setup; ease of generating an episode is not the sole product goal.
 - Keep original sources separate from generated interpretation.
 ## Open Decisions
-Voice preferences and friends' exact GPU memory remain unknown. This machine has an RTX 3060 with 12 GB VRAM and Python 3.13. The owner has not set up a Google Cloud project and wants guided setup in the app. SenniBook is a working name from the workspace directory.
+Voice preferences and friends' exact GPU memory remain unknown. This machine has an RTX 3060 with 12 GB VRAM and Python 3.13. The owner has not set up a Google Cloud project and wants guided setup in the app.
+
+The owner selected **LMBook** as the project name on 2026-09-14, replacing SenniBook. Use LMBook in the application, downloads and current documentation. Preserve existing libraries, credentials, drafts, playback positions and backup compatibility during upgrades. Technical compatibility identifiers may retain the former name; see [rebranding compatibility](docs/rebranding.md). This naming decision is not a trademark registration or legal clearance.
 
 The first [learning-experience findings](docs/research/learning-experience-findings.md) recommend a [candidate five-area conversation](docs/research/learner-interview.md), consequential follow-ups, and a shared brief. This is a research recommendation, not an adopted or validated feature. Wording, readiness, brief reuse, and numerical/visual support still need evaluation with actual material and learners. The investigation and confirmed needs are recorded in [the research plan](docs/research/learning-experience-plan.md). Project collaboration and quality expectations live in [AGENTS.md](AGENTS.md).

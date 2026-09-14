@@ -33,7 +33,7 @@ class CodexConnection {
     const command = codexCommand();
     if (!command)
       throw new Error(
-        "Codex is not installed. Install the Codex CLI and sign in, then restart SenniBook.",
+        "Codex is not installed. Install the Codex CLI and sign in, then restart LMBook.",
       );
     const env = Object.fromEntries(
       Object.entries(process.env).filter(([key]) =>
@@ -75,7 +75,7 @@ class CodexConnection {
           error: {
             code: -32601,
             message:
-              "SenniBook only supports source-grounded writing; this tool request is unavailable.",
+              "LMBook only supports source-grounded writing; this tool request is unavailable.",
           },
         });
       } else if (event.id !== undefined) {
@@ -92,7 +92,7 @@ class CodexConnection {
     this.child.on("error", () =>
       this.fail(
         new Error(
-          "Codex could not start. Check its installation and restart SenniBook.",
+          "Codex could not start. Check its installation and restart LMBook.",
         ),
       ),
     );
@@ -128,7 +128,7 @@ class CodexConnection {
       for (const waiting of this.pending.values()) waiting.reject(error);
       this.pending.clear();
       for (const listener of this.events)
-        listener({ method: "sennibook/error", error });
+        listener({ method: "lmbook/error", error });
     }
     if (terminate) stopProcess(this.child);
   }
@@ -143,8 +143,8 @@ class CodexConnection {
   async initialize() {
     await this.request("initialize", {
       clientInfo: {
-        name: "sennibook",
-        title: "SenniBook",
+        name: "lmbook",
+        title: "LMBook",
         version: packageInfo.version,
       },
     });
@@ -162,7 +162,7 @@ async function withConnection<T>(
   timeout = 600000,
 ) {
   signal?.throwIfAborted();
-  const cwd = mkdtempSync(path.join(tmpdir(), "sennibook-codex-"));
+  const cwd = mkdtempSync(path.join(tmpdir(), "lmbook-codex-"));
   let connection: CodexConnection | undefined;
   try {
     const timeoutSignal = AbortSignal.timeout(timeout);
@@ -264,7 +264,7 @@ export async function generateWithCodex(
       const messages = new Map<string, { text: string; phase?: string }>();
       let received = 0;
       const listener = (event: any) => {
-        if (event.method === "sennibook/error") {
+        if (event.method === "lmbook/error") {
           connection.events.delete(listener);
           reject(event.error);
           return;

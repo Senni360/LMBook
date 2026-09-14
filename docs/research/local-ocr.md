@@ -13,7 +13,7 @@ Tesseract.js is the best first implementation because it is close to the applica
 
 The current app already pins pdfjs-dist at **6.3.289**, which is the current stable PDF.js package shown by npm on the research date. PDF.js is Apache-2.0. Keep that version pinned with the application and use its worker build; do not add Poppler or Ghostscript merely to render pages. [pdfjs-dist 6.3.289](https://www.npmjs.com/package/pdfjs-dist/v/6.3.289), [PDF.js API](https://mozilla.github.io/pdf.js/api/).
 
-## Why the first path fits SenniBook
+## Why the first path fits LMBook
 
 For a PDF:
 

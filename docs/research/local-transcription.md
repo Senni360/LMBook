@@ -1,4 +1,4 @@
-# Local transcription for SenniBook
+# Local transcription for LMBook
 
 _Research date: 2026-09-14. Scope: local English and Dutch transcription on Windows with an RTX 3060 or RTX 3080, including word and segment timestamps._
 

@@ -37,7 +37,7 @@ Two raw waveforms slightly exceeded full scale: peaks 1.0207 and 1.0553. The ini
 
 The upstream Chinese tokenizer constructor downloaded `spacy_ontonotes.zip` even with English/Dutch-only input and `HF_HUB_OFFLINE=1`. That flag controls Hugging Face, not every dependency. The additional archive is 34,567,143 bytes, SHA-256 `b216e7f92de7ae285aeab8feba2faa8ea8216e5995ff6fb3d391cc8356db1bfe`, from the [spacy-pkuseg release](https://github.com/explosion/spacy-pkuseg/releases/tag/v0.0.26). Its first-run default cache was `%USERPROFILE%/.pkuseg`. A verified copy was then prepared inside the experiment, with `PKUSEG_HOME` set there for the boundary run. The existing ASR environment was not modified. A production implementation must explicitly control all caches and preparation downloads; calling `from_local` alone is insufficient.
 
-The pinned generator hardcodes `max_new_tokens=1000`. SenniBook's existing cloud chunk size must not be passed unchanged to this model. Short sentence groups are a candidate starting point, with exact source text retained and explicit checks for incomplete output.
+The pinned generator hardcodes `max_new_tokens=1000`. LMBook's existing cloud chunk size must not be passed unchanged to this model. Short sentence groups are a candidate starting point, with exact source text retained and explicit checks for incomplete output.
 
 ## Longer input: failed fidelity check
 
@@ -67,7 +67,7 @@ The recovery run's largest PyTorch allocation was 3,600,778,752 bytes (3.35 GiB)
 
 ## Local artifacts
 
-All generated audio and environment files are local, ignored artifacts under `.work/local-tts-v3/`; they are not bundled into SenniBook or uploaded to a provider.
+All generated audio and environment files are local, ignored artifacts under `.work/local-tts-v3/`; they are not bundled into LMBook or uploaded to a provider.
 
 - `manifest.json`: code/model revisions, selected file sizes and hashes, additional tokenizer artifact.
 - `requirements-resolved.txt`: actual environment package versions and resolved Git dependency.

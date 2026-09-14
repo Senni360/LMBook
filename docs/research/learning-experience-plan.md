@@ -6,7 +6,7 @@ Status: the focused evidence review, candidate conversation, alternative compari
 
 ## Purpose
 
-Work out how SenniBook can establish what a learner needs and turn their materials into useful, detailed audio. This workstream concerns the learning experience, questioning, subject guidance, and how to judge results. Architecture, model selection, and visual styling are separate workstreams unless a learning decision genuinely depends on them.
+Work out how LMBook can establish what a learner needs and turn their materials into useful, detailed audio. This workstream concerns the learning experience, questioning, subject guidance, and how to judge results. Architecture, model selection, and visual styling are separate workstreams unless a learning decision genuinely depends on them.
 
 The owner requests a well-researched and evaluated questioning process, with completion judged by its outcome. Their "ten hours" example conveyed willingness to invest effort; it was not a minimum, maximum, deadline, or duration commitment. An earlier version of this plan incorrectly made it a requirement. Estimate the actual work, revise that estimate as uncertainty changes, and use the readiness criteria below to judge progress. The first substantive review is recorded separately from the still-needed learner evaluation; no particular number of hours is owed.
 
@@ -106,11 +106,11 @@ Use an estimate to organise work and decide when to reassess. Continue when find
 
 Use original studies, accessible author manuscripts, official curricula and assessment criteria, and direct product/workflow documentation where relevant. Use reviews to find primary studies and map disagreements; mark review-level conclusions appropriately. Inspect methods and outcomes, not only titles or abstracts. Label inaccessible evidence and avoid claiming it was fully assessed.
 
-For each consequential claim record the source, date, population/task, finding, limitation, and implication for SenniBook. Search for disconfirming results. Distinguish an established finding from our inference about this product. Keep source-grounded learning research separate from personal preferences about tone or enjoyment.
+For each consequential claim record the source, date, population/task, finding, limitation, and implication for LMBook. Search for disconfirming results. Distinguish an established finding from our inference about this product. Keep source-grounded learning research separate from personal preferences about tone or enjoyment.
 
 Verify economics examples against the actual course conventions when available. GDP questions can ask for different quantities or methods, and unemployment questions require clear definitions of the relevant population. Do not choose a teaching formula merely from the topic label. This plan does not supply a worked lesson or an assumed syllabus.
 
-N.A.G. is a reference for prompt composition, not evidence that its prompts improve learning. The repository review found no license file; any reuse of its text needs a licensing check. Original SenniBook instructions can express independently developed choices.
+N.A.G. is a reference for prompt composition, not evidence that its prompts improve learning. The repository review found no license file; any reuse of its text needs a licensing check. Original LMBook instructions can express independently developed choices.
 
 ## Evaluation before adoption
 

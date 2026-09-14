@@ -1,4 +1,6 @@
-# SenniBook roadmap
+# LMBook roadmap
+
+- LMBook is the owner's selected name from 2026-09-14. Version 0.3.3 rebrands the app and Windows downloads while preserving existing profiles and backup compatibility. See [upgrade behavior](docs/rebranding.md) and [release notes](docs/releases/0.3.3.md).
 
 The owner authorized sustained, broad development on 2026-09-14, with Electron as the desktop delivery format. The existing journey is sources → learning goals → episode. The learning-experience workstream is investigating a purposeful questioning step before generation; its shape remains open to evidence and critical discussion. Deliver working vertical slices; check the evidence for completion before moving on. Follow [AGENTS.md](AGENTS.md) for the long-term quality and collaboration agreement.
 
@@ -18,7 +20,7 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 
 ## Desktop foundation — implemented, packaging checks continue
 
-- Release 0.2.9 wraps up the current development sweep for publication to the private `Senni360/SenniBook` GitHub repository. It includes the 0.2.8 features below plus v3 compact source backups, keyboard focus fixes and upload-size preflight. All 38 application tests and the packaged desktop smoke check pass. Small backups remain v2; v1/v2 restore remains supported. See [release highlights](docs/releases/0.2.9.md). Further product work waits for the owner's next direction.
+- Release 0.2.9 wraps up the current development sweep for publication to the private `Senni360/LMBook` GitHub repository. It includes the 0.2.8 features below plus v3 compact source backups, keyboard focus fixes and upload-size preflight. All 38 application tests and the packaged desktop smoke check pass. Small backups remain v2; v1/v2 restore remains supported. See [release highlights](docs/releases/0.2.9.md). Further product work waits for the owner's next direction.
 
 - Desktop 0.2.8 is built under `release/0.2.8/`. The [no-generation sweep](docs/audits/2026-09-14-no-generation.md) adds recoverable Trash, shared-file-safe permanent deletion, streamed desktop downloads with visible errors/cancellation, cached library summaries and clearer import/refresh failures. All 35 existing application checks and packaged startup/sandbox/persistence/restart passed. Packaged UI checks passed Trash/restore/purge, shared historical source preservation, activity/draft cleanup, download success/failure/cancellation, empty-file handling and filter resets. It includes the previously verified 0.2.7 navigation, draft, playback and source-integrity fixes. The later compact backup work is included in 0.2.9.
 
@@ -68,7 +70,7 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 
 ## Connections and operations
 
-- Automatic Windows releases are active for unpublished versions reaching `master`: locked install, existing tests, packaged desktop smoke, draft upload and checksum verification before publication. The first hosted run published [0.3.1](https://github.com/Senni360/SenniBook/releases/tag/v0.3.1) successfully; 37 application checks and the packaged desktop check passed, with the optional FFmpeg check skipped on that runner. Version changes and release notes remain explicit in each release PR. Policy and retry behavior live in [the release guide](docs/releasing.md).
+- Automatic Windows releases are active for unpublished versions reaching `master`: locked install, existing tests, packaged desktop smoke, draft upload and checksum verification before publication. The first hosted run published [0.3.1](https://github.com/Senni360/LMBook/releases/tag/v0.3.1) successfully; 37 application checks and the packaged desktop check passed, with the optional FFmpeg check skipped on that runner. Version changes and release notes remain explicit in each release PR. Policy and retry behavior live in [the release guide](docs/releasing.md).
 
 - Detect available local Codex, OpenCode and Ollama installations and explain actual readiness.
 - Keep credentials on the host; allow provider setup without source-code edits.

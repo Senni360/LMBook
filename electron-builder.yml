@@ -1,5 +1,6 @@
+# Stable installer identity lets LMBook upgrade an existing SenniBook install.
 appId: org.sennibook.desktop
-productName: SenniBook
+productName: LMBook
 directories:
   output: release
 files:
@@ -31,4 +32,4 @@ nsis:
   createDesktopShortcut: true
   deleteAppDataOnUninstall: false
 portable:
-  artifactName: SenniBook-${version}-portable.${ext}
+  artifactName: LMBook-${version}-portable.${ext}

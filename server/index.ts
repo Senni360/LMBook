@@ -110,7 +110,7 @@ app.use((req, res, next) => {
   if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(host))
     return res
       .status(403)
-      .json({ error: "SenniBook only accepts local connections." });
+      .json({ error: "LMBook only accepts local connections." });
   if (
     req.path.startsWith("/api") &&
     !["GET", "HEAD", "OPTIONS"].includes(req.method)
@@ -387,14 +387,14 @@ app.post(
           title: "Coalitions: an introductory note",
           kind: "course",
           createdAt: new Date().toISOString(),
-          text: "ILLUSTRATIVE MATERIAL — authored for the SenniBook demo, not an academic source.\n\nIn a parliamentary system, a coalition is an agreement between political parties to cooperate in government. When no single party holds a majority of seats, a coalition may assemble the parliamentary support needed to govern.\n\nA coalition agreement can specify policy priorities and distribute ministerial portfolios. Such an agreement does not eliminate differences between parties. Parties may value holding office, implementing policy, and maintaining electoral support differently.\n\nA minimum winning coalition has enough support to win a vote but would lose that majority if any member left. This concept describes parliamentary arithmetic; it does not on its own explain which parties will cooperate. Ideological compatibility, institutional rules, and strategic expectations also matter.",
+          text: "ILLUSTRATIVE MATERIAL — authored for the LMBook demo, not an academic source.\n\nIn a parliamentary system, a coalition is an agreement between political parties to cooperate in government. When no single party holds a majority of seats, a coalition may assemble the parliamentary support needed to govern.\n\nA coalition agreement can specify policy priorities and distribute ministerial portfolios. Such an agreement does not eliminate differences between parties. Parties may value holding office, implementing policy, and maintaining electoral support differently.\n\nA minimum winning coalition has enough support to win a vote but would lose that majority if any member left. This concept describes parliamentary arithmetic; it does not on its own explain which parties will cooperate. Ideological compatibility, institutional rules, and strategic expectations also matter.",
         },
         {
           id: uid(),
           title: "Institutions and incentives",
           kind: "course",
           createdAt: new Date().toISOString(),
-          text: "ILLUSTRATIVE MATERIAL — authored for the SenniBook demo, not an academic source.\n\nInstitutions shape the incentives available to political actors. Formal rules can determine how governments are appointed, how legislation passes, and how governments can be removed. Informal conventions can influence how those rules operate in practice.\n\nAn explanation based on incentives is an interpretation that requires evidence. Observing that a party joined a coalition does not by itself establish its motive. The same action can be consistent with several explanations. Comparing these explanations requires additional evidence, such as public commitments, negotiations, and subsequent decisions.",
+          text: "ILLUSTRATIVE MATERIAL — authored for the LMBook demo, not an academic source.\n\nInstitutions shape the incentives available to political actors. Formal rules can determine how governments are appointed, how legislation passes, and how governments can be removed. Informal conventions can influence how those rules operate in practice.\n\nAn explanation based on incentives is an interpretation that requires evidence. Observing that a party joined a coalition does not by itself establish its motive. The same action can be consistent with several explanations. Comparing these explanations requires additional evidence, such as public commitments, negotiations, and subsequent decisions.",
         },
       ];
       n.objectives = [
@@ -454,7 +454,7 @@ app.post(
     });
   },
   route(async (req, res) => {
-    if (!req.file) throw new Error("Choose a SenniBook notebook ZIP backup.");
+    if (!req.file) throw new Error("Choose an LMBook notebook ZIP backup.");
     const controller = new AbortController();
     res.on("close", () => {
       if (!res.writableFinished) controller.abort();
@@ -489,7 +489,7 @@ app.get(
       requestSignals.get(req)!,
     ]);
     const stream = createNotebookBundle(n, audioDir, { signal, originalsDir });
-    res.attachment("sennibook-notebook.zip").type("application/zip");
+    res.attachment("lmbook-notebook.zip").type("application/zip");
     await new Promise<void>((resolve) => {
       stream.on("error", (error) => {
         if (res.headersSent) res.destroy(error);
@@ -1144,7 +1144,7 @@ app.get(
             signal: controller.signal,
             ffmpegPath,
             title: e.title,
-            artist: "SenniBook",
+            artist: "LMBook",
             album: n.title,
           })
         : createWavStream(audio, { signal: controller.signal });
@@ -1157,7 +1157,7 @@ app.get(
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, 120)
-        .replace(/[. ]+$/, "") || "SenniBook episode";
+        .replace(/[. ]+$/, "") || "LMBook episode";
     res.attachment(`${filename}.${format}`);
     res.type(format === "mp3" ? "audio/mpeg" : "audio/wav");
     stream.on("error", (error) => res.destroy(error));
@@ -1170,7 +1170,7 @@ app.get(
     const n = getNotebook(id(req));
     res.setHeader(
       "Content-Disposition",
-      'attachment; filename="sennibook-notebook.md"',
+      'attachment; filename="lmbook-notebook.md"',
     );
     res.type("text/markdown").send(exportMarkdown(n));
   }),
@@ -1208,7 +1208,7 @@ if (process.argv.includes("--production")) {
 }
 const server = app.listen(port, "127.0.0.1", () => {
   port = (server.address() as import("node:net").AddressInfo).port;
-  console.log(`SenniBook is ready at http://127.0.0.1:${port}`);
+  console.log(`LMBook is ready at http://127.0.0.1:${port}`);
   // Electron utility processes expose a parent message port instead of process.send.
   (process as any).parentPort?.postMessage({ type: "ready", port });
 });

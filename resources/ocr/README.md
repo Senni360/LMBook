@@ -1,4 +1,4 @@
-# SenniBook OCR assets
+# LMBook OCR assets
 
 These language assets are compressed copies of the official `tessdata_fast`
 English (`eng`) and Dutch/Flemish (`nld`) traineddata files at the revision in

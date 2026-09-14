@@ -67,7 +67,7 @@ export function codexFailure(diagnostic: string, code: number | null) {
       clean,
     )
   )
-    return "The installed Codex CLI does not support the required options. Update the CLI, then restart SenniBook.";
+    return "The installed Codex CLI does not support the required options. Update the CLI, then restart LMBook.";
   if (
     /model.*(?:not found|not supported|does not exist|not available)/i.test(
       clean,
@@ -75,7 +75,7 @@ export function codexFailure(diagnostic: string, code: number | null) {
   )
     return "The selected Codex model is unavailable. Clear the notebook Model ID in Settings or choose a model your account can access.";
   if (/sandbox|spawn.*(?:failed|denied)|access is denied/i.test(clean))
-    return "Codex could not start its local process or sandbox. Check the CLI installation and Windows permissions, then restart SenniBook.";
+    return "Codex could not start its local process or sandbox. Check the CLI installation and Windows permissions, then restart LMBook.";
   if (/connection|network|timed? out|dns|tls|certificate/i.test(clean))
     return "Codex could not reach its service. Check your connection, then retry.";
   return `Codex stopped before returning an answer (exit ${code ?? "unknown"}). Check codex login status and your model allowance, or select another writing provider in Settings.`;
