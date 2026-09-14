@@ -1,12 +1,12 @@
 # SenniBook
 
-A local, open-source learning notebook for detailed two-person audio in Dutch and English. Bring your sources, begrippen and leerdoelen; inspect the evidence; shape the conversation.
+A local, open-source learning notebook for detailed two-person audio and source-based flashcards. Bring your sources, begrippen and leerdoelen; inspect the evidence; shape your practice.
 
 ## Windows desktop edition
 
 Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Build artifacts go to `release/`: an installer, a portable executable, and `win-unpacked/SenniBook.exe`.
 
-The latest release is 0.2.9, with Windows installer and portable downloads on the [private GitHub release page](https://github.com/Senni360/SenniBook/releases/tag/v0.2.9). Local artifacts are under `release/0.2.9/`. Quit an older running preview before opening `SenniBook-0.2.9-portable.exe`; both use the same normal application-data library. Desktop is the primary delivery target; the browser preview uses a separate library.
+The latest local desktop build is **0.3.0**, adding flashcards. Open `release/0.3.0/SenniBook-0.3.0-portable.exe`, or install `release/0.3.0/SenniBook Setup 0.3.0.exe`. Quit an older running preview first; both use the same normal application-data library. The [private GitHub release](https://github.com/Senni360/SenniBook/releases/tag/v0.2.9) remains 0.2.9; 0.3.0 has not been published remotely. Desktop is the primary delivery target; the browser preview uses a separate library. See [0.3.0 release notes](docs/releases/0.3.0.md).
 
 0.2.8 adds recoverable notebook Trash in Settings → Your library. Restore keeps the original notebook; explicit permanent deletion removes its unshared files and activity history, preserving files referenced by other notebooks or episode snapshots. Downloads now use a native save dialog with progress, cancellation and readable errors. Cached library summaries avoid reparsing every notebook for the sidebar, and empty-file/partial-import handling is clearer.
 
@@ -41,6 +41,16 @@ Open http://127.0.0.1:4317. The server is deliberately bound to localhost. This 
 Outline generation specifies title/summary limits and makes at most one automatic repair request if the model returns invalid JSON, an invalid outline, or omits learning goals. The repair uses the same provider and consumes its normal allowance. It keeps the original sources and goals, validates all required goal IDs again, and reports a readable error if repair fails. Provider errors and cancellation do not trigger a repair request.
 
 AI operations are real provider calls, not simulated results. No provider call occurs merely by opening a notebook. Your uploaded material is sent to the selected provider only when requesting analysis, chat or episode generation. Speech generation sends the script to the selected Google Cloud or Cartesia provider.
+
+## Flashcards
+
+Open a notebook's **Flashcards** section, create a deck, write instructions and select sources. **Select all / Deselect all** applies to available source text. Creation uses GPT-5.6 Luna through the existing Codex login, independently of the episode model setting. The complete selected text is sent on request; selections over 180,000 characters are rejected without truncation. Stop and retry are available; opening or importing a deck makes no model call.
+
+**Vocabulary** copies supplied word/translation pairs. Exact quote checks are followed by entry-by-entry pairing review and confirmation of the requested source count. The app cannot guarantee flawless PDF extraction. For a misread or missing entry, use **Edit entry / Add missing entry**, select manual transcription, retain the faulty extracted passage or nearby heading and record the original page/row and correction. This preserves the source, marks the correction as human transcription and clears review until checked again. **Concepts** generates questions/answers with inspectable quotations; quote matching does not prove their meaning or completeness.
+
+The existing German flashcard HTML format (`const DATA` with chapter `words` containing `de`, `nl`, `ex`) imports through **Import an existing word list** without executing its scripts. UTF-8 tab-separated text supports word, translation, optional chapter and example columns. Imports allow up to 2 MB and 2,000 pairs. Accepting an imported list as the answer key does not verify it against a separate textbook.
+
+Practice supports both directions, chapter selection, shuffle, examples, missed/unanswered rounds, keyboard controls, optional mouse grading and standard gamepads. Typed answers preserve articles, case, accents, ß and punctuation; Unicode composition and surrounding whitespace are normalized. Only the current face is rendered, preventing an upcoming answer from appearing during transitions. Position and direction-specific outcomes persist on this device; they are not included in notebook backups. ZIP backups preserve decks, review state and saved source originals. **Export deck** downloads the reviewed canonical data as JSON.
 
 ## Thinking providers
 

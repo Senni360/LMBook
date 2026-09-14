@@ -1,0 +1,62 @@
+# Flashcards: requirements and verification proposal
+
+Recorded 2026-09-14. Status: implemented and packaged in desktop 0.3.0; packaged checks passed. The owner supplied `duits-flashcards-h11-15 (6).html`, inspected as a functional reference. It contains 148 pairs: chapters 11/13/14/15 have 30 each, chapter 12 has 28. The original idioom PDF has not been supplied, so this count does not establish missing textbook entries. See the implementation/evaluation record below.
+
+## Confirmed needs
+
+- Add flashcard creation to SenniBook, building on the owner's existing version.
+- Accept a custom generation prompt and an explicit selection of notebook sources, with select-all and deselect-all controls.
+- Support German vocabulary from an idioom: preserve the exact source word and its supplied translation, rather than generating an alternative translation.
+- Make correctness and full coverage verifiable. The owner's example of 150 words illustrates list size; it is not a fixed deck size.
+- Use GPT-5.6 Luna for flashcard generation. The owner prefers faster generation and considers this a lighter task. Actual latency and suitability remain to be measured.
+- Treat the attachment as a skeleton, not a specification to copy blindly. The owner reports that advancing during its flip animation can reveal the upcoming answer. This is an explicit regression target. Inspection also found permissive grading that ignores articles, capitalization, accents and ß, progress reset on shuffle/chapter changes, and a completion message that can imply all cards were learned after merely skipping them.
+
+## Verification design and boundaries
+
+Separate general question-and-answer generation from strict vocabulary copying. General generated answers can have evidence links and review, but cannot inherit an exact-pair correctness claim.
+
+For strict vocabulary, establish a source entry table containing stable entry IDs, the original word, the supplied translation and a page/row reference. Preserve articles, umlauts, capitalization, punctuation, alternatives and grammatical annotations. Pairing matters: merely finding both strings somewhere in the PDF is insufficient. Repeated words with distinct meanings remain distinct entries.
+
+Build card text directly from established entries. A model may select entry IDs or propose organization; it must not rewrite the authoritative pair. Independently validate entry membership, pair identity, omissions, unexpected duplicates and extras against the complete requested entry set. A second model's agreement is an advisory check, not proof. Do not use ranked excerpts to establish complete list coverage.
+
+Show an inspectable result such as “150/150 entries matched; 0 missing; 0 altered” only when supported. Count entries separately from cards when generating both directions. Preserve the original source and a versioned entry snapshot; source changes or card edits invalidate affected verification. Recheck before presenting/exporting a deck as verified.
+
+PDF extraction is a distinct trust boundary. OCR may misread text or mispair columns, and text layers may be incomplete. Automatically comparing cards with the same incorrect extraction cannot prove fidelity to the original. A reviewed canonical list or reliable structured original is needed for exact comparison; uncertain extraction and unresolved pairing must prevent a fully verified status. Even a reviewed list does not establish that the textbook itself is linguistically correct. No unconditional 100% correctness guarantee is supported for arbitrary PDFs.
+
+## Alternatives and failure checks
+
+- Prompt-only generation and model self-review are simpler, but allow plausible substitutions and shared errors.
+- Exact string membership alone misses swapped translations, omitted entries and duplicate senses.
+- Source-entry construction plus deterministic comparison prevents model translation substitutions relative to the canonical list; the remaining material uncertainty is how that list is established faithfully and completely.
+- Evaluation should include wrong-but-plausible translations, swapped rows, missing entries offset by duplicates, umlauts/articles, multi-column and scanned pages, ambiguous alternatives, stale source snapshots and edits after verification. Use the owner's material once supplied. These are planned checks, not completed evaluations or newly written tests.
+
+## Integration observations and next step
+
+Read-only inspection found the current provider wrapper adds audio-oriented base/subject/language instructions. Flashcards need task-specific instructions and separate model selection so this choice does not silently change episode generation. The Codex adapter already accepts a model string; no flashcard-specific feature was found in the inspected source tree.
+
+Official [Luna model documentation](https://developers.openai.com/api/docs/models/gpt-5.6-luna) and [Codex model documentation](https://learn.chatgpt.com/docs/models) were fetched on 2026-09-14. Requested model ID: `gpt-5.6-luna`. Documentation availability is not a successful request through this user's connection; no provider generation or latency evaluation ran.
+
+## Implementation and evaluation record
+
+The Flashcards notebook section accepts a title, custom prompt, vocabulary/concept mode, side labels, expected source count and explicit source checkboxes with select/deselect all. Pending text extraction is excluded. Creation drafts survive navigation. Requests use complete selected text (up to 180,000 characters, with explicit rejection above the limit), an independent flashcard instruction path and `gpt-5.6-luna`; episode model settings are unaffected. Work is cancellable, reports provider stages, saves errors and marks interrupted drafts recoverable after restart. Invalid structured output or nonmatching quotations get one bounded repair; provider failures do not.
+
+Vocabulary entries are stored once and rendered directly as the canonical card pair; the model is not asked to translate them again for study or export. Exact quote matching and pair presence within a quote are preliminary checks, not proof of row/column association. Generated vocabulary requires entry-by-entry human pairing review plus an independent requested-entry count/coverage confirmation before study/export. The count stays blank if the owner supplied none; it is never inferred from model output length. Count mismatch, unknown quotes, stale writes and changed entries block or invalidate readiness. Repeated pairs are surfaced for review rather than silently deduplicated.
+
+Manual transcription is an explicit recovery path when OCR omits or corrupts an entry. The editor retains the original extracted quote or neighboring heading, records the corrected pair plus original page/row location and correction note, and clears entry/coverage review. The corrected text is labelled as a human transcription, not an automatic extraction match. Source snapshots are immutable; updated notebook sources are disclosed as separate versions. This makes correction possible without erasing the evidence of the extraction problem.
+
+The HTML importer reads only the literal DATA object using a restricted parser; it never evaluates uploaded scripts. It copies all 148 pairs and chapter labels, converts example markup to plain text, and saves the original bytes. UTF-8 tab-separated lists also import without a model call. The owner can explicitly accept the imported list as the answer key; the UI states that this does not verify it against a separate idioom. Arbitrary HTML exports with a different data format are not supported by this importer. Concept cards have matching quotes but no automatic semantic correctness/completeness guarantee.
+
+Study keeps only the visible face in the DOM. Card/direction changes reset reveal and typing state; no hidden next answer is animated. It includes both directions, chapter selection, shuffle, optional examples, typing, missed/unanswered rounds, keyboard controls, optional left/right mouse grading, standard controller mapping and a dark study surface. Exact typing preserves articles, case, umlauts, ß and punctuation; only Unicode composition and surrounding whitespace are normalized. Failed-then-correct retries remain in the missed pile. Direction-specific outcomes and position are saved on the same device; chapter/shuffle changes do not erase them. Switching direction starts the full selected chapter set instead of reusing the other direction's missed subset. These local study sessions are not included in notebook ZIP backups. Canonical decks, source snapshots, original files and review state are included; restored decks receive new IDs. Notebook Trash preserves originals referenced only by a flashcard snapshot in another notebook.
+
+Completed checks (isolated libraries; no new automated test files):
+
+- Build and all 38 existing application tests passed.
+- Real Codex App Server run reported `Writing with Codex · gpt-5.6-luna` and returned all four authored control pairs unchanged in 9.084 seconds, without repair. The control included supplied translations that could plausibly be replaced (`die Entsorgung → de opslag`, `erneuerbar → duurzaam`). This is a small integration/fidelity observation, not a full-deck latency benchmark or a success-rate estimate.
+- Electron import copied all 148 reference pairs; exact original HTML bytes and JSON deck downloaded through the native bridge. Initial, revealed, next, animation-interval, Space, arrow-key and typing transitions kept upcoming answers hidden. Wrong articles were rejected; a corrected retry stayed missed. Direction, position and outcomes survived section navigation. No renderer errors.
+- Browser desktop/390px checks passed source select/deselect, exclusion of pending sources, prompt restoration, chapter/shuffle/dark controls and layout bounds. A simulated standard gamepad exercised rising-edge reveal and next actions. Physical-controller compatibility remains untested. Desktop/mobile screenshots were inspected; the study chapter controls were collapsed to reduce setup height.
+- An authored OCR case restored `düngen` from extracted `dungen`, retained the faulty snapshot, recorded human attribution, blocked export until review/count confirmation, and studied the corrected pair. Its backup restored the canonical text, review state, attribution and historical original. Purging one notebook preserved a file referenced only by another deck; purging the last owner removed it. Startup interruption recovery and immediate cancellation passed.
+- Read-only Impeccable finish review identified the human-correction path, independent count, accessible face naming, direction-subset reset and stale documentation. These findings were addressed. The single mechanical detector pass returned no findings. This review is not participant evidence.
+
+Diagnostic corrections: the first original download failed because an absolute path under ignored `.work` was treated as a dotfile by Express; the route now uses a validated basename/root like existing source downloads, and the repeat passed. The manual-correction workflow exposed implicit textarea labels including initial content; explicit accessible labels fixed it. One Playwright checkbox `.check()` asserted before a server-backed review save completed; the corrected diagnostic waits for the saved state. Neither these scripts nor code checks demonstrate educational effectiveness. Ignored evidence is under `.work/flashcards-check/`.
+
+Packaged startup, sandbox, persistence, flashcard workflow and study-session restart passed. Next: inspect a representative original idioom and compare every requested pair and row against it. An actual scanned/multi-column vocabulary PDF, large-deck model generation, physical controller use, learner feedback and learning effectiveness remain unevaluated. No unconditional 100% original-document or linguistic correctness claim is supported.

@@ -78,6 +78,7 @@ import { parseEditedScript } from "../shared/script-editor";
 import { useDraftText } from "./hooks/useDraftText";
 import { useObjectDraft } from "./hooks/useObjectDraft";
 import { version as appVersion } from "../package.json";
+import { Flashcards } from "./components/Flashcards";
 
 /* THESIS: a course becomes a conversation through visible evidence and goals.
 OWN-WORLD: forest navigation, mineral paper, ochre listening controls, serif titles and quiet ledgers.
@@ -96,7 +97,7 @@ const priceLabel = (amount: number) =>
   amount > 0 && amount < 0.01 ? "<$0.01" : `$${amount.toFixed(2)}`;
 const durationLabel = (wordCount: number) =>
   wordCount < 145 ? "<1 min" : `~${Math.round(wordCount / 145)} min`;
-type Tab = "sources" | "goals" | "studio" | "chat" | "settings";
+type Tab = "sources" | "goals" | "studio" | "flashcards" | "chat" | "settings";
 type SourceRequest = {
   sourceId: string;
   quote?: string;
@@ -791,6 +792,7 @@ function App() {
                     label: "Ask your sources",
                     icon: MessageSquare,
                   },
+                  { id: "flashcards", label: "Flashcards", icon: BookOpen, count: n.flashcards?.length || 0 },
                 ] as const
               ).map((t) => (
                 <button
@@ -880,6 +882,7 @@ function App() {
                   openSource={openSource}
                 />
               )}
+              {tab === "flashcards" && <Flashcards key={n.id} n={n} disabled={disabled} run={run} change={change} />}
             </div>
           </>
         )}

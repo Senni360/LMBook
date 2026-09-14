@@ -16,6 +16,7 @@ import {
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { extractDocument } from "./document-import.ts";
+import { registerFlashcardRoutes } from "./flashcard-routes.ts";
 import { storeOriginal, verifyOriginal } from "./source-originals.ts";
 import {
   transcriptionModelSchema,
@@ -214,6 +215,7 @@ const evidenceSchema = z.object({
   sourceId: z.string(),
   quote: z.string().max(3000),
 });
+registerFlashcardRoutes(app);
 
 app.get(
   "/api/status",

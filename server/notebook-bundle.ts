@@ -20,6 +20,7 @@ import path from "node:path";
 import { PassThrough, type Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { z } from "zod";
+import { flashDeckSchema, validateFlashDeck } from "../shared/flashcards.ts";
 import {
   settingsSchema,
   sourceAttachmentSchema,
@@ -207,6 +208,7 @@ const notebookSchema = z
     coverage: z.array(coverageSchema).max(300),
     episodes: z.array(episodeSchema).max(100),
     messages: z.array(messageSchema).max(1000),
+    flashcards: z.array(flashDeckSchema).max(100).optional(),
   })
   .strict();
 const bundleEntrySchema = z
@@ -281,6 +283,8 @@ function duplicateIds<T extends { id: string }>(
 }
 
 function validateNotebookReferences(notebook: Notebook) {
+  if (duplicateIds(notebook.flashcards || [])) throw new Error("Notebook contains duplicate flashcard deck IDs.");
+  for (const deck of notebook.flashcards || []) validateFlashDeck(deck);
   const sourceIds = new Set(notebook.sources.map((source) => source.id));
   const objectiveIds = new Set(
     notebook.objectives.map((objective) => objective.id),
@@ -355,6 +359,7 @@ function notebookAttachments(notebook: Notebook): SourceAttachment[] {
   return [
     ...notebook.sources,
     ...notebook.episodes.flatMap((episode) => episode.sources || []),
+    ...(notebook.flashcards || []).flatMap((deck) => deck.sources),
   ].flatMap((source) => (source.attachment ? [source.attachment] : []));
 }
 
@@ -1184,6 +1189,8 @@ function remapNotebook(
     createdAt: now,
     updatedAt: now,
     sources: original.sources.map(remapSource),
+    flashcards: original.flashcards?.map((deck) => ({ ...deck, id: randomUUID(),
+      ...(deck.status === "generating" ? { status: "error" as const, error: "Flashcard creation was interrupted during import. Generate a new draft to retry." } : {}) })),
     episodes,
   };
 }
