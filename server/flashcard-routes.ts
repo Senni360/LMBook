@@ -106,6 +106,96 @@ export function registerFlashcardRoutes(app: Express) {
       res.status(201).json(saved);
     }),
   );
+  // Inline edits save even when they do not match extraction. They never carry
+  // forward a source-review claim. Compare the edited fields to avoid lost writes.
+  app.patch(
+    "/api/notebooks/:id/flashcards/:deckId",
+    wrap((req, res) => {
+      const n = load(req, true);
+      const deck = findDeck(req, n.flashcards || []);
+      const words = flashcardSchema.pick({
+        front: true,
+        back: true,
+        group: true,
+        example: true,
+      });
+      const labels = z
+        .object({
+          frontLabel: z.string().min(1).max(60),
+          backLabel: z.string().min(1).max(60),
+        })
+        .strict();
+      const edit = z
+        .discriminatedUnion("action", [
+          z
+            .object({
+              action: z.literal("word"),
+              cardId: z.string().uuid(),
+              before: words,
+              after: words,
+            })
+            .strict(),
+          z
+            .object({
+              action: z.literal("labels"),
+              before: labels,
+              after: labels,
+            })
+            .strict(),
+        ])
+        .parse(req.body);
+      if (deck.status !== "ready")
+        throw new Error("Wait for the word list to finish generating.");
+      const target =
+        edit.action === "labels"
+          ? deck
+          : deck.cards.find((c) => c.id === edit.cardId);
+      if (!target)
+        throw Object.assign(
+          new Error("This word was removed. Copy your edit before reloading."),
+          { status: 409 },
+        );
+      if (
+        !Object.entries(edit.after).every(
+          ([key, value]) =>
+            ["group", "example"].includes(key) || !!value.trim(),
+        )
+      )
+        throw new Error("Fill in both sides before saving.");
+      // A retry after a lost response is successful if its exact edit is saved.
+      if (
+        Object.entries(edit.after).every(
+          ([key, value]) =>
+            (target as unknown as Record<string, unknown>)[key] === value,
+        )
+      ) {
+        res.json(n);
+        return;
+      }
+      for (const [field, value] of Object.entries(edit.before)) {
+        if ((target as unknown as Record<string, unknown>)[field] !== value)
+          throw Object.assign(
+            new Error(
+              "This entry changed elsewhere. Your draft is kept; copy it before reloading the list.",
+            ),
+            { status: 409 },
+          );
+      }
+      Object.assign(target, edit.after);
+      if (edit.action === "word") {
+        // Old manual-transcription attribution describes the old wording only.
+        if (
+          edit.before.front !== edit.after.front ||
+          edit.before.back !== edit.after.back
+        )
+          delete (target as (typeof deck.cards)[number]).transcription;
+        deck.reviewedIds = deck.reviewedIds.filter((id) => id !== edit.cardId);
+        deck.coverageConfirmed = false;
+      }
+      deck.revision++;
+      res.json(saveNotebook(n));
+    }),
+  );
   app.put(
     "/api/notebooks/:id/flashcards/:deckId",
     wrap((req, res) => {
@@ -224,17 +314,16 @@ export function registerFlashcardRoutes(app: Express) {
     wrap((req, res) => {
       const deck = findDeck(req, load(req).flashcards || []);
       const report = flashDeckReport(deck);
-      if (!report.ready)
-        throw new Error(
-          "Finish the source review before exporting study cards.",
-        );
+      if (deck.status !== "ready" || !deck.cards.length)
+        throw new Error("Wait for a completed word list before exporting.");
       res.attachment(`flashcards-${deck.id}.json`).json({
         format: "sennibook-flashcards",
         version: 1,
         deck,
         verification: report,
-        verificationScope:
-          deck.origin === "imported"
+        verificationScope: !report.ready
+          ? "Source review incomplete. These are editable study pairs, not verified source transcriptions."
+          : deck.origin === "imported"
             ? "Imported list accepted as answer key; original textbook not checked."
             : deck.mode === "vocabulary"
               ? "Exact text checks plus learner-confirmed pairing and requested coverage of saved sources."

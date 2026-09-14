@@ -2,6 +2,90 @@
   display: grid;
   gap: 26px;
 }
+.flash-word-list {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.flash-word-heading,
+.flash-word-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.flash-word-heading h3 {
+  margin-bottom: 8px;
+}
+.flash-word-heading > span {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.flash-word-boxes {
+  display: grid;
+  gap: 18px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.flash-word-box {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 20px;
+  background: var(--paper);
+  min-width: 0;
+}
+.flash-word-box[hidden] {
+  display: none;
+}
+.flash-word-box textarea {
+  font-size: 17px;
+  line-height: 1.5;
+}
+.flash-word-meta {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.flash-word-box details {
+  margin-top: 8px;
+  font-size: 14px;
+}
+.flash-word-box details > label {
+  margin-block: 12px;
+}
+.flash-word-box blockquote {
+  margin: 16px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: Georgia, serif;
+  line-height: 1.6;
+}
+.flash-word-box blockquote small {
+  display: block;
+  color: var(--muted);
+  font-family: Manrope, sans-serif;
+}
+.flash-word-save [role="alert"] {
+  color: var(--error, #9d3232);
+}
+.flash-language-editor {
+  border-block: 1px solid var(--line);
+  padding-block: 6px;
+}
+.flash-language-editor .flash-word-save {
+  margin-block: 12px;
+}
+@media (max-width: 600px) {
+  .flash-word-box {
+    padding: 16px;
+  }
+  .flash-word-box .flash-fields,
+  .flash-language-editor .flash-fields {
+    grid-template-columns: 1fr;
+  }
+}
 .flashcards-workspace label {
   display: grid;
   gap: 7px;
@@ -252,6 +336,7 @@
   white-space: normal;
   text-align: left;
 }
+.flash-actions[aria-label="Deck view"] [aria-pressed="true"],
 .flash-groups [aria-pressed="true"],
 .flash-study-controls [aria-pressed="true"] {
   background: var(--forest);

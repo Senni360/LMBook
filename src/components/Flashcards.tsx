@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, Download, Plus } from "lucide-react";
 import { uid, type Notebook } from "../../shared/model";
 import {
@@ -11,6 +11,7 @@ import { DownloadLink } from "./Downloads";
 import { useObjectDraft } from "../hooks/useObjectDraft";
 import { useDraftText } from "../hooks/useDraftText";
 import { FlashcardStudy } from "./FlashcardStudy";
+import { FlashWordList } from "./FlashWordList";
 import "./flashcards.css";
 const vocabularyPrompt =
   "Make flashcards for every word pair in the selected material. Keep the supplied translations exactly.";
@@ -38,13 +39,23 @@ export function Flashcards({ n, disabled, change, run }: Props) {
   );
   const deck = decks.find((d) => d.id === chosen.text) || decks.at(-1);
   const [creating, setCreating] = useState(!decks.length);
-  const [view, setView] = useState<"study" | "review">("study");
+  const [view, setView] = useState<"words" | "study" | "review">("words");
+  const [pending, setPending] = useState<Set<string>>(new Set());
+  const onPending = useCallback((id: string, active: boolean) => {
+    setPending((previous) => {
+      if (previous.has(id) === active) return previous;
+      const next = new Set(previous);
+      if (active) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
   const previousCount = useRef(decks.length);
   useEffect(() => {
     if (decks.length > previousCount.current) {
       chosen.setText(decks.at(-1)!.id);
       setCreating(false);
-      setView("review");
+      setView("words");
     }
     previousCount.current = decks.length;
   }, [decks.length]);
@@ -56,19 +67,9 @@ export function Flashcards({ n, disabled, change, run }: Props) {
         "Make flashcards for every word pair in the selected material. Keep the supplied translations exactly.",
       mode: "vocabulary",
       sources: JSON.stringify(n.sources.filter(sourceReady).map((s) => s.id)),
-      frontLabel: "Deutsch",
-      backLabel: "Nederlands",
       expectedCount: "",
     },
-    [
-      "title",
-      "prompt",
-      "mode",
-      "sources",
-      "frontLabel",
-      "backLabel",
-      "expectedCount",
-    ],
+    ["title", "prompt", "mode", "sources", "expectedCount"],
   );
   const values = form.value;
   const update = (patch: Partial<typeof values>) =>
@@ -91,21 +92,25 @@ export function Flashcards({ n, disabled, change, run }: Props) {
       <div className="section-heading">
         <div>
           <h2>Flashcards</h2>
-          <p>Practice your material, with the answer tied to its source.</p>
+          <p>
+            Create one word list. Edit it here, then practise in either
+            direction.
+          </p>
         </div>
         <button
           className="button"
           onClick={() => setCreating(!creating)}
           aria-expanded={creating}
         >
-          <Plus size={17} /> {creating ? "Close creation" : "Create a deck"}
+          <Plus size={17} />{" "}
+          {creating ? "Close creation" : "Create a word list"}
         </button>
       </div>
       {creating && (
         <section className="flash-create" aria-label="Create flashcards">
           <div className="flash-create-main">
             <label>
-              Deck title
+              List title
               <input
                 maxLength={180}
                 value={values.title}
@@ -114,21 +119,12 @@ export function Flashcards({ n, disabled, change, run }: Props) {
               />
             </label>
             <label>
-              Card type
+              List type
               <select
                 value={values.mode}
                 onChange={(e) =>
                   update({
                     mode: e.target.value,
-                    ...(e.target.value === "concepts"
-                      ? {
-                          frontLabel: "Question",
-                          backLabel: "Answer",
-                        }
-                      : {
-                          frontLabel: "Deutsch",
-                          backLabel: "Nederlands",
-                        }),
                     prompt: [vocabularyPrompt, conceptsPrompt].includes(
                       values.prompt,
                     )
@@ -139,12 +135,8 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                   })
                 }
               >
-                <option value="vocabulary">
-                  Vocabulary · exact source pairs
-                </option>
-                <option value="concepts">
-                  Concepts · generated questions and answers
-                </option>
+                <option value="vocabulary">Words & translations</option>
+                <option value="concepts">Questions & answers</option>
               </select>
             </label>
             <label>
@@ -157,24 +149,6 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 onChange={(e) => update({ prompt: e.target.value })}
               />
             </label>
-            <div className="flash-fields">
-              <label>
-                Front label
-                <input
-                  maxLength={60}
-                  value={values.frontLabel}
-                  onChange={(e) => update({ frontLabel: e.target.value })}
-                />
-              </label>
-              <label>
-                Back label
-                <input
-                  maxLength={60}
-                  value={values.backLabel}
-                  onChange={(e) => update({ backLabel: e.target.value })}
-                />
-              </label>
-            </div>
             {values.mode === "vocabulary" && (
               <label>
                 Expected entries in the source (optional)
@@ -190,7 +164,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
             )}
             <p className="flash-help">
               {values.mode === "vocabulary"
-                ? "The source's translations are copied. Review extracted pairs and coverage before studying; PDF text can mix up columns or letters."
+                ? "Languages are detected from your sources. Each word and its supplied translation are saved once; choose your practice direction afterwards."
                 : "Questions and answers are generated. Matching citations support your review; they do not prove an answer is correct."}
             </p>
             {form.error && <p role="alert">{form.error}</p>}
@@ -203,9 +177,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 disabled ||
                 !values.title.trim() ||
                 !values.prompt.trim() ||
-                !selected.length ||
-                !values.frontLabel.trim() ||
-                !values.backLabel.trim()
+                !selected.length
               }
               onClick={() =>
                 void run("Creating flashcards", async () => {
@@ -224,14 +196,12 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                     mode: values.mode,
                     prompt: values.prompt,
                     sourceIds: selected,
-                    frontLabel: values.frontLabel,
-                    backLabel: values.backLabel,
                     ...(count !== undefined ? { expectedCount: count } : {}),
                   });
                 })
               }
             >
-              <BookOpen size={17} /> Create flashcards
+              <BookOpen size={17} /> Generate word list
             </button>
           </div>
           <div className="flash-source-picker">
@@ -336,17 +306,18 @@ export function Flashcards({ n, disabled, change, run }: Props) {
         <section className="flash-deck" aria-label="Saved flashcard deck">
           <div className="flash-deck-toolbar">
             <label>
-              Saved deck
+              Saved list
               <select
                 value={deck.id}
+                disabled={!!pending.size}
                 onChange={(e) => {
                   chosen.setText(e.target.value);
-                  setView("study");
+                  setView("words");
                 }}
               >
                 {decks.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.title} · {d.cards.length} cards
+                    {d.title} · {d.cards.length} pairs
                     {d.status === "generating"
                       ? " · creating"
                       : d.status === "error"
@@ -356,15 +327,17 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 ))}
               </select>
             </label>
-            {report?.ready && (
-              <DownloadLink
-                className="button quiet"
-                filename={`flashcards-${deck.id}.json`}
-                href={`/api/notebooks/${n.id}/flashcards/${deck.id}/export`}
-              >
-                <Download size={17} /> Export deck
-              </DownloadLink>
-            )}
+            {deck.status === "ready" &&
+              !!deck.cards.length &&
+              !pending.size && (
+                <DownloadLink
+                  className="button quiet"
+                  filename={`flashcards-${deck.id}.json`}
+                  href={`/api/notebooks/${n.id}/flashcards/${deck.id}/export`}
+                >
+                  <Download size={17} /> Export JSON
+                </DownloadLink>
+              )}
           </div>
           {deck.status === "generating" ? (
             <p role="status">
@@ -381,8 +354,6 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                     title: deck.title,
                     prompt: deck.prompt,
                     mode: deck.mode,
-                    frontLabel: deck.frontLabel,
-                    backLabel: deck.backLabel,
                     sources: JSON.stringify(deck.sources.map((s) => s.id)),
                     expectedCount: String(deck.expectedCount || ""),
                   });
@@ -397,32 +368,59 @@ export function Flashcards({ n, disabled, change, run }: Props) {
               <div className="flash-verification">
                 <p>
                   {deck.origin === "imported"
-                    ? `${deck.cards.length} pairs based on your imported list. The app has not verified them against a separate idioom.`
+                    ? report?.ready
+                      ? "Imported answer key accepted. Not checked against a separate original."
+                      : `Source review pending · ${report?.reviewed}/${report?.total} pairs checked. This imported list has not been checked against a separate original.`
                     : deck.mode === "concepts"
                       ? "Quoted passages match the saved sources. Review the generated answers for meaning and completeness."
                       : report?.ready
                         ? `${report.total}/${report.total} pairs checked by you. Cards use these exact saved pairs.`
-                        : `${report?.reviewed}/${report?.total} pairs checked. Complete the source review before studying.`}
+                        : `Source review pending · ${report?.reviewed}/${report?.total} pairs checked. You can practise now; check the original before relying on an answer.`}
                 </p>
               </div>
               <div className="flash-actions" aria-label="Deck view">
                 <button
                   className="button"
-                  aria-pressed={view === "study" && !!report?.ready}
-                  disabled={!report?.ready}
-                  onClick={() => setView("study")}
+                  aria-pressed={view === "words"}
+                  onClick={() => setView("words")}
                 >
-                  Study
+                  Word list
                 </button>
                 <button
                   className="button"
-                  aria-pressed={view === "review" || !report?.ready}
+                  aria-pressed={view === "study"}
+                  disabled={!deck.cards.length || !!pending.size}
+                  onClick={() => setView("study")}
+                >
+                  Practise
+                </button>
+                <button
+                  className="button"
+                  aria-pressed={view === "review"}
+                  disabled={!!pending.size}
                   onClick={() => setView("review")}
                 >
                   Review sources
                 </button>
               </div>
-              {view === "study" && report?.ready ? (
+              {!!pending.size && (
+                <p role="status" className="flash-help">
+                  Finish saving your edits before practice and export.
+                </p>
+              )}
+              {view === "words" ? (
+                <FlashWordList
+                  key={deck.id}
+                  notebookId={n.id}
+                  deck={deck}
+                  disabled={disabled}
+                  change={change}
+                  onPending={onPending}
+                  onReview={() => {
+                    if (!pending.size) setView("review");
+                  }}
+                />
+              ) : view === "study" ? (
                 <FlashcardStudy key={deck.id} notebookId={n.id} deck={deck} />
               ) : (
                 <FlashcardReview

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { RotateCcw, Shuffle } from "lucide-react";
+import { ArrowLeftRight, RotateCcw, Shuffle } from "lucide-react";
 import { flashAnswerMatches, type FlashDeck } from "../../shared/flashcards";
 import { useDraftText } from "../hooks/useDraftText";
 
@@ -346,6 +346,8 @@ export function FlashcardStudy({
       <div className="flash-study-controls">
         <button
           className="button"
+          aria-label={`Switch direction: ${session.reverse ? deck.backLabel : deck.frontLabel} to ${session.reverse ? deck.frontLabel : deck.backLabel}`}
+          title="Switch direction using this same word list"
           onClick={() => {
             clearFace();
             update({
@@ -356,6 +358,7 @@ export function FlashcardStudy({
             });
           }}
         >
+          <ArrowLeftRight size={16} />{" "}
           {session.reverse ? deck.backLabel : deck.frontLabel} →{" "}
           {session.reverse ? deck.frontLabel : deck.backLabel}
         </button>
@@ -368,13 +371,23 @@ export function FlashcardStudy({
         </button>
         <button
           className="button"
+          aria-pressed={!session.typing}
+          onClick={() => {
+            clearFace();
+            update({ ...session, typing: false });
+          }}
+        >
+          Flashcards
+        </button>
+        <button
+          className="button"
           aria-pressed={session.typing}
           onClick={() => {
             clearFace();
-            update({ ...session, typing: !session.typing });
+            update({ ...session, typing: true });
           }}
         >
-          Typing {session.typing ? "on" : "off"}
+          Type answers
         </button>
         <details>
           <summary>Practice options</summary>
