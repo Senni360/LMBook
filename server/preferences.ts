@@ -9,7 +9,7 @@ const preferencesSchema = z.object({
     .trim()
     .regex(
       /^$|^[a-z][a-z0-9-]{4,28}[a-z0-9]$/,
-      "Use the Google Cloud project ID, for example sennibook-study-123.",
+      "Use the Google Cloud project ID, for example lmbook-study-123.",
     )
     .optional(),
 });

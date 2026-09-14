@@ -65,7 +65,7 @@ function isSupportedModel(model: unknown): model is TranscriptionModel {
 }
 
 function systemPython() {
-  return process.env.SENNIBOOK_PYTHON || "python";
+  return process.env.LMBOOK_PYTHON || process.env.SENNIBOOK_PYTHON || "python";
 }
 
 function workerPath() {
@@ -308,7 +308,7 @@ export async function getTranscriptionStatus(): Promise<TranscriptionStatus> {
       runtime: false,
       cuda: false,
       models,
-      message: "Python was not found. Install Python 3.10–3.13 or set SENNIBOOK_PYTHON to its executable.",
+      message: "Python was not found. Install Python 3.10–3.13 or set LMBOOK_PYTHON to its executable.",
     };
   }
   if (!(await exists(workerPath()))) {

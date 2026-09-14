@@ -1,4 +1,4 @@
-"""Local faster-whisper worker for SenniBook.
+"""Local faster-whisper worker for LMBook.
 
 The Node host owns the process lifecycle and passes only allowlisted model
 names.  This worker deliberately has two different modes: ``prepare`` is the
@@ -469,7 +469,7 @@ def transcribe(model: str, models_root: Path, audio_path: Path, language: str, d
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="SenniBook local transcription worker")
+    parser = argparse.ArgumentParser(description="LMBook local transcription worker")
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command in ("status", "prepare"):
         subparser = subparsers.add_parser(command)

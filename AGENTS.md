@@ -1,8 +1,8 @@
-# SenniBook working agreement
+# LMBook working agreement
 
 ## Long-term quality
 
-SenniBook is a long-term learning product for the owner and friends. Optimize for sustained learning value and reliable everyday use. The owner accepts substantial effort for worthwhile improvements. Their example of "ten hours for 5%" expressed that preference; it establishes neither a required duration nor a measured return.
+LMBook is a long-term learning product for the owner and friends. Optimize for sustained learning value and reliable everyday use. The owner accepts substantial effort for worthwhile improvements. Their example of "ten hours for 5%" expressed that preference; it establishes neither a required duration nor a measured return.
 
 - Plan around the full intended outcome. Continue substantial work across sessions with clear continuation notes; a session boundary does not make an unfinished task complete.
 - For substantial decisions, define observable success, investigate relevant evidence, compare credible alternatives, examine failure cases, and evaluate the result. Keep unresolved questions visible.
@@ -26,7 +26,7 @@ SenniBook is a long-term learning product for the owner and friends. Optimize fo
 - For resumed implementation, read [ROADMAP.md](ROADMAP.md) and the latest entries in [WORKLOG.md](WORKLOG.md). Preserve completed work and newer changes from other threads.
 - Follow the current conversation's scope. Discussion and research requests should develop the learning experience; draft production prompts or change application behavior when that work is actually in scope.
 - Keep learner-facing explanations about learning choices. Model selection, infrastructure, and code belong in technical discussions when relevant.
-- The proposed interview inside SenniBook is a product question. It does not impose repeated permission requests on already-authorized development work.
+- The proposed interview inside LMBook is a product question. It does not impose repeated permission requests on already-authorized development work.
 
 ## Evidence and continuity
 

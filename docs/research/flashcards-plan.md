@@ -7,7 +7,7 @@ Recorded 2026-09-14. Initial implementation: desktop 0.3.0. The follow-up word-l
 - 0.3.2 clarification: creation explicitly separates words/translations from agent-selected concepts/explanations. The owner wants a separate on/off option for missing vocabulary translations. It defaults off; supplied translations stay authoritative. Generated translations must be identifiable, and concept explanations may paraphrase source meaning.
 
 - Follow-up correction: generation produces one editable word list, with automatically detected languages. Both directions, typing, controller and other practice options operate on that list after generation. Each pair has an inline editing box with automatic persistence. The owner explicitly chose immediate practice with visible incomplete review status, replacing the initial gate on study/export. JSON export includes that status; no verification claim is implied by practice availability.
-- Add flashcard creation to SenniBook, building on the owner's existing version.
+- Add flashcard creation to LMBook, building on the owner's existing version.
 - Accept a custom generation prompt and an explicit selection of notebook sources, with select-all and deselect-all controls.
 - Support German vocabulary from an idioom: preserve the exact source word and its supplied translation, rather than generating an alternative translation.
 - Make correctness and full coverage verifiable. The owner's example of 150 words illustrates list size; it is not a fixed deck size.

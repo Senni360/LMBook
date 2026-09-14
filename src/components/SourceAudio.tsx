@@ -493,7 +493,7 @@ export function SourceAudio({
               )}
             </div>
             <p className="source-audio-explainer">
-              SenniBook uses faster-whisper on this computer. The result is
+              LMBook uses faster-whisper on this computer. The result is
               machine generated, so check names, numbers and technical terms
               against the audio.
             </p>

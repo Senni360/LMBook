@@ -1,6 +1,6 @@
 {
-  "name": "sennibook",
-  "version": "0.3.2",
+  "name": "lmbook",
+  "version": "0.3.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -56,6 +56,6 @@
     "node": ">=24.0.0"
   },
   "description": "A local learning notebook for source-grounded educational audio.",
-  "author": "SenniBook contributors",
+  "author": "LMBook contributors",
   "main": "electron/main.cjs"
 }

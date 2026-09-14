@@ -6,7 +6,7 @@ This candidate develops the owner's endorsed five areas. The [research findings]
 
 ## What the conversation should accomplish
 
-The learner and SenniBook should finish with the same understanding of what the episode must do. Completing five answers is insufficient if “everything” still means different things to each of them. Equally, the learner does not have to demonstrate mastery or specify an instructional theory before receiving help.
+The learner and LMBook should finish with the same understanding of what the episode must do. Completing five answers is insufficient if “everything” still means different things to each of them. Equally, the learner does not have to demonstrate mastery or specify an instructional theory before receiving help.
 
 The five areas remain required. Ask the five opening questions in order by default, acknowledging answers already given. If an answer has already established another area, present that understanding for confirmation rather than requiring it to be retyped. Resolving a contradiction can interrupt the sequence; there is no value in continuing with questions that depend on an interpretation the learner has rejected.
 

@@ -33,7 +33,6 @@ import {
   Pencil,
   Library,
   Radio,
-  Leaf,
   Sparkles,
   Square,
   Bookmark,
@@ -456,7 +455,7 @@ function App() {
           <span className="brand-mark">
             <BookOpen size={23} />
           </span>
-          SenniBook<span className="brand-dot">.</span>
+          LMBook<span className="brand-dot">.</span>
         </a>
         <button
           className="mobile-create icon-button light"
@@ -465,7 +464,6 @@ function App() {
         >
           <Plus size={20} />
         </button>
-        <div className="sidebar-intro">A deeper understanding.</div>
         <div className="rail-label">
           <span>Your notebooks</span>
           <button
@@ -529,7 +527,7 @@ function App() {
             )}
           </button>
           <div className="rail-foot">
-            SenniBook{" "}
+            LMBook{" "}
             <span>
               {window.sennibookDesktop ? "Desktop" : "Web preview"} ·{" "}
               {appVersion}
@@ -600,7 +598,7 @@ function App() {
               run("Restoring notebook", async () => {
                 if (file.size === 0)
                   throw new Error(
-                    "This backup file is empty. Choose a SenniBook ZIP backup.",
+                    "This backup file is empty. Choose an LMBook ZIP backup.",
                   );
                 if (file.size > 2 * 1024 * 1024 * 1024)
                   throw new Error("This backup exceeds the 2 GB upload limit.");
@@ -684,11 +682,7 @@ function App() {
         ) : !n ? (
           <div className="welcome">
             <div className="welcome-heading">
-              <span className="kicker">Your next chapter starts here</span>
-              <h1>
-                Your material.
-                <br />A deeper conversation.
-              </h1>
+              <h1>Your learning library.</h1>
               <p>
                 Bring your course notes, concepts and learning goals together.
                 Turn them into a conversation worth taking on a walk.
@@ -715,30 +709,22 @@ function App() {
               <div className="book-spine" />
               <div className="book-cover">
                 <BookOpen size={35} strokeWidth={1} />
-                <span>
-                  A space for
-                  <br />
-                  <em>understanding.</em>
-                </span>
-                <div className="book-bottom">
-                  SOURCES → IDEAS → CONVERSATION
-                </div>
               </div>
             </div>
             <div className="welcome-steps">
               <div>
                 <FileText size={21} />
-                <h3>Bring your material</h3>
+                <h3>Add sources</h3>
                 <p>PDFs, notes and the sources you trust.</p>
               </div>
               <div>
                 <Target size={21} />
-                <h3>Know what matters</h3>
+                <h3>Set learning goals</h3>
                 <p>Let your begrippen and leerdoelen guide the depth.</p>
               </div>
               <div>
                 <Headphones size={21} />
-                <h3>Make room to listen</h3>
+                <h3>Generate audio</h3>
                 <p>Two voices. Your pace. A fuller explanation.</p>
               </div>
             </div>
@@ -887,7 +873,6 @@ function App() {
           </>
         )}
         <footer className="page-footer">
-          <Leaf size={14} /> Built for curiosity. Kept under your control.
           <span>AI explanations deserve a source check.</span>
         </footer>
       </main>
@@ -904,7 +889,7 @@ function App() {
           }}
         >
           <div className="section-heading">
-            <h2 id="create-notebook-heading">A new place to learn</h2>
+            <h2 id="create-notebook-heading">Create a notebook</h2>
             <button
               type="button"
               className="icon-button"
@@ -1087,7 +1072,7 @@ function Sources({
     <>
       <div className="section-heading">
         <div>
-          <h2>The material behind the conversation</h2>
+          <h2>Sources</h2>
           <p>Original sources stay separate from added context.</p>
         </div>
         <Button
@@ -1115,7 +1100,7 @@ function Sources({
           <Upload size={23} />
         </div>
         <div>
-          <strong>Add something worth understanding</strong>
+          <strong>Add a source</strong>
           <p>
             Documents, Markdown and page images · up to 20 MB. Audio recordings
             · up to 500 MB.
@@ -1308,7 +1293,7 @@ function Sources({
           <div>
             <Target size={23} />
             <span>
-              <strong>Give your material a direction</strong>
+              <strong>Next: add learning goals</strong>
               <small>
                 Add the concepts and learning goals you want this notebook to
                 cover.
@@ -1485,7 +1470,6 @@ function Goals({
       <div className="section-heading">
         <div>
           <h2>What do you want to understand?</h2>
-          <p>Your leerdoelen set the floor. Your curiosity sets the ceiling.</p>
         </div>
         <Button
           variant="primary"
@@ -1564,7 +1548,6 @@ function Goals({
           </div>
         </form>
         <div className="extract-goals">
-          <span className="kicker">Already in a document?</span>
           <p>
             Upload your objectives as a source, then let the model extract the
             list.
@@ -1791,7 +1774,7 @@ function Goals({
           <div>
             <Headphones size={24} />
             <span>
-              <strong>Ready to turn ideas into a conversation?</strong>
+              <strong>Next: create an episode</strong>
               <small>
                 Choose the depth, language and length in the audio studio.
               </small>
@@ -2131,8 +2114,7 @@ function Studio({
       <section className="studio-work">
         <div className="section-heading">
           <div>
-            <span className="kicker">Your listening space</span>
-            <h2>Room for the whole idea.</h2>
+            <h2>Audio studio</h2>
           </div>
           <Headphones size={26} strokeWidth={1.5} />
         </div>
@@ -2156,9 +2138,9 @@ function Studio({
           <div className="studio-empty">
             <div className="record-art" aria-hidden="true">
               <div />
-              <span>SB</span>
+              <span>LM</span>
             </div>
-            <h3>A conversation, shaped by you.</h3>
+            <h3>No episode planned yet</h3>
             <p>
               Start with an outline. Review what each chapter covers, generate
               the dialogue, then listen to a short voice preview.
@@ -2685,7 +2667,7 @@ function Chat({
           {n.messages.map((m) => (
             <article key={m.id} className={`message ${m.role}`}>
               <span className="message-label">
-                {m.role === "user" ? "You" : "SenniBook"}
+                {m.role === "user" ? "You" : "LMBook"}
               </span>
               <div className="message-text">{m.text}</div>
               {m.role === "assistant" && m.evidence?.length === 0 && (
@@ -2728,7 +2710,7 @@ function Chat({
           aria-label="Question for your sources"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Ask something worth understanding…"
+          placeholder="Ask a question about your sources…"
           maxLength={6000}
         />
         <Button
@@ -2808,8 +2790,7 @@ function Connections({
     <div className="settings-page">
       <div className="page-heading">
         <div>
-          <span className="kicker">Your tools, connected</span>
-          <h1>A workspace you control.</h1>
+          <h1>Connections & settings</h1>
           <p>
             Local storage. Your model accounts. An editable teaching harness.
           </p>
@@ -2947,13 +2928,13 @@ function Connections({
             <summary>Connection instructions</summary>
             <p>
               <strong>Codex:</strong> install the CLI and run{" "}
-              <code>codex login</code>. SenniBook connects through Codex App
+              <code>codex login</code>. LMBook connects through Codex App
               Server using your local login. Your subscription or API billing
               and usage limits apply.
             </p>
             <p>
               <strong>OpenCode Go:</strong> install OpenCode and connect your Go
-              account. SenniBook can reuse that local login. Alternatively, add{" "}
+              account. LMBook can reuse that local login. Alternatively, add{" "}
               <code>OPENCODE_API_KEY</code> to the local <code>.env</code> file
               and select a chat/completions model.
             </p>
@@ -3089,7 +3070,7 @@ function Connections({
             />
           </div>
           <p className="fine-print">
-            SenniBook ZIP format · up to 2 GB. Includes saved originals and
+            LMBook ZIP format · up to 2 GB. Includes saved originals and
             transcripts. Older imports may only have extracted text; import
             those files again to preserve their originals.
           </p>
@@ -3201,13 +3182,13 @@ function DesktopDetails() {
       .then(setInfo)
       .catch(() =>
         setError(
-          "Desktop details are unavailable. Restart SenniBook to try again.",
+          "Desktop details are unavailable. Restart LMBook to try again.",
         ),
       );
   }, []);
   return (
     <div className="desktop-details">
-      <h3>SenniBook for desktop{info ? ` · ${info.version}` : ""}</h3>
+      <h3>LMBook for desktop{info ? ` · ${info.version}` : ""}</h3>
       <p>
         Your notebooks stay on this computer. Closing the window during
         generation lets you choose whether to keep working in the system tray.

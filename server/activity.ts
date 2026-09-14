@@ -206,7 +206,7 @@ export function reconcileInterruptedActivities() {
            finished_at = ?,
            error = CASE
              WHEN error IS NULL OR error = ''
-               THEN 'Generation was interrupted when SenniBook stopped.'
+               THEN 'Generation was interrupted when LMBook stopped.'
              ELSE error
            END
        WHERE state = 'running'`,

@@ -203,7 +203,7 @@ export function LocalTranscriptionSetup({
       </div>
 
       <p className="local-transcription-intro">
-        SenniBook uses faster-whisper to make timestamped machine transcripts
+        LMBook uses faster-whisper to make timestamped machine transcripts
         locally. This is separate from podcast voices: it helps you search and
         review an imported recording, and does not generate a conversation.
       </p>

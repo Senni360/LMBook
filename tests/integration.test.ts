@@ -151,7 +151,7 @@ test(
       page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(base);
       await page
-        .getByRole("heading", { name: "Your material. A deeper conversation." })
+        .getByRole("heading", { name: "Your learning library." })
         .waitFor();
       mkdirSync("test-results", { recursive: true });
       await page.screenshot({

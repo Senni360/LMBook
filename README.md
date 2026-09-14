@@ -1,20 +1,20 @@
-# SenniBook
+# LMBook
 
 A local, open-source learning notebook for detailed two-person audio and source-based flashcards. Bring your sources, begrippen and leerdoelen; inspect the evidence; shape your practice.
 
 ## Windows desktop edition
 
-Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Build artifacts go to `release/`: an installer, a portable executable, and `win-unpacked/SenniBook.exe`.
+Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Build artifacts go to `release/`: an installer, a portable executable, and `win-unpacked/LMBook.exe`.
 
-Download the current installer or portable executable from [GitHub Releases](https://github.com/Senni360/SenniBook/releases/latest). Merging a new version into `master` automatically builds, checks and publishes its Windows downloads. See [the release workflow](docs/releasing.md) for version bumps, required release notes and retry behavior.
+Download the current installer or portable executable from [GitHub Releases](https://github.com/Senni360/LMBook/releases/latest). Merging a new version into `master` automatically builds, checks and publishes its Windows downloads. See [the release workflow](docs/releasing.md) for version bumps, required release notes and retry behavior.
 
-The local **0.3.1** build adds editable word lists and practice in either direction: `release/0.3.1/SenniBook-0.3.1-portable.exe` or `release/0.3.1/SenniBook Setup 0.3.1.exe`. Quit an older running preview first; both use the same normal application-data library. Desktop is the primary delivery target; the browser preview uses a separate library. See [0.3.1 release notes](docs/releases/0.3.1.md).
+**0.3.3 introduces LMBook**, the new name for SenniBook. It retains editable word lists, practice in either direction, concept flashcards and optional generated translations. Quit an older running version before opening LMBook. Desktop is the primary delivery target; the browser preview uses a separate library. See [0.3.3 release notes](docs/releases/0.3.3.md).
 
 0.2.8 adds recoverable notebook Trash in Settings → Your library. Restore keeps the original notebook; explicit permanent deletion removes its unshared files and activity history, preserving files referenced by other notebooks or episode snapshots. Downloads now use a native save dialog with progress, cancellation and readable errors. Cached library summaries avoid reparsing every notebook for the sidebar, and empty-file/partial-import handling is clearer.
 
 It also includes the hidden native menu bar (Alt reveals it), settings sidebar back button, preparation/voice draft recovery, listening position/selection/speed, and fixes for numeric goals, short imports, background-import navigation, source integrity and malformed restores. 0.2.9 adds compact backups for large notebooks with repeated episode source snapshots, correct keyboard focus, and upload size checks before transfer. See the [no-generation reliability sweep](docs/audits/2026-09-14-no-generation.md) for evidence and remaining work.
 
-The installed app includes its runtime and starts the learning engine automatically. It stores notebooks under `%APPDATA%/SenniBook/data` (the exact folder appears in Connections & settings). The original browser edition's `data/` folder stays untouched. Provider accounts and optional external CLIs still need to be configured separately.
+The installed app includes its runtime and starts the learning engine automatically. New installations store notebooks under `%APPDATA%/LMBook/data`. If an existing `%APPDATA%/SenniBook` profile is present, LMBook reuses it, including its saved notebooks, provider configuration and browser storage. The exact folder appears in Connections & settings. See [upgrade compatibility](docs/rebranding.md). The original browser edition's `data/` folder stays untouched. Provider accounts and optional external CLIs still need to be configured separately.
 
 The desktop interface uses a stable private app address, a sandboxed renderer and a per-launch backend token. External documentation opens in your normal browser. If generation is active when you close the window, you can keep working in the tray or cancel and quit. Completed work is saved. The app prevents automatic system sleep while generation is active; it cannot keep a powered-off computer working.
 
@@ -62,13 +62,13 @@ Practice supports both directions, chapter selection, shuffle, examples, missed/
 
 ### Codex CLI
 
-The Windows npm-installed CLI is detected automatically. Run `codex login` in your terminal first, then use **Check Codex connection** in Settings. An alternative CLI launcher or executable path can be set with `CODEX_CLI_PATH`. SenniBook uses the documented `codex app-server` integration with its own client identity and your existing authentication, as T3 Code does. Lesson threads are temporary and read-only, with tools and configured MCP servers disabled for that thread. Windows launches the native binary hidden to avoid empty command windows. Subscription/account limits and provider terms still apply; this integration does not promise account eligibility or unlimited use.
+The Windows npm-installed CLI is detected automatically. Run `codex login` in your terminal first, then use **Check Codex connection** in Settings. An alternative CLI launcher or executable path can be set with `CODEX_CLI_PATH`. LMBook uses the documented `codex app-server` integration with its own client identity and your existing authentication, as T3 Code does. Lesson threads are temporary and read-only, with tools and configured MCP servers disabled for that thread. Windows launches the native binary hidden to avoid empty command windows. Subscription/account limits and provider terms still apply; this integration does not promise account eligibility or unlimited use.
 
 ### OpenCode Go
 
 OpenCode describes Go as intended for coding-agent traffic. Permission to use that subscription for lessons remains unconfirmed; successful authentication alone does not settle it. See the [Go usage guidance](https://opencode.ai/docs/go/#where-can-i-use-it).
 
-Install OpenCode, connect your Go account, and select OpenCode Go in Settings. SenniBook can reuse that local CLI login without copying its key. The CLI defaults to `muse-spark-1.3-contributor`, disables tools for generation, and sends the complete bounded request through standard input. This avoids the CLI attachment reader truncating long source material. Set `OPENCODE_CLI_PATH` if the executable is installed outside the detected npm location.
+Install OpenCode, connect your Go account, and select OpenCode Go in Settings. LMBook can reuse that local CLI login without copying its key. The CLI defaults to `muse-spark-1.3-contributor`, disables tools for generation, and sends the complete bounded request through standard input. This avoids the CLI attachment reader truncating long source material. Set `OPENCODE_CLI_PATH` if the executable is installed outside the detected npm location.
 
 Alternatively set `OPENCODE_API_KEY` in `.env` and enter a model ID with a `/chat/completions` endpoint from the [provider documentation](https://opencode.ai/docs/go/). This direct API mode takes precedence over CLI login. Models using `/messages` or `/responses` are only supported through the CLI adapter. No silent fallback to another paid service occurs.
 
@@ -120,7 +120,7 @@ Full-episode WAV downloads stream from disk without loading the entire episode i
 
 ## Local recordings and transcription
 
-Audio sources stay on this computer. SenniBook can play the original recording, create a timestamped local transcript, and let you jump from each transcript segment back to its audio time. Original media and transcript metadata are included in portable notebook backups.
+Audio sources stay on this computer. LMBook can play the original recording, create a timestamped local transcript, and let you jump from each transcript segment back to its audio time. Original media and transcript metadata are included in portable notebook backups.
 
 OCR keeps the original document or image, caches work per page, and supports cancellation and retry. It is intended for printed text; it does not claim to understand diagrams or provide reliable handwriting transcription.
 
@@ -134,7 +134,7 @@ References: [Google speech setup](https://docs.cloud.google.com/text-to-speech/d
 
 ## Data and exports
 
-Notebook state lives in `data/sennibook.sqlite`; generated audio lives in `data/audio/`; immutable uploaded source and recording bytes live in `data/originals/`. All are ignored by Git. Portable ZIP backups include the notebook manifest, episode snapshots, generated audio/cache files and referenced originals without loading long audio into memory. Small backups retain v2 compatibility. When repeated source snapshots exceed the 20 MiB manifest limit, v3 stores identical source sets once and preserves different historical versions. v3 requires SenniBook 0.2.9 or later to restore; v1/v2 backups remain importable. Restore creates a new notebook with remapped IDs. Limits remain 20 MiB for the compact manifest, 32 MiB per source set, 128 MiB for expanded source snapshots and 2 GiB total uncompressed content. Older backups may contain extracted text without the original binary.
+Notebook state lives in `data/sennibook.sqlite`; generated audio lives in `data/audio/`; immutable uploaded source and recording bytes live in `data/originals/`. All are ignored by Git. Portable ZIP backups include the notebook manifest, episode snapshots, generated audio/cache files and referenced originals without loading long audio into memory. Small backups retain v2 compatibility. When repeated source snapshots exceed the 20 MiB manifest limit, v3 stores identical source sets once and preserves different historical versions. v3 requires SenniBook 0.2.9 or later (including LMBook) to restore; v1/v2 backups remain importable. Restore creates a new notebook with remapped IDs. Limits remain 20 MiB for the compact manifest, 32 MiB per source set, 128 MiB for expanded source snapshots and 2 GiB total uncompressed content. Older backups may contain extracted text without the original binary.
 
 Markdown exports include current sources and objectives plus each episode's saved source/goal snapshots, teaching instructions and transcripts. Uploaded sources include original-byte and extracted-text SHA-256 hashes. Markdown is a readable export for Obsidian, not a complete audio backup.
 
