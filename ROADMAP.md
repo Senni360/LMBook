@@ -66,7 +66,7 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 
 ## Connections and operations
 
-- Configure automatic Windows releases for unpublished versions reaching `master`: locked install, existing tests, packaged desktop smoke, draft upload and checksum verification before publication. Version changes and release notes remain explicit in each release PR. Policy and retry behavior live in [the release guide](docs/releasing.md).
+- Automatic Windows releases are active for unpublished versions reaching `master`: locked install, existing tests, packaged desktop smoke, draft upload and checksum verification before publication. The first hosted run published [0.3.1](https://github.com/Senni360/SenniBook/releases/tag/v0.3.1) successfully; 37 application checks and the packaged desktop check passed, with the optional FFmpeg check skipped on that runner. Version changes and release notes remain explicit in each release PR. Policy and retry behavior live in [the release guide](docs/releasing.md).
 
 - Detect available local Codex, OpenCode and Ollama installations and explain actual readiness.
 - Keep credentials on the host; allow provider setup without source-code edits.
