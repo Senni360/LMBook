@@ -4,6 +4,8 @@ The owner authorized sustained, broad development on 2026-09-14, with Electron a
 
 ## Learning-experience research — candidate reviewed, learner evaluation pending
 
+- Flashcard modes and optional missing translations are implemented for 0.3.2: explicit words/concepts selection, agent-selected concepts, default-off generated translations with provenance, and usable drafts with visible source warnings. Evaluation and remaining fidelity limitations are in the [flashcard plan](docs/research/flashcards-plan.md).
+
 - Flashcard follow-up: one editable word list with detected language labels, per-pair autosave and post-generation direction/typing controls. The owner explicitly allows practice while source review is incomplete; verification remains visible and edits invalidate it. See the current flow and evaluation in the [flashcard plan](docs/research/flashcards-plan.md).
 
 - Flashcards are implemented in the 0.3.0 source build: Luna generation with custom prompts and source select/deselect all, HTML/TSV import, source-pair and human coverage review, attributed OCR corrections, single-face study, strict typing, direction-specific progress and backup/Trash integration. The owner's 148-pair reference and isolated Electron/browser/provider/lifecycle checks are recorded in the [flashcard plan](docs/research/flashcards-plan.md). Packaged desktop checks passed; see [release notes](docs/releases/0.3.0.md). Original-idioom comparison, larger model runs, physical controller use and learner evaluation remain pending.
