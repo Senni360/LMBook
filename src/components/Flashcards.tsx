@@ -14,9 +14,9 @@ import { FlashcardStudy } from "./FlashcardStudy";
 import { FlashWordList } from "./FlashWordList";
 import "./flashcards.css";
 const vocabularyPrompt =
-  "Make flashcards for every word pair in the selected material. Keep the supplied translations exactly.";
+  "Make flashcards for the vocabulary in the selected material. Keep supplied translations exactly and follow the missing-translation setting.";
 const conceptsPrompt =
-  "Create focused questions and answers for the key concepts in the selected sources. Preserve important qualifications.";
+  "Choose the important terms and concepts in the selected sources and explain each one clearly in its context. Preserve important qualifications.";
 
 type Props = {
   n: Notebook;
@@ -64,12 +64,22 @@ export function Flashcards({ n, disabled, change, run }: Props) {
     {
       title: "",
       prompt:
-        "Make flashcards for every word pair in the selected material. Keep the supplied translations exactly.",
+        "Make flashcards for the vocabulary in the selected material. Keep supplied translations exactly and follow the missing-translation setting.",
       mode: "vocabulary",
       sources: JSON.stringify(n.sources.filter(sourceReady).map((s) => s.id)),
       expectedCount: "",
+      allowTranslations: false,
+      targetLanguage: "",
     },
-    ["title", "prompt", "mode", "sources", "expectedCount"],
+    [
+      "title",
+      "prompt",
+      "mode",
+      "sources",
+      "expectedCount",
+      "allowTranslations",
+      "targetLanguage",
+    ],
   );
   const values = form.value;
   const update = (patch: Partial<typeof values>) =>
@@ -93,8 +103,8 @@ export function Flashcards({ n, disabled, change, run }: Props) {
         <div>
           <h2>Flashcards</h2>
           <p>
-            Create one word list. Edit it here, then practise in either
-            direction.
+            Create a list of words or concepts. Edit it here, then choose how to
+            practise.
           </p>
         </div>
         <button
@@ -102,8 +112,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
           onClick={() => setCreating(!creating)}
           aria-expanded={creating}
         >
-          <Plus size={17} />{" "}
-          {creating ? "Close creation" : "Create a word list"}
+          <Plus size={17} /> {creating ? "Close creation" : "Create a list"}
         </button>
       </div>
       {creating && (
@@ -118,27 +127,89 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 placeholder="German · chapters 11–15"
               />
             </label>
-            <label>
-              List type
-              <select
-                value={values.mode}
-                onChange={(e) =>
-                  update({
-                    mode: e.target.value,
-                    prompt: [vocabularyPrompt, conceptsPrompt].includes(
-                      values.prompt,
-                    )
-                      ? e.target.value === "concepts"
-                        ? conceptsPrompt
-                        : vocabularyPrompt
-                      : values.prompt,
-                  })
-                }
-              >
-                <option value="vocabulary">Words & translations</option>
-                <option value="concepts">Questions & answers</option>
-              </select>
-            </label>
+            <fieldset className="flash-mode-picker">
+              <legend>What do you want to learn?</legend>
+              {(
+                [
+                  [
+                    "vocabulary",
+                    "Words & translations",
+                    "Learn vocabulary in another language.",
+                  ],
+                  [
+                    "concepts",
+                    "Concepts & explanations",
+                    "Let the agent choose and explain key terms from your text.",
+                  ],
+                ] as const
+              ).map(([mode, label, description]) => (
+                <label key={mode} className="flash-mode-choice">
+                  <input
+                    type="radio"
+                    name={`${n.id}-flashcard-mode`}
+                    value={mode}
+                    checked={values.mode === mode}
+                    onChange={() =>
+                      update({
+                        mode,
+                        prompt: [
+                          vocabularyPrompt,
+                          conceptsPrompt,
+                          "Make flashcards for every word pair in the selected material. Keep the supplied translations exactly.",
+                          "Create focused questions and answers for the key concepts in the selected sources. Preserve important qualifications.",
+                        ].includes(values.prompt)
+                          ? mode === "concepts"
+                            ? conceptsPrompt
+                            : vocabularyPrompt
+                          : values.prompt,
+                      })
+                    }
+                  />
+                  <span>
+                    {label}
+                    <small>{description}</small>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            {values.mode === "vocabulary" && (
+              <div className="flash-translation-option">
+                <label className="flash-check">
+                  <input
+                    type="checkbox"
+                    checked={values.allowTranslations}
+                    onChange={(e) =>
+                      update({ allowTranslations: e.target.checked })
+                    }
+                  />
+                  Generate missing translations
+                </label>
+                <p className="flash-help">
+                  {values.allowTranslations
+                    ? "Only words without a supplied translation get an AI translation, labelled in the list. Your source's translations always take priority."
+                    : "Use only translations supplied in your sources. Words without a translation are left out."}
+                </p>
+                {values.allowTranslations && (
+                  <label>
+                    Translate into (optional)
+                    <input
+                      maxLength={60}
+                      value={values.targetLanguage}
+                      placeholder="Use the language in your instructions"
+                      onChange={(e) =>
+                        update({ targetLanguage: e.target.value })
+                      }
+                    />
+                    <small className="flash-help">
+                      If unspecified, use the other source language or this
+                      notebook's{" "}
+                      {n.settings.language === "nl" ? "Dutch" : "English"}{" "}
+                      language setting.
+                    </small>
+                  </label>
+                )}
+              </div>
+            )}
             <label>
               Your instructions
               <textarea
@@ -165,7 +236,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
             <p className="flash-help">
               {values.mode === "vocabulary"
                 ? "Languages are detected from your sources. Each word and its supplied translation are saved once; choose your practice direction afterwards."
-                : "Questions and answers are generated. Matching citations support your review; they do not prove an answer is correct."}
+                : "The agent selects concepts from your sources and explains them in their context. Review the explanations for meaning; they do not need to copy the source word for word."}
             </p>
             {form.error && <p role="alert">{form.error}</p>}
             {form.restored && (
@@ -181,9 +252,10 @@ export function Flashcards({ n, disabled, change, run }: Props) {
               }
               onClick={() =>
                 void run("Creating flashcards", async () => {
-                  const count = values.expectedCount
-                    ? Number(values.expectedCount)
-                    : undefined;
+                  const count =
+                    values.mode === "vocabulary" && values.expectedCount
+                      ? Number(values.expectedCount)
+                      : undefined;
                   if (
                     count !== undefined &&
                     (!Number.isInteger(count) || count < 1 || count > 2000)
@@ -194,6 +266,12 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                   await change(`/notebooks/${n.id}/flashcards`, "POST", {
                     title: values.title,
                     mode: values.mode,
+                    allowTranslations:
+                      values.mode === "vocabulary" && values.allowTranslations,
+                    targetLanguage:
+                      values.mode === "vocabulary" && values.allowTranslations
+                        ? values.targetLanguage
+                        : "",
                     prompt: values.prompt,
                     sourceIds: selected,
                     ...(count !== undefined ? { expectedCount: count } : {}),
@@ -201,7 +279,10 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 })
               }
             >
-              <BookOpen size={17} /> Generate word list
+              <BookOpen size={17} />{" "}
+              {values.mode === "concepts"
+                ? "Generate concept list"
+                : "Generate word list"}
             </button>
           </div>
           <div className="flash-source-picker">
@@ -317,7 +398,8 @@ export function Flashcards({ n, disabled, change, run }: Props) {
               >
                 {decks.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.title} · {d.cards.length} pairs
+                    {d.title} · {d.cards.length}{" "}
+                    {d.mode === "concepts" ? "concepts" : "pairs"}
                     {d.status === "generating"
                       ? " · creating"
                       : d.status === "error"
@@ -354,6 +436,8 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                     title: deck.title,
                     prompt: deck.prompt,
                     mode: deck.mode,
+                    allowTranslations: deck.allowTranslations || false,
+                    targetLanguage: deck.targetLanguage || "",
                     sources: JSON.stringify(deck.sources.map((s) => s.id)),
                     expectedCount: String(deck.expectedCount || ""),
                   });
@@ -362,6 +446,26 @@ export function Flashcards({ n, disabled, change, run }: Props) {
               >
                 Use this setup again
               </button>
+              {deck.mode === "vocabulary" && (
+                <button
+                  className="button quiet"
+                  onClick={() => {
+                    update({
+                      title: deck.title,
+                      prompt:
+                        deck.prompt === vocabularyPrompt
+                          ? conceptsPrompt
+                          : deck.prompt,
+                      mode: "concepts",
+                      sources: JSON.stringify(deck.sources.map((s) => s.id)),
+                      expectedCount: "",
+                    });
+                    setCreating(true);
+                  }}
+                >
+                  Use these sources for concepts
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -372,19 +476,42 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                       ? "Imported answer key accepted. Not checked against a separate original."
                       : `Source review pending · ${report?.reviewed}/${report?.total} pairs checked. This imported list has not been checked against a separate original.`
                     : deck.mode === "concepts"
-                      ? "Quoted passages match the saved sources. Review the generated answers for meaning and completeness."
+                      ? report?.invalid.length
+                        ? `${report.invalid.length} entries need a source check. You can practise now; review their quoted passages and explanations.`
+                        : "Quoted passages match the saved sources. Review the generated explanations for meaning and completeness."
                       : report?.ready
                         ? `${report.total}/${report.total} pairs checked by you. Cards use these exact saved pairs.`
                         : `Source review pending · ${report?.reviewed}/${report?.total} pairs checked. You can practise now; check the original before relying on an answer.`}
                 </p>
               </div>
+              {deck.generationWarning && (
+                <p role="status" className="flash-warning">
+                  {deck.generationWarning}
+                </p>
+              )}
+              {!!report?.generatedTranslations && (
+                <p className="flash-warning">
+                  {report.generatedTranslations} AI{" "}
+                  {report.generatedTranslations === 1
+                    ? "translation"
+                    : "translations"}{" "}
+                  · not copied from a supplied answer key. Check these answers
+                  before relying on them.
+                </p>
+              )}
+              {!!report?.invalid.length && deck.mode === "vocabulary" && (
+                <p className="flash-help">
+                  {report.invalid.length} entries need attention in the list or
+                  source review.
+                </p>
+              )}
               <div className="flash-actions" aria-label="Deck view">
                 <button
                   className="button"
                   aria-pressed={view === "words"}
                   onClick={() => setView("words")}
                 >
-                  Word list
+                  {deck.mode === "concepts" ? "Concept list" : "Word list"}
                 </button>
                 <button
                   className="button"
@@ -485,9 +612,9 @@ function FlashcardReview({
         </p>
       )}
       <p className="flash-help">
-        Check the exact wording and row pairing against the original. Text
-        matching alone cannot detect an incorrectly extracted column. Example
-        sentences are study aids and are outside the pair check.
+        {deck.mode === "concepts"
+          ? "Check that each explanation faithfully represents the quoted passage and keeps its qualifications. Matching quotations alone do not verify meaning."
+          : "Check the exact wording and row pairing against the original. Text matching alone cannot detect an incorrectly extracted column. Example sentences are study aids and are outside the pair check."}
       </p>
       {!!report.manualTranscriptions && (
         <p className="flash-warning">
@@ -559,7 +686,7 @@ function FlashcardReview({
             type="search"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Word, translation or chapter"
+            placeholder="Search either side or chapter"
           />
         </label>
         <label className="flash-check">

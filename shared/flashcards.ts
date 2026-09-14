@@ -10,6 +10,7 @@ export const flashcardSchema = z
     back: text,
     group: z.string().max(200).default(""),
     example: z.string().max(4000).default(""),
+    translationOrigin: z.enum(["source", "generated"]).optional(),
     transcription: z
       .object({
         location: z.string().trim().min(1).max(300),
@@ -47,6 +48,9 @@ export const flashDeckSchema = z
     createdAt: z.string().max(100),
     revision: z.number().int().min(0),
     mode: z.enum(["vocabulary", "concepts"]),
+    allowTranslations: z.boolean().optional(),
+    targetLanguage: z.string().max(60).optional(),
+    generationWarning: z.string().max(1000).optional(),
     origin: z.enum(["generated", "imported"]),
     prompt: z.string().max(12000),
     model: z.string().max(100),
@@ -84,7 +88,7 @@ export function flashAnswerMatches(input: string, answer: string) {
   );
 }
 
-export function cardEvidenceIssues(
+export function cardSourceIssues(
   card: FlashCard,
   deck: Pick<FlashDeck, "sources" | "mode">,
 ): string[] {
@@ -97,6 +101,13 @@ export function cardEvidenceIssues(
   if (
     deck.mode === "vocabulary" &&
     !card.transcription &&
+    card.translationOrigin === "generated"
+  ) {
+    if (!card.evidence.some((e) => e.quote.includes(card.front)))
+      issues.push("The exact source word must occur in its quoted passage.");
+  } else if (
+    deck.mode === "vocabulary" &&
+    !card.transcription &&
     !card.evidence.some(
       (e) => e.quote.includes(card.front) && e.quote.includes(card.back),
     )
@@ -105,6 +116,22 @@ export function cardEvidenceIssues(
       "The exact word and translation must both occur in the same quoted passage. Check the pairing against the original.",
     );
   return [...new Set(issues)];
+}
+
+export function cardEvidenceIssues(
+  card: FlashCard,
+  deck: Pick<FlashDeck, "sources" | "mode">,
+): string[] {
+  const issues = cardSourceIssues(card, deck);
+  if (
+    deck.mode === "vocabulary" &&
+    card.translationOrigin === "generated" &&
+    !card.transcription
+  )
+    issues.push(
+      "AI translation: this answer was generated, not copied from a supplied source translation.",
+    );
+  return issues;
 }
 
 export function flashDeckReport(deck: FlashDeck) {
@@ -138,6 +165,9 @@ export function flashDeckReport(deck: FlashDeck) {
         deck.expectedCount !== undefined &&
         countMatches));
   return {
+    generatedTranslations: deck.cards.filter(
+      (card) => card.translationOrigin === "generated" && !card.transcription,
+    ).length,
     manualTranscriptions: deck.cards.filter((card) => !!card.transcription)
       .length,
     total: deck.cards.length,

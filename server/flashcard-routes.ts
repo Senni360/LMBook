@@ -4,6 +4,7 @@ import path from "node:path";
 import { uid } from "../shared/model.ts";
 import {
   cardEvidenceIssues,
+  cardSourceIssues,
   flashcardSchema,
   flashDeckReport,
   type FlashDeck,
@@ -258,7 +259,7 @@ export function registerFlashcardRoutes(app: Express) {
         if (update.checked) deck.reviewedIds.push(card.id);
         deck.coverageConfirmed = false;
       } else if (update.action === "entry") {
-        const issues = cardEvidenceIssues(update.card, deck);
+        const issues = cardSourceIssues(update.card, deck);
         if (issues.length) throw new Error(issues.join(" "));
         const index = deck.cards.findIndex((c) => c.id === update.card.id);
         if (index < 0) {

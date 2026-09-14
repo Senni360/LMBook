@@ -153,7 +153,7 @@ export function FlashWordList({
           <h3>
             {deck.mode === "vocabulary"
               ? "Your word list"
-              : "Your question list"}
+              : "Your concept list"}
           </h3>
           <p className="flash-help">
             Edit either side. Changes save automatically and apply in both
@@ -162,17 +162,18 @@ export function FlashWordList({
         </div>
         <span>
           {deck.cards.length}{" "}
-          {deck.mode === "vocabulary" ? "pairs" : "questions"}
+          {deck.mode === "vocabulary" ? "pairs" : "concepts"}
         </span>
       </div>
       <details className="flash-language-editor">
         <summary>
-          {deck.frontLabel} ↔ {deck.backLabel} · Edit language labels
+          {deck.frontLabel} ↔ {deck.backLabel} · Edit{" "}
+          {deck.mode === "concepts" ? "side" : "language"} labels
         </summary>
         <div className="flash-fields">
           {(["frontLabel", "backLabel"] as const).map((field, i) => (
             <label key={field}>
-              Language {i + 1}
+              {deck.mode === "concepts" ? "Side" : "Language"} {i + 1}
               <input
                 maxLength={60}
                 disabled={disabled}
@@ -185,12 +186,12 @@ export function FlashWordList({
         <SaveState edit={labels} />
       </details>
       <label>
-        Find a word
+        {deck.mode === "concepts" ? "Find a concept" : "Find a word"}
         <input
           type="search"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Search either language or chapter"
+          placeholder="Search either side or chapter"
         />
       </label>
       <ol className="flash-word-boxes">
@@ -218,7 +219,7 @@ export function FlashWordList({
           `${c.front} ${c.back} ${c.group}`
             .toLocaleLowerCase()
             .includes(filter.toLocaleLowerCase()),
-        ) && <p>No words match this search.</p>}
+        ) && <p>No entries match this search.</p>}
       <button className="button quiet" onClick={onReview}>
         Add or remove entries · review sources
       </button>
@@ -316,6 +317,11 @@ function WordBox({
         </span>
         <SaveState edit={edit} />
       </div>
+      {cardEvidenceIssues(card, deck).map((issue) => (
+        <p className="flash-warning" key={issue}>
+          {issue}
+        </p>
+      ))}
       <details>
         <summary>Example, chapter & source</summary>
         <label>
@@ -347,12 +353,6 @@ function WordBox({
             {e.quote}
           </blockquote>
         ))}
-        {!!cardEvidenceIssues(card, deck).length && (
-          <p className="flash-warning">
-            Saved wording differs from the extracted source. Review the original
-            before marking this pair checked.
-          </p>
-        )}
       </details>
     </li>
   );
