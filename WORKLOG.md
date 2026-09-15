@@ -1,5 +1,9 @@
 # Work log
 
+## 2026-09-15 — Ink pull request delivery
+
+Opened [PR #7](https://github.com/Senni360/LMBook/pull/7), `feat/ink-interactions` → `master`, from isolated checkout `.work/lmbook-ink-pr`. PR #6 had merged into the motion branch while PR #5 was closed without reaching master, so this PR includes that existing dependency history and isolates the new Ink implementation in commit `f586968`. Preserved newer committed work-log history instead of overwriting it with the shared checkout's older entries. All 114 checked runtime/build/test files match the evaluated workspace; the isolated tree passed production/TypeScript, 38 existing tests and desktop backend build. Version 0.3.7 will use the existing Windows release workflow after merge. The PR is open, not merged; no release was published by opening it. Unrelated root edits and local libraries remain untouched.
+
 ## 2026-09-15 — Ink interaction system and AI-pattern research, local 0.3.7
 
 The owner identified missing field hover/focus animation, chat's inner focus box, inconsistent heading highlighting and liked the rotating create-plus. They requested deeper iteration and research into the app's AI-isms. This supersedes the prior visual-completion judgment. Implemented shared native field contours, one outer chat writing surface, interruptible hover/focus transitions, section-arrival heading marks and value/disclosure feedback. Desktop chat now keeps its composer in view. Simplified repetitive slogans and task labels while preserving contextual source-review/recovery information. [Interaction rules, research, counterevidence and evaluation](docs/ui/ink-interactions.md) are authoritative; familiar native controls are retained rather than treating generic appearance as an authorship test.
