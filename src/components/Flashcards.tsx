@@ -1,5 +1,5 @@
 import { MotionNavigation } from "./Motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Download, Plus } from "lucide-react";
 import { uid, type Notebook } from "../../shared/model";
 import {
@@ -95,9 +95,8 @@ export function Flashcards({ n, disabled, change, run }: Props) {
           n.sources.some((s) => s.id === id && sourceReady(s)),
       );
   } catch {
-    /* Recover through selection controls. */
   }
-  const report = deck && flashDeckReport(deck);
+  const report = useMemo(() => deck && flashDeckReport(deck), [deck]);
   return (
     <div className="flashcards-workspace">
       <div className="section-heading">
@@ -592,7 +591,7 @@ function FlashcardReview({
     deck.expectedCount === undefined ? "" : String(deck.expectedCount),
     10,
   );
-  const report = flashDeckReport(deck);
+  const report = useMemo(() => flashDeckReport(deck), [deck]);
   const cards = deck.cards.filter(
     (c) =>
       (!onlyUnchecked || !deck.reviewedIds.includes(c.id)) &&

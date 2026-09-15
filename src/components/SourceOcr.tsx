@@ -1,3 +1,4 @@
+import { responseError } from "../response-error";
 import { useEffect, useRef, useState } from "react";
 import { CircleAlert, LoaderCircle, ScanText, Square } from "lucide-react";
 import type { Source } from "../../shared/model";
@@ -11,18 +12,6 @@ export type SourceOcrProps = {
   disabled: boolean;
   onChanged: () => Promise<void>;
 };
-
-async function responseError(response: Response, fallback: string) {
-  let message = fallback;
-  try {
-    const body = (await response.json()) as { error?: unknown };
-    if (typeof body.error === "string" && body.error.trim())
-      message = body.error;
-  } catch {
-    // Preserve the fallback for empty or non-JSON errors.
-  }
-  return message;
-}
 
 const languageLabels: Record<OcrOptions["language"], string> = {
   eng: "English",

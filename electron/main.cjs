@@ -94,7 +94,6 @@ async function requestQuit() {
       });
       activeJobs = Object.keys((await response.json()).activeJobs || {}).length;
     } catch {
-      /* Keep the last known state if the service is temporarily unavailable. */
     }
   }
   if (activeJobs) {
@@ -399,7 +398,6 @@ async function setup() {
         blocker = undefined;
       }
     } catch {
-      /* A transient status failure should not stop generation. */
     } finally {
       pollingActivity = false;
     }

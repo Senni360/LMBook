@@ -19,7 +19,6 @@ function normalizedQuote(value: string): string {
   return value.replace(/\s+/gu, " ").trim();
 }
 
-/** Return the normalized character index corresponding to an original offset. */
 function normalizedIndexAt(value: string, originalOffset: number): number {
   let normalizedOffset = 0;
   let index = 0;

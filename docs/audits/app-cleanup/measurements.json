@@ -1,0 +1,147 @@
+{
+  "fixture": {
+    "sourceCharacters": 280079,
+    "chatCitations": 20,
+    "audioSeconds": 480,
+    "audioRate": 44100,
+    "largeWordList": 2000
+  },
+  "typing": {
+    "before": {
+      "samplesMs": [
+        122.79999999701977,
+        120.79999999701977,
+        119.60000000149012,
+        109.30000000447035,
+        115.19999999552965,
+        125.70000000298023,
+        112.79999999701977,
+        116.60000000149012,
+        112.60000000149012,
+        146.39999999850988,
+        127.29999999701977,
+        122.70000000298023,
+        119.70000000298023,
+        134.30000000447035,
+        120.19999999552965,
+        160,
+        148.29999999701977,
+        120.69999999552965,
+        111.80000000447035,
+        109.19999999552965,
+        131,
+        116.19999999552965
+      ],
+      "medianMs": 120.69999999552965
+    },
+    "after": {
+      "samplesMs": [
+        6.399999998509884,
+        12,
+        15.899999998509884,
+        3,
+        6.899999998509884,
+        12,
+        13.700000002980232,
+        13.299999997019768,
+        1.9000000059604645,
+        5.600000001490116,
+        8.799999997019768,
+        11.800000004470348,
+        15.800000004470348,
+        4,
+        8.299999997019768,
+        12.100000001490116,
+        13.700000002980232,
+        16.5,
+        3.8000000044703484,
+        1.1999999955296516,
+        1.1999999955296516,
+        1.5
+      ],
+      "medianMs": 8.799999997019768
+    }
+  },
+  "audio": {
+    "before": {
+      "audioMs": 22.340900000000147,
+      "concats": 2,
+      "copiedBytes": 84672044,
+      "outputBytes": 42336044,
+      "seconds": 480,
+      "sha256": "18ed4bd6bf99d1b79a88419a71bbbd234048be23c7cef425610e6b0e04e514d7"
+    },
+    "after": {
+      "audioMs": 10.519599999999627,
+      "concats": 1,
+      "copiedBytes": 42336044,
+      "outputBytes": 42336044,
+      "seconds": 480,
+      "sha256": "18ed4bd6bf99d1b79a88419a71bbbd234048be23c7cef425610e6b0e04e514d7"
+    }
+  },
+  "validation": {
+    "before": {
+      "medianMs": 11.646699999999782,
+      "p95Ms": 23.917599999999766
+    },
+    "after": {
+      "medianMs": 0.49299999999993815,
+      "p95Ms": 0.8270999999999731
+    }
+  },
+  "polling": {
+    "before": {
+      "active": 0,
+      "maxActive": 2,
+      "starts": [
+        1789422908657,
+        1789422911164
+      ]
+    },
+    "after": {
+      "active": 0,
+      "maxActive": 1,
+      "starts": [
+        1789422985578,
+        1789422992193
+      ]
+    }
+  },
+  "domainChecks": {
+    "timestamp": "2026-09-14T22:02:26.211Z",
+    "audioCases": 20,
+    "providerCases": 10,
+    "literalParserCases": 4,
+    "responseErrorCases": 7,
+    "paidCalls": 0
+  },
+  "studyChecks": {
+    "revealed": "Antwoord 1",
+    "next": "Frage 2",
+    "nextAnswerAbsent": true,
+    "reverseQuestion": "Antwoord 1",
+    "wrongRejected": "Does not match. Try again or reveal the saved answer.",
+    "correctRetry": "Correct on retry. Kept for another practice round.",
+    "nextReversed": "Antwoord 2",
+    "controllerReveal": "answer",
+    "controllerNext": "question",
+    "controllerNextTerm": "Antwoord 3",
+    "savedWord": "Geändert verified",
+    "reloadedWord": "Geändert verified"
+  },
+  "saveRace": {
+    "before": {
+      "saved": "Geändert baseline",
+      "afterDelayedRefresh": "Frage 1",
+      "statusStep": 2,
+      "refreshStep": 2
+    },
+    "after": {
+      "saved": "Geändert verified",
+      "afterDelayedRefresh": "Geändert verified",
+      "statusStep": 2,
+      "refreshStep": 2
+    }
+  }
+}

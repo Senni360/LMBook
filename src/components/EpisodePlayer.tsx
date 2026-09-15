@@ -230,7 +230,6 @@ export function EpisodePlayer({
     try {
       storage?.setItem(SPEED_KEY, String(speed));
     } catch {
-      // The current speed still works if this device cannot save preferences.
     }
   }, [speed, storage]);
 

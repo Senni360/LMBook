@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { MotionList, useSaveMotion } from "./Motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type FlashCard,
   type FlashDeck,
@@ -283,6 +283,10 @@ function WordBox({
   onPending: Pending;
   hidden: boolean;
 }) {
+  const evidenceIssues = useMemo(
+    () => cardEvidenceIssues(card, deck),
+    [card, deck.sources, deck.mode],
+  );
   const edit = useAutosave(
     `${notebookId}:flashcards:${deck.id}:word:${card.id}`,
     {
@@ -335,7 +339,7 @@ function WordBox({
         </span>
         <SaveState edit={edit} />
       </div>
-      {cardEvidenceIssues(card, deck).map((issue) => (
+      {evidenceIssues.map((issue) => (
         <p className="flash-warning" key={issue}>
           {issue}
         </p>

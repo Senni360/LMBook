@@ -1,4 +1,3 @@
-/* Page, margin, bookmark: feedback → related surface → settled content. */
 :root {
   --motion-quick: 120ms;
   --motion-change: 220ms;
@@ -10,7 +9,6 @@
   overflow-x: clip;
 }
 
-/* Controls respond to intent. Content containers never lift on hover. */
 :where(
   .button,
   .icon-button,
@@ -82,7 +80,6 @@ input:focus::placeholder,
 textarea:focus::placeholder {
   opacity: 0.65;
 }
-/* Focus rings remain immediate: motion must not delay keyboard orientation. */
 :where(input, textarea, select):focus-visible {
   border-color: #b48627;
 }
@@ -112,7 +109,6 @@ textarea:focus::placeholder {
   text-underline-offset: 4px;
 }
 
-/* One real marker connects the old destination to the new one. */
 .motion-navigation {
   position: relative;
 }
@@ -149,7 +145,6 @@ textarea:focus::placeholder {
   }
 }
 
-/* Native disclosures keep their keyboard and accessibility behavior. */
 details > summary {
   list-style-position: inside;
 }
@@ -182,7 +177,6 @@ details[open] > summary {
   transition: transform var(--motion-change) var(--motion-ease);
 }
 
-/* The focused sheet opens before its contents settle. Native dialog owns focus. */
 .create-dialog {
   opacity: 0;
   transform: translateY(8px) scale(0.98);
@@ -228,7 +222,6 @@ details[open] > summary {
   }
 }
 
-/* A citation is located, then marked; the source words themselves never vanish. */
 .source-highlight,
 .source-snapshot-highlight {
   box-decoration-break: clone;
@@ -259,7 +252,6 @@ details[open] > summary {
   }
 }
 
-/* Acknowledgments use their real result, never a simulated progress value. */
 .toast,
 .app-error,
 .download-status {
@@ -387,7 +379,6 @@ progress::-moz-progress-bar {
   transition: width var(--motion-change) var(--motion-ease);
 }
 
-/* New responses open as a paragraph; prior conversation stays still. */
 .message-latest {
   animation: message-arrive var(--motion-change) var(--motion-ease);
 }
@@ -459,7 +450,6 @@ progress::-moz-progress-bar {
   transition: transform var(--motion-travel) var(--motion-ease);
 }
 
-/* Transport activity is shown only for real playback, and sleeps offscreen. */
 .playback-mark {
   display: inline-flex;
   align-items: center;
@@ -529,7 +519,6 @@ progress::-moz-progress-bar {
   font-size: 13px;
 }
 
-/* Local and live OS preferences cancel movement, including pseudo-elements. */
 :root[data-document-hidden="true"] *,
 :root[data-document-hidden="true"] *::before,
 :root[data-document-hidden="true"] *::after {

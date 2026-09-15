@@ -96,12 +96,6 @@ import {
 } from "./components/Motion";
 import "./motion.css";
 
-/* THESIS: a course becomes a conversation through visible evidence and goals.
-OWN-WORLD: forest navigation, mineral paper, ochre listening controls, serif titles and quiet ledgers.
-STORY: collect material, establish coverage, shape and listen to a precise conversation.
-FIRST VIEWPORT: left notebook rail; wide title and three-step navigation; source ledger and next action.
-FORM: reading-room workbench, chosen under user's explicit autonomous-build instruction. */
-
 type Summary = {
   id: string;
   title: string;
@@ -127,10 +121,16 @@ type OpenSource = (
   startSeconds?: number,
   range?: { startOffset: number; endOffset: number },
 ) => void;
-async function api<T>(url: string, method = "GET", body?: unknown): Promise<T> {
+async function api<T>(
+  url: string,
+  method = "GET",
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   const form = body instanceof FormData;
   const response = await fetch("/api" + url, {
     method,
+    signal,
     headers: {
       ...(method !== "GET" ? { "x-sennibook": "1" } : {}),
       ...(!form && body !== undefined
@@ -295,20 +295,34 @@ function App() {
   const [notice, setNotice] = useState("");
   const selected = useRef<string | null>(null);
   const selectionRequest = useRef(0);
+  const savedRevision = useRef(0);
   const dialog = useRef<HTMLDialogElement>(null);
   const newTitleInput = useRef<HTMLInputElement>(null);
-  const loadList = async () => {
-    const list = await api<Summary[]>("/notebooks");
-    setNotebooks(list);
+  const loadList = async (signal?: AbortSignal) => {
+    const list = await api<Summary[]>("/notebooks", "GET", undefined, signal);
+    if (!signal?.aborted) setNotebooks(list);
     return list;
   };
-  const refresh = async () => {
+  const refresh = async (signal?: AbortSignal) => {
     if (selected.current) {
       const current = selected.current;
-      const book = await api<Notebook>("/notebooks/" + current);
-      if (selected.current === current) setN(book);
+      const request = selectionRequest.current;
+      const revision = savedRevision.current;
+      const book = await api<Notebook>(
+        "/notebooks/" + current,
+        "GET",
+        undefined,
+        signal,
+      );
+      if (
+        !signal?.aborted &&
+        selected.current === current &&
+        selectionRequest.current === request &&
+        savedRevision.current === revision
+      )
+        setN(book);
     }
-    await loadList();
+    if (!signal?.aborted) await loadList(signal);
   };
   const choose = async (id: string, fallbackId = n?.id || null) => {
     const request = ++selectionRequest.current;
@@ -317,9 +331,7 @@ function App() {
     selected.current = id;
     try {
       localStorage.setItem("sennibook:last", id);
-    } catch {
-      /* Remembering the last notebook is optional. */
-    }
+    } catch {}
     setError("");
     try {
       const book = await api<Notebook>("/notebooks/" + id);
@@ -344,9 +356,7 @@ function App() {
         let last: string | null = null;
         try {
           last = localStorage.getItem("sennibook:last");
-        } catch {
-          /* Open the first notebook when preferences are unavailable. */
-        }
+        } catch {}
         if (list.length)
           await choose(list.find((b) => b.id === last)?.id || list[0].id);
       } catch (e) {
@@ -365,23 +375,58 @@ function App() {
   const pendingSourceProcessing = !!n?.sources.some((source) =>
     ["recognizing", "transcribing"].includes(source.processing?.status || ""),
   );
+  const pollInputs = useRef({ status, pendingSourceProcessing });
+  useLayoutEffect(() => {
+    pollInputs.current = { status, pendingSourceProcessing };
+  }, [status, pendingSourceProcessing]);
   useEffect(() => {
-    const timer = setInterval(() => {
-      void api<Capabilities>("/status")
-        .then((st) => {
-          setStatus(st);
-          if (
-            selected.current &&
-            (st.activeJobs[selected.current] ||
-              status?.activeJobs[selected.current] ||
-              pendingSourceProcessing)
-          )
-            void refresh().catch((e) => setError(e.message));
-        })
-        .catch(() => {});
-    }, 2500);
-    return () => clearInterval(timer);
-  }, [status?.activeJobs, n?.id, pendingSourceProcessing]);
+    const controller = new AbortController();
+    const { signal } = controller;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        const st = await api<Capabilities>("/status", "GET", undefined, signal);
+        if (signal.aborted) return;
+        const id = selected.current;
+        const request = selectionRequest.current;
+        const previous = pollInputs.current;
+        const shouldRefresh =
+          id &&
+          (st.activeJobs[id] ||
+            previous.status?.activeJobs[id] ||
+            previous.pendingSourceProcessing);
+        pollInputs.current = { ...previous, status: st };
+        setStatus((current) =>
+          JSON.stringify(current) === JSON.stringify(st) ? current : st,
+        );
+        if (shouldRefresh) {
+          try {
+            await refresh(signal);
+          } catch (error) {
+            if (
+              !signal.aborted &&
+              selected.current === id &&
+              selectionRequest.current === request
+            )
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Could not refresh notebook.",
+              );
+          }
+        }
+      } catch {
+        // A missed background status check keeps the last known connection state.
+      } finally {
+        if (!signal.aborted) timer = setTimeout(() => void poll(), 2500);
+      }
+    };
+    timer = setTimeout(() => void poll(), 2500);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, []);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4000);
@@ -411,7 +456,10 @@ function App() {
     const book = await api<Notebook>(url, method, body);
     // A multi-file import can continue after the user switches notebooks.
     // Only the response's actual notebook may update the visible workspace.
-    if (book.id && book.id === selected.current) setN(book);
+    if (book.id && book.id === selected.current) {
+      savedRevision.current++;
+      setN(book);
+    }
     try {
       await loadList();
     } catch {
@@ -449,9 +497,7 @@ function App() {
     ]);
     try {
       localStorage.setItem("sennibook:last", book.id);
-    } catch {
-      /* Remembering the selected notebook is optional. */
-    }
+    } catch {}
     setTab("sources");
     try {
       await loadList();
@@ -705,9 +751,7 @@ function App() {
                   setN(null);
                   try {
                     localStorage.removeItem("sennibook:last");
-                  } catch {
-                    /* The library remains usable without this preference. */
-                  }
+                  } catch {}
                   setTab("sources");
                 }
                 try {
@@ -1034,16 +1078,19 @@ function Sources({
   const reader = useRef<HTMLDivElement>(null);
   const highlight = useRef<HTMLElement>(null);
   useCitationMotion(highlight, `${reading?.sourceId}:${reading?.nonce}`);
-  const location =
-    selected && reading?.range
-      ? locateSourceRange(
-          selected,
-          reading.range.startOffset,
-          reading.range.endOffset,
-        )
-      : selected && reading?.quote
-        ? locateEvidence(selected, reading.quote)
-        : undefined;
+  const location = useMemo(
+    () =>
+      selected && reading?.range
+        ? locateSourceRange(
+            selected,
+            reading.range.startOffset,
+            reading.range.endOffset,
+          )
+        : selected && reading?.quote
+          ? locateEvidence(selected, reading.quote)
+          : undefined,
+    [selected, reading],
+  );
   useEffect(() => {
     if (request) setReading(request);
   }, [request]);
@@ -1479,11 +1526,21 @@ function EvidenceList({
   n: Notebook;
   onOpenSource?: OpenSource;
 }) {
+  const passages = useMemo(
+    () =>
+      evidence.map((item) => {
+        const source = n.sources.find((source) => source.id === item.sourceId);
+        return {
+          evidence: item,
+          source,
+          location: source ? locateEvidence(source, item.quote) : undefined,
+        };
+      }),
+    [evidence, n.sources],
+  );
   return (
     <div className="evidence-list">
-      {evidence.map((e, i) => {
-        const source = n.sources.find((s) => s.id === e.sourceId);
-        const location = source ? locateEvidence(source, e.quote) : undefined;
+      {passages.map(({ evidence: e, source, location }, i) => {
         return (
           <blockquote key={i}>
             <p>“{e.quote}”</p>
@@ -1927,9 +1984,7 @@ function Studio({
         `sennibook:studio:${n.id}`,
         JSON.stringify({ episodeId: e.id, chapterId: c?.id || "" }),
       );
-    } catch {
-      // Remembering the selected chapter is optional; playback remains usable.
-    }
+    } catch {}
   }, [n.id, e?.id, c?.id]);
   const savedScript = useMemo(
     () => c?.turns.map((t) => `${t.speaker}: ${t.text}`).join("\n\n") || "",
@@ -1942,14 +1997,26 @@ function Studio({
   const { text: script, setText: setScript } = scriptDraft;
   const episodeSources = e?.sources || n.sources;
   const episodeObjectives = e?.objectives || n.objectives;
-  const totalWords =
-    e?.chapters.reduce(
-      (sum, ch) => sum + words(ch.turns.map((t) => t.text).join(" ")),
-      0,
-    ) || 0;
+  const chapterWords = useMemo(
+    () =>
+      new Map(
+        e?.chapters.map((chapter) => [
+          chapter.id,
+          words(chapter.turns.map((turn) => turn.text).join(" ")),
+        ]),
+      ),
+    [e?.chapters],
+  );
+  const totalWords = [...chapterWords.values()].reduce(
+    (sum, count) => sum + count,
+    0,
+  );
   const hasScript = !!e?.chapters.every((ch) => ch.turns.length);
   const fullAudio = !!e?.chapters.every((ch) => ch.audioFile);
-  const qualityWarnings = e ? evaluateEpisodeQuality(e) : [];
+  const qualityWarnings = useMemo(
+    () => (e ? evaluateEpisodeQuality(e) : []),
+    [e],
+  );
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setDraft({ ...draft, [key]: value });
   const ttsCost = estimateSpeech(
@@ -1961,9 +2028,14 @@ function Studio({
     (e?.settings || draft).ttsProvider === "cartesia"
       ? !!status?.cartesia
       : !!status?.googleProject;
-  const episodeCredits = cartesiaCredits(
-    e?.chapters.flatMap((ch) => ch.turns.map((turn) => turn.text)).join("") ||
-      "",
+  const episodeCredits = useMemo(
+    () =>
+      cartesiaCredits(
+        e?.chapters
+          .flatMap((ch) => ch.turns.map((turn) => turn.text))
+          .join("") || "",
+      ),
+    [e?.chapters],
   );
   const speechEstimate = episodeCartesia
     ? `~${episodeCredits.toLocaleString()} credits`
@@ -2300,7 +2372,7 @@ function Studio({
                     <small>
                       {ch.objectiveIds.length} learning goals ·{" "}
                       {ch.turns.length
-                        ? `${words(ch.turns.map((t) => t.text).join(" ")).toLocaleString()} words`
+                        ? `${chapterWords.get(ch.id)?.toLocaleString()} words`
                         : "Outline ready"}
                     </small>
                   </span>

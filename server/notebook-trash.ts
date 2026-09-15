@@ -110,11 +110,7 @@ async function existingRegularFile(filename: string) {
   }
 }
 
-async function removeFileIfUnshared(filename: string, shared: boolean) {
-  if (shared) {
-    await existingRegularFile(filename);
-    return;
-  }
+async function removeRegularFile(filename: string) {
   if (await existingRegularFile(filename)) await rm(filename, { force: true });
 }
 
@@ -306,12 +302,12 @@ export async function purgeTrashNotebook(id: string) {
     }
     for (const sha256 of targetRefs.originals)
       if (!liveRefs.originals.has(sha256))
-        await removeFileIfUnshared(originalPath(originalsDir, sha256), false);
+        await removeRegularFile(originalPath(originalsDir, sha256));
     for (const filename of targetRefs.audio)
       if (!liveRefs.audio.has(filename)) {
-        await removeFileIfUnshared(filename, false);
+        await removeRegularFile(filename);
         for (const temporary of validatedAudioTemps.get(filename) || [])
-          await removeFileIfUnshared(temporary, false);
+          await removeRegularFile(temporary);
       }
     for (const chapterId of targetRefs.caches)
       if (!liveRefs.caches.has(chapterId)) {

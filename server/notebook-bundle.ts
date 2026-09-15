@@ -1152,14 +1152,8 @@ function remapNotebook(
     chapters: episode.chapters.map((chapter) => {
       const mapped = { ...chapter, id: chapterMap.get(chapter.id)! };
       const final = audioByChapterAndKind.get(`${chapter.id}:final`);
-      const preview = audioByChapterAndKind.get(`${chapter.id}:preview`);
       if (chapter.audioFile) mapped.audioFile = `${mapped.id}.wav`;
       else delete mapped.audioFile;
-      if (preview) {
-        // The episode-level previewFile is remapped below; chapter metadata only
-        // carries the chapter ID through the bundle entry.
-        void preview;
-      }
       if (chapter.audioFile && !final)
         throw new Error(
           `Chapter ${chapter.id} references audio absent from the bundle.`,

@@ -64,7 +64,6 @@ export async function recognizeDocument(
       try {
         await worker.terminate();
       } catch {
-        // The original worker outcome is more useful than a termination error.
       }
       if ("error" in outcome) reject(outcome.error);
       else resolve(outcome.value);
