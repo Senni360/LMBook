@@ -22,6 +22,6 @@ Optional local transcription uses `python3` on macOS; override with `LMBOOK_PYTH
 
 On a Mac: `npm ci`, then `npm run desktop:dist:mac -- --arm64 --publish never` (Apple Silicon) or `--x64` (Intel). CI uses native `macos-15` and `macos-15-intel` runners. Each architecture runs the existing application suite, builds DMG/ZIP, and launches the packaged executable for the existing sandbox, private-backend, persistence and restart check. PR builds upload downloadable artifacts without publishing a release; master publishes only after all three platforms and the combined artifact verification pass.
 
-Implementation is being checked from Windows and on native CI. First-launch Gatekeeper approval, real user hardware, Mac provider logins and local transcription have not yet been evaluated. Native CI results will be recorded in WORKLOG.md rather than inferred from a successful Windows build.
+The implementation is checked from Windows and on native CI; [PR #8](https://github.com/Senni360/LMBook/pull/8) records the delivery checks. First-launch Gatekeeper approval, real user hardware, Mac provider logins and local transcription have not yet been evaluated. Native CI results are recorded on the PR, separately from the Windows build.
 
 Sources: [electron-builder v26 macOS configuration](https://www.electron.build/v26/docs/mac/), [GitHub runner architectures](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [Electron application menus](https://www.electronjs.org/docs/latest/api/menu).
