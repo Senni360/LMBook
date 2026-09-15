@@ -1,5 +1,13 @@
 # LMBook roadmap
 
+- Version 0.3.7 refines Ink's shared hover, editing focus and heading-arrival rules, fits desktop chat to the window, and removes repetitive interface copy. Research, visual revisions, package checks and long-list performance limits are in [the interaction evaluation](docs/ui/ink-interactions.md). Local build complete; owner review remains next.
+
+- Version 0.3.6 adopts the owner's Ink direction: individual pen contours across controls, restrained imperfections and underlines replacing bookmarks. See [the refinement and evaluation](docs/ui/ink.md).
+
+- Version 0.3.5 completes the requested code cleanup and measured optimization sweep. It reduces repeated citation/episode work and audio copies, and fixes overlapping/stale refreshes. See [coverage, measurements and limits](docs/audits/app-cleanup.md).
+
+- Version 0.3.4 adds the owner's requested application-wide purposeful motion sweep. Navigation, readers, evidence, editable lists, practice, playback, disclosures, dialogs and recovery use one motion system. See [coverage and verification](docs/ui/motion.md).
+
 - LMBook is the owner's selected name from 2026-09-14. Version 0.3.3 rebrands the app and Windows downloads while preserving existing profiles and backup compatibility. See [upgrade behavior](docs/rebranding.md) and [release notes](docs/releases/0.3.3.md).
 
 The owner authorized sustained, broad development on 2026-09-14, with Electron as the desktop delivery format. The existing journey is sources → learning goals → episode. The learning-experience workstream is investigating a purposeful questioning step before generation; its shape remains open to evidence and critical discussion. Deliver working vertical slices; check the evidence for completion before moving on. Follow [AGENTS.md](AGENTS.md) for the long-term quality and collaboration agreement.

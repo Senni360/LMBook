@@ -30,10 +30,13 @@ function writeAtomic(target: string, value: Buffer | string) {
   try {
     try {
       renameSync(temporary, target);
-    } catch (error: any) {
-      // Windows cannot replace an existing file with renameSync. Remove the
-      // old value only after the complete temporary value has been written.
-      if (error?.code !== "EEXIST" && error?.code !== "EPERM") throw error;
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !("code" in error) ||
+        (error.code !== "EEXIST" && error.code !== "EPERM")
+      )
+        throw error;
       rmSync(target, { force: true });
       renameSync(temporary, target);
     }
@@ -166,7 +169,6 @@ export function readCachedSegment(cacheDir: string, index: number) {
     readWav(buffer);
     return buffer;
   } catch {
-    // A partial write must never poison every future retry.
     rmSync(filename, { force: true });
     return undefined;
   }

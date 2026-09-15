@@ -94,7 +94,6 @@ async function requestQuit() {
       });
       activeJobs = Object.keys((await response.json()).activeJobs || {}).length;
     } catch {
-      /* Keep the last known state if the service is temporarily unavailable. */
     }
   }
   if (activeJobs) {
@@ -253,6 +252,10 @@ async function setup() {
     minWidth: 700,
     minHeight: 560,
     autoHideMenuBar: true,
+    // Keep native Windows caption buttons, but paint them into the app surface
+    // so the dark system title bar no longer clashes with the light canvas.
+    titleBarStyle: "hidden",
+    titleBarOverlay: { color: "#00000000", symbolColor: "#223b34", height: 44 },
     backgroundColor: "#f5f6f2",
     show: false,
     icon: path.join(root, "electron", "icon.png"),
@@ -399,7 +402,6 @@ async function setup() {
         blocker = undefined;
       }
     } catch {
-      /* A transient status failure should not stop generation. */
     } finally {
       pollingActivity = false;
     }

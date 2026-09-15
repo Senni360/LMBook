@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { InkInput, InkTextarea, InkButton } from "./InkControl";
+import { Check } from "lucide-react";
+import { MotionList, useSaveMotion } from "./Motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type FlashCard,
   type FlashDeck,
@@ -165,36 +168,42 @@ export function FlashWordList({
           {deck.mode === "vocabulary" ? "pairs" : "concepts"}
         </span>
       </div>
-      <details className="flash-language-editor">
-        <summary>
-          {deck.frontLabel} ↔ {deck.backLabel} · Edit{" "}
-          {deck.mode === "concepts" ? "side" : "language"} labels
-        </summary>
-        <div className="flash-fields">
-          {(["frontLabel", "backLabel"] as const).map((field, i) => (
-            <label key={field}>
-              {deck.mode === "concepts" ? "Side" : "Language"} {i + 1}
-              <input
-                maxLength={60}
-                disabled={disabled}
-                value={labels.value[field]}
-                onChange={(e) => labels.set(field, e.target.value)}
-              />
-            </label>
-          ))}
-        </div>
-        <SaveState edit={labels} />
-      </details>
-      <label>
-        {deck.mode === "concepts" ? "Find a concept" : "Find a word"}
-        <input
-          type="search"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="Search either side or chapter"
-        />
-      </label>
-      <ol className="flash-word-boxes">
+      <div className="flash-word-tools">
+        <details className="flash-language-editor">
+          <summary>
+            {deck.frontLabel} ↔ {deck.backLabel} · Edit{" "}
+            {deck.mode === "concepts" ? "side" : "language"} labels
+          </summary>
+          <div className="flash-fields">
+            {(["frontLabel", "backLabel"] as const).map((field, i) => (
+              <label key={field}>
+                {deck.mode === "concepts" ? "Side" : "Language"} {i + 1}
+                <InkInput
+                  maxLength={60}
+                  disabled={disabled}
+                  value={labels.value[field]}
+                  onChange={(e) => labels.set(field, e.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+          <SaveState edit={labels} />
+        </details>
+        <label>
+          {deck.mode === "concepts" ? "Find a concept" : "Find a word"}
+          <InkInput
+            type="search"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Search either side or chapter"
+          />
+        </label>
+      </div>
+      <MotionList
+        as="ol"
+        itemsKey={`${deck.cards.map((card) => card.id).join(":")}:${filter}`}
+        className="flash-word-boxes"
+      >
         {deck.cards.map((card, index) => (
           <WordBox
             key={card.id}
@@ -213,33 +222,45 @@ export function FlashWordList({
             }
           />
         ))}
-      </ol>
+      </MotionList>
       {!!filter &&
         !deck.cards.some((c) =>
           `${c.front} ${c.back} ${c.group}`
             .toLocaleLowerCase()
             .includes(filter.toLocaleLowerCase()),
         ) && <p>No entries match this search.</p>}
-      <button className="button quiet" onClick={onReview}>
+      <InkButton className="button quiet" onClick={onReview}>
         Add or remove entries · review sources
-      </button>
+      </InkButton>
     </div>
   );
 }
 
 function SaveState({ edit }: { edit: ReturnType<typeof useAutosave> }) {
+  const state = useRef<HTMLSpanElement>(null);
+  useSaveMotion(state, `${edit.status}:${edit.error}`);
   return (
     <div className="flash-word-save">
-      <span role="status">{edit.status}</span>
+      <span
+        role="status"
+        className="save-stamp"
+        ref={state}
+        data-saved={edit.status === "Saved" && !edit.error}
+      >
+        {edit.status === "Saved" && !edit.error && (
+          <Check size={13} aria-hidden="true" />
+        )}
+        <span key={edit.status}>{edit.status}</span>
+      </span>
       {edit.error && (
         <div role="alert">
           <p>{edit.error}</p>
-          <button className="button quiet" onClick={edit.retry}>
+          <InkButton className="button quiet" onClick={edit.retry}>
             Retry save
-          </button>
-          <button className="button quiet" onClick={edit.discard}>
+          </InkButton>
+          <InkButton className="button quiet" onClick={edit.discard}>
             Use saved version
-          </button>
+          </InkButton>
         </div>
       )}
     </div>
@@ -265,6 +286,10 @@ function WordBox({
   onPending: Pending;
   hidden: boolean;
 }) {
+  const evidenceIssues = useMemo(
+    () => cardEvidenceIssues(card, deck),
+    [card, deck.sources, deck.mode],
+  );
   const edit = useAutosave(
     `${notebookId}:flashcards:${deck.id}:word:${card.id}`,
     {
@@ -287,7 +312,7 @@ function WordBox({
       <div className="flash-fields">
         <label>
           {deck.frontLabel}
-          <textarea
+          <InkTextarea
             aria-label={`Entry ${index + 1} ${deck.frontLabel}`}
             rows={2}
             maxLength={4000}
@@ -298,7 +323,7 @@ function WordBox({
         </label>
         <label>
           {deck.backLabel}
-          <textarea
+          <InkTextarea
             aria-label={`Entry ${index + 1} ${deck.backLabel}`}
             rows={2}
             maxLength={4000}
@@ -317,7 +342,7 @@ function WordBox({
         </span>
         <SaveState edit={edit} />
       </div>
-      {cardEvidenceIssues(card, deck).map((issue) => (
+      {evidenceIssues.map((issue) => (
         <p className="flash-warning" key={issue}>
           {issue}
         </p>
@@ -326,7 +351,7 @@ function WordBox({
         <summary>Example, chapter & source</summary>
         <label>
           Chapter or group
-          <input
+          <InkInput
             aria-label={`Entry ${index + 1} chapter`}
             maxLength={200}
             value={edit.value.group}
@@ -336,7 +361,7 @@ function WordBox({
         </label>
         <label>
           Example
-          <textarea
+          <InkTextarea
             aria-label={`Entry ${index + 1} example`}
             rows={2}
             maxLength={4000}

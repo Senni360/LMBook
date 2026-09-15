@@ -205,7 +205,6 @@ function initialSession(
         base.observedRaw = null;
       }
     } catch {
-      // Keep the restore error below when storage cleanup is unavailable.
     }
     return {
       ...base,

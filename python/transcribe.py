@@ -66,8 +66,6 @@ def model_config(model: str) -> dict[str, str]:
 
 
 def model_dir(models_root: Path, model: str) -> Path:
-    # ``model`` has already been checked against MODELS, so this path cannot
-    # escape the application-owned model directory.
     model_config(model)
     return models_root / model
 
@@ -378,7 +376,6 @@ def transcribe(model: str, models_root: Path, audio_path: Path, language: str, d
     if not is_model_ready(models_root, model, verify_hashes=True):
         raise WorkerError(f"The {model} model is not prepared. Run transcription setup first.")
 
-    # Belt-and-braces enforcement in the worker as well as in the Node host.
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     os.environ["HF_DATASETS_OFFLINE"] = "1"

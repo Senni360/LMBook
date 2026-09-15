@@ -1,3 +1,4 @@
+import { InkInput, InkButton } from "./InkControl";
 import { useState } from "react";
 import { Check, LoaderCircle, Unplug, ExternalLink } from "lucide-react";
 import "./cartesia.css";
@@ -54,7 +55,7 @@ export function CartesiaSetup({
       >
         <label className="field" htmlFor="cartesia-api-key">
           <span>{configured ? "Replace API key" : "Cartesia API key"}</span>
-          <input
+          <InkInput
             id="cartesia-api-key"
             type="password"
             value={key}
@@ -76,7 +77,7 @@ export function CartesiaSetup({
           never sent back to the page.
         </p>
         <div className="cartesia-actions">
-          <button
+          <InkButton
             className="button primary"
             type="submit"
             disabled={disabled || pending || !key.trim()}
@@ -93,10 +94,10 @@ export function CartesiaSetup({
                   ? "Replace key & connect"
                   : "Connect Cartesia"}
             </span>
-          </button>
+          </InkButton>
           {configured && (
             <>
-              <button
+              <InkButton
                 className="button"
                 type="button"
                 disabled={disabled || pending}
@@ -110,8 +111,8 @@ export function CartesiaSetup({
                 }
               >
                 Check connection
-              </button>
-              <button
+              </InkButton>
+              <InkButton
                 className="button quiet"
                 type="button"
                 disabled={disabled || pending}
@@ -126,7 +127,7 @@ export function CartesiaSetup({
               >
                 <Unplug size={16} />
                 <span>Disconnect</span>
-              </button>
+              </InkButton>
             </>
           )}
         </div>

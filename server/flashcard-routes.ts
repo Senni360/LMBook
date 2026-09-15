@@ -51,7 +51,6 @@ function findDeck(req: Request, decks: FlashDeck[]) {
   return deck;
 }
 export function registerFlashcardRoutes(app: Express) {
-  // A process restart never leaves a deck claiming work is still running.
   for (const notebook of listNotebooks()) {
     let changed = false;
     for (const deck of notebook.flashcards || [])
@@ -147,15 +146,17 @@ export function registerFlashcardRoutes(app: Express) {
         .parse(req.body);
       if (deck.status !== "ready")
         throw new Error("Wait for the word list to finish generating.");
-      const target =
-        edit.action === "labels"
-          ? deck
-          : deck.cards.find((c) => c.id === edit.cardId);
-      if (!target)
+      const card =
+        edit.action === "word"
+          ? deck.cards.find((card) => card.id === edit.cardId)
+          : undefined;
+      if (edit.action === "word" && !card)
         throw Object.assign(
           new Error("This word was removed. Copy your edit before reloading."),
           { status: 409 },
         );
+      const target = card || deck;
+      const savedFields = new Map<string, unknown>(Object.entries(target));
       if (
         !Object.entries(edit.after).every(
           ([key, value]) =>
@@ -166,15 +167,14 @@ export function registerFlashcardRoutes(app: Express) {
       // A retry after a lost response is successful if its exact edit is saved.
       if (
         Object.entries(edit.after).every(
-          ([key, value]) =>
-            (target as unknown as Record<string, unknown>)[key] === value,
+          ([key, value]) => savedFields.get(key) === value,
         )
       ) {
         res.json(n);
         return;
       }
       for (const [field, value] of Object.entries(edit.before)) {
-        if ((target as unknown as Record<string, unknown>)[field] !== value)
+        if (savedFields.get(field) !== value)
           throw Object.assign(
             new Error(
               "This entry changed elsewhere. Your draft is kept; copy it before reloading the list.",
@@ -184,12 +184,12 @@ export function registerFlashcardRoutes(app: Express) {
       }
       Object.assign(target, edit.after);
       if (edit.action === "word") {
-        // Old manual-transcription attribution describes the old wording only.
         if (
-          edit.before.front !== edit.after.front ||
-          edit.before.back !== edit.after.back
+          card &&
+          (edit.before.front !== edit.after.front ||
+            edit.before.back !== edit.after.back)
         )
-          delete (target as (typeof deck.cards)[number]).transcription;
+          delete card.transcription;
         deck.reviewedIds = deck.reviewedIds.filter((id) => id !== edit.cardId);
         deck.coverageConfirmed = false;
       }

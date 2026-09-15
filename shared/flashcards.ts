@@ -139,8 +139,9 @@ export function flashDeckReport(deck: FlashDeck) {
   const invalid = deck.cards
     .filter((card) => cardEvidenceIssues(card, deck).length > 0)
     .map((c) => c.id);
+  const invalidIds = new Set(invalid);
   const reviewed = new Set(
-    deck.reviewedIds.filter((id) => ids.has(id) && !invalid.includes(id)),
+    deck.reviewedIds.filter((id) => ids.has(id) && !invalidIds.has(id)),
   );
   const seen = new Map<string, number>();
   for (const card of deck.cards) {
@@ -180,12 +181,13 @@ export function flashDeckReport(deck: FlashDeck) {
 }
 
 export function validateFlashDeck(deck: FlashDeck) {
+  const cardIds = new Set(deck.cards.map((card) => card.id));
   if (
     new Set(deck.sources.map((s) => s.id)).size !== deck.sources.length ||
-    new Set(deck.cards.map((c) => c.id)).size !== deck.cards.length
+    cardIds.size !== deck.cards.length
   )
     throw new Error("The flashcard deck contains duplicate identifiers.");
-  if (deck.reviewedIds.some((id) => !deck.cards.some((c) => c.id === id)))
+  if (deck.reviewedIds.some((id) => !cardIds.has(id)))
     throw new Error("The flashcard review refers to a missing entry.");
   if (new Set(deck.reviewedIds).size !== deck.reviewedIds.length)
     throw new Error("The flashcard review contains duplicate entries.");

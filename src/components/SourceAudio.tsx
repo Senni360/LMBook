@@ -1,3 +1,6 @@
+import { InkTextarea, InkSelect, InkButton } from "./InkControl";
+import { responseError } from "../response-error";
+import { canAnimate } from "./Motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleAlert,
@@ -47,18 +50,6 @@ const modelLabels: Record<TranscriptionModel, string> = {
   "large-v3": "large-v3 · detailed transcription",
   "large-v3-turbo": "large-v3-turbo · faster transcription",
 };
-
-async function responseError(response: Response, fallback: string) {
-  let message = fallback;
-  try {
-    const body = (await response.json()) as { error?: unknown };
-    if (typeof body.error === "string" && body.error.trim())
-      message = body.error;
-  } catch {
-    // Keep the useful fallback for an empty or non-JSON error response.
-  }
-  return message;
-}
 
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes < 1) return "Unknown size";
@@ -269,9 +260,7 @@ export function SourceAudio({
       if (!target) return;
       target.scrollIntoView({
         block: "center",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
+        behavior: canAnimate() ? "smooth" : "instant",
       });
       target.focus({ preventScroll: true });
     });
@@ -454,9 +443,9 @@ export function SourceAudio({
             <CircleAlert size={15} aria-hidden="true" />
             {audioError || playbackNotice}
           </span>
-          <button type="button" onClick={retryPlayback}>
+          <InkButton type="button" onClick={retryPlayback}>
             Try Play again
-          </button>
+          </InkButton>
         </div>
       )}
 
@@ -493,9 +482,9 @@ export function SourceAudio({
               )}
             </div>
             <p className="source-audio-explainer">
-              LMBook uses faster-whisper on this computer. The result is
-              machine generated, so check names, numbers and technical terms
-              against the audio.
+              LMBook uses faster-whisper on this computer. The result is machine
+              generated, so check names, numbers and technical terms against the
+              audio.
             </p>
             {isTranscribing && (
               <p className="source-audio-progress" role="status">
@@ -547,7 +536,7 @@ export function SourceAudio({
                 <div className="source-audio-settings-grid">
                   <label>
                     <span>Model</span>
-                    <select
+                    <InkSelect
                       value={model}
                       onChange={(event) =>
                         setModel(event.target.value as TranscriptionModel)
@@ -561,11 +550,11 @@ export function SourceAudio({
                           </option>
                         ),
                       )}
-                    </select>
+                    </InkSelect>
                   </label>
                   <label>
                     <span>Language</span>
-                    <select
+                    <InkSelect
                       value={language}
                       onChange={(event) =>
                         setLanguage(
@@ -578,11 +567,11 @@ export function SourceAudio({
                       <option value="auto">Detect automatically</option>
                       <option value="en">English</option>
                       <option value="nl">Dutch</option>
-                    </select>
+                    </InkSelect>
                   </label>
                   <label>
                     <span>Device</span>
-                    <select
+                    <InkSelect
                       value={device}
                       onChange={(event) =>
                         setDevice(
@@ -594,14 +583,14 @@ export function SourceAudio({
                       <option value="auto">Choose automatically</option>
                       <option value="cuda">NVIDIA GPU (CUDA)</option>
                       <option value="cpu">CPU</option>
-                    </select>
+                    </InkSelect>
                   </label>
                 </div>
               )}
             </details>
 
             <div className="source-audio-actions">
-              <button
+              <InkButton
                 type="button"
                 className="button primary"
                 onClick={() => void transcribe()}
@@ -623,7 +612,7 @@ export function SourceAudio({
                     : processing?.status === "failed"
                       ? "Try transcription again"
                       : "Transcribe locally"}
-              </button>
+              </InkButton>
               {setupUnavailable && !statusError && (
                 <span className="source-audio-action-note">
                   {!status
@@ -693,7 +682,7 @@ export function SourceAudio({
                   }
                   tabIndex={index === referencedSegmentIndex ? -1 : undefined}
                 >
-                  <button
+                  <InkButton
                     type="button"
                     className="source-audio-time"
                     onClick={() => void seekTo(segment.start)}
@@ -701,7 +690,7 @@ export function SourceAudio({
                   >
                     <Play size={13} fill="currentColor" aria-hidden="true" />
                     {timestamp(segment.start)}
-                  </button>
+                  </InkButton>
                   <div className="source-audio-segment-body">
                     {index === referencedSegmentIndex && (
                       <span className="source-audio-reference-label">
@@ -722,7 +711,7 @@ export function SourceAudio({
                           <span className="source-audio-edit-label">
                             Correct this transcript segment
                           </span>
-                          <textarea
+                          <InkTextarea
                             id={`transcript-edit-${source.id}-${index}`}
                             value={editingSegment.text}
                             onChange={(event) =>
@@ -754,7 +743,7 @@ export function SourceAudio({
                           </p>
                         )}
                         <div className="source-audio-edit-actions">
-                          <button
+                          <InkButton
                             type="submit"
                             className="button primary"
                             disabled={correctionDisabled}
@@ -769,8 +758,8 @@ export function SourceAudio({
                             {savingSegment === index
                               ? "Saving…"
                               : "Save correction"}
-                          </button>
-                          <button
+                          </InkButton>
+                          <InkButton
                             type="button"
                             className="button quiet"
                             onClick={() => {
@@ -780,7 +769,7 @@ export function SourceAudio({
                             disabled={correctionDisabled}
                           >
                             Cancel
-                          </button>
+                          </InkButton>
                         </div>
                       </form>
                     ) : (
@@ -788,7 +777,7 @@ export function SourceAudio({
                         <div className="source-audio-segment-topline">
                           <p>{text}</p>
                           {!isSnapshot && (
-                            <button
+                            <InkButton
                               type="button"
                               className="source-audio-edit-button"
                               aria-label={`Correct transcript at ${timestamp(segment.start)}`}
@@ -797,7 +786,7 @@ export function SourceAudio({
                               disabled={correctionDisabled}
                             >
                               <Pencil size={14} aria-hidden="true" />
-                            </button>
+                            </InkButton>
                           )}
                         </div>
                         {isEdited && originalText && (

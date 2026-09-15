@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { InkInput, InkTextarea, InkSelect, InkButton } from "./InkControl";
+import { InkHeading, MotionNavigation } from "./Motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Download, Plus } from "lucide-react";
 import { uid, type Notebook } from "../../shared/model";
 import {
@@ -93,34 +95,32 @@ export function Flashcards({ n, disabled, change, run }: Props) {
           typeof id === "string" &&
           n.sources.some((s) => s.id === id && sourceReady(s)),
       );
-  } catch {
-    /* Recover through selection controls. */
-  }
-  const report = deck && flashDeckReport(deck);
+  } catch {}
+  const report = useMemo(() => deck && flashDeckReport(deck), [deck]);
   return (
     <div className="flashcards-workspace">
       <div className="section-heading">
         <div>
-          <h2>Flashcards</h2>
+          <InkHeading>Flashcards</InkHeading>
           <p>
             Create a list of words or concepts. Edit it here, then choose how to
             practise.
           </p>
         </div>
-        <button
+        <InkButton
           className="button"
           onClick={() => setCreating(!creating)}
           aria-expanded={creating}
         >
           <Plus size={17} /> {creating ? "Close creation" : "Create a list"}
-        </button>
+        </InkButton>
       </div>
       {creating && (
         <section className="flash-create" aria-label="Create flashcards">
           <div className="flash-create-main">
             <label>
               List title
-              <input
+              <InkInput
                 maxLength={180}
                 value={values.title}
                 onChange={(e) => update({ title: e.target.value })}
@@ -144,7 +144,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 ] as const
               ).map(([mode, label, description]) => (
                 <label key={mode} className="flash-mode-choice">
-                  <input
+                  <InkInput
                     type="radio"
                     name={`${n.id}-flashcard-mode`}
                     value={mode}
@@ -175,7 +175,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
             {values.mode === "vocabulary" && (
               <div className="flash-translation-option">
                 <label className="flash-check">
-                  <input
+                  <InkInput
                     type="checkbox"
                     checked={values.allowTranslations}
                     onChange={(e) =>
@@ -192,7 +192,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 {values.allowTranslations && (
                   <label>
                     Translate into (optional)
-                    <input
+                    <InkInput
                       maxLength={60}
                       value={values.targetLanguage}
                       placeholder="Use the language in your instructions"
@@ -212,7 +212,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
             )}
             <label>
               Your instructions
-              <textarea
+              <InkTextarea
                 rows={5}
                 aria-label="Your instructions"
                 maxLength={12000}
@@ -223,7 +223,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
             {values.mode === "vocabulary" && (
               <label>
                 Expected entries in the source (optional)
-                <input
+                <InkInput
                   type="number"
                   min={1}
                   max={2000}
@@ -242,7 +242,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
             {form.restored && (
               <p className="flash-help">Your unfinished setup was restored.</p>
             )}
-            <button
+            <InkButton
               className="button primary"
               disabled={
                 disabled ||
@@ -283,7 +283,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
               {values.mode === "concepts"
                 ? "Generate concept list"
                 : "Generate word list"}
-            </button>
+            </InkButton>
           </div>
           <div className="flash-source-picker">
             <h3>Use these sources</h3>
@@ -291,7 +291,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
               {selected.length} of {n.sources.length} selected
             </p>
             <div className="flash-actions">
-              <button
+              <InkButton
                 className="button quiet"
                 disabled={disabled || !n.sources.some(sourceReady)}
                 onClick={() =>
@@ -303,14 +303,14 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 }
               >
                 Select all
-              </button>
-              <button
+              </InkButton>
+              <InkButton
                 className="button quiet"
                 disabled={disabled || !selected.length}
                 onClick={() => update({ sources: "[]" })}
               >
                 Deselect all
-              </button>
+              </InkButton>
             </div>
             {!n.sources.length && (
               <p>
@@ -320,7 +320,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
             )}
             {n.sources.map((s) => (
               <label className="flash-source-choice" key={s.id}>
-                <input
+                <InkInput
                   type="checkbox"
                   checked={selected.includes(s.id)}
                   disabled={disabled || !sourceReady(s)}
@@ -351,7 +351,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
               </p>
               <label>
                 Word-list file
-                <input
+                <InkInput
                   type="file"
                   accept=".html,.htm,.tsv,.txt"
                   disabled={disabled}
@@ -388,7 +388,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
           <div className="flash-deck-toolbar">
             <label>
               Saved list
-              <select
+              <InkSelect
                 value={deck.id}
                 disabled={!!pending.size}
                 onChange={(e) => {
@@ -407,7 +407,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                         : ""}
                   </option>
                 ))}
-              </select>
+              </InkSelect>
             </label>
             {deck.status === "ready" &&
               !!deck.cards.length &&
@@ -429,7 +429,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
           ) : deck.status === "error" ? (
             <div role="alert">
               <p>{deck.error}</p>
-              <button
+              <InkButton
                 className="button"
                 onClick={() => {
                   update({
@@ -445,9 +445,9 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 }}
               >
                 Use this setup again
-              </button>
+              </InkButton>
               {deck.mode === "vocabulary" && (
-                <button
+                <InkButton
                   className="button quiet"
                   onClick={() => {
                     update({
@@ -464,7 +464,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                   }}
                 >
                   Use these sources for concepts
-                </button>
+                </InkButton>
               )}
             </div>
           ) : (
@@ -505,31 +505,37 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                   source review.
                 </p>
               )}
-              <div className="flash-actions" aria-label="Deck view">
-                <button
+              <MotionNavigation
+                as="div"
+                activeKey={view}
+                selector="button[aria-pressed=true]"
+                className="flash-actions"
+                aria-label="Deck view"
+              >
+                <InkButton
                   className="button"
                   aria-pressed={view === "words"}
                   onClick={() => setView("words")}
                 >
                   {deck.mode === "concepts" ? "Concept list" : "Word list"}
-                </button>
-                <button
+                </InkButton>
+                <InkButton
                   className="button"
                   aria-pressed={view === "study"}
                   disabled={!deck.cards.length || !!pending.size}
                   onClick={() => setView("study")}
                 >
                   Practise
-                </button>
-                <button
+                </InkButton>
+                <InkButton
                   className="button"
                   aria-pressed={view === "review"}
                   disabled={!!pending.size}
                   onClick={() => setView("review")}
                 >
                   Review sources
-                </button>
-              </div>
+                </InkButton>
+              </MotionNavigation>
               {!!pending.size && (
                 <p role="status" className="flash-help">
                   Finish saving your edits before practice and export.
@@ -585,7 +591,7 @@ function FlashcardReview({
     deck.expectedCount === undefined ? "" : String(deck.expectedCount),
     10,
   );
-  const report = flashDeckReport(deck);
+  const report = useMemo(() => flashDeckReport(deck), [deck]);
   const cards = deck.cards.filter(
     (c) =>
       (!onlyUnchecked || !deck.reviewedIds.includes(c.id)) &&
@@ -626,7 +632,7 @@ function FlashcardReview({
       <div className="flash-actions">
         {deck.sources.map((s) => (
           <span key={s.id} className="flash-saved-source">
-            <button
+            <InkButton
               className="button quiet"
               onClick={() =>
                 setEvidenceOpen(evidenceOpen === s.id ? null : s.id)
@@ -634,7 +640,7 @@ function FlashcardReview({
               aria-expanded={evidenceOpen === s.id}
             >
               {s.title} · saved text
-            </button>
+            </InkButton>
             {s.attachment && (
               <DownloadLink
                 className="button quiet"
@@ -649,12 +655,12 @@ function FlashcardReview({
       </div>
       {evidenceOpen && (
         <section className="flash-source-text" aria-label="Saved source text">
-          <button
+          <InkButton
             className="button quiet"
             onClick={() => setEvidenceOpen(null)}
           >
             Close saved text
-          </button>
+          </InkButton>
           <pre>{deck.sources.find((s) => s.id === evidenceOpen)?.text}</pre>
         </section>
       )}
@@ -665,7 +671,7 @@ function FlashcardReview({
             as the answer key. This does not check it against a separate
             textbook.
           </p>
-          <button
+          <InkButton
             className="button"
             disabled={disabled}
             onClick={() =>
@@ -676,13 +682,13 @@ function FlashcardReview({
             }
           >
             Use imported list as answer key
-          </button>
+          </InkButton>
         </div>
       )}
       <div className="flash-review-controls">
         <label>
           Find an entry
-          <input
+          <InkInput
             type="search"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -690,14 +696,14 @@ function FlashcardReview({
           />
         </label>
         <label className="flash-check">
-          <input
+          <InkInput
             type="checkbox"
             checked={onlyUnchecked}
             onChange={(e) => setOnlyUnchecked(e.target.checked)}
           />{" "}
           Unchecked only
         </label>
-        <button
+        <InkButton
           className="button"
           disabled={disabled}
           onClick={() =>
@@ -712,7 +718,7 @@ function FlashcardReview({
           }
         >
           <Plus size={16} /> Add missing entry
-        </button>
+        </InkButton>
       </div>
       {!!report.repeatedPairs && (
         <p className="flash-warning">
@@ -772,7 +778,7 @@ function FlashcardReview({
             ))}
             <div className="flash-actions">
               <label className="flash-check">
-                <input
+                <InkInput
                   type="checkbox"
                   checked={deck.reviewedIds.includes(card.id)}
                   disabled={disabled}
@@ -788,13 +794,13 @@ function FlashcardReview({
                 />{" "}
                 Wording and pairing checked
               </label>
-              <button
+              <InkButton
                 className="button quiet"
                 disabled={disabled}
                 onClick={() => setEditing(card)}
               >
                 Edit entry
-              </button>
+              </InkButton>
             </div>
           </li>
         ))}
@@ -832,7 +838,7 @@ function FlashcardReview({
           </p>
           <label>
             Number of requested source entries
-            <input
+            <InkInput
               type="number"
               min={1}
               max={2000}
@@ -847,7 +853,7 @@ function FlashcardReview({
               : ""}
             .
           </p>
-          <button
+          <InkButton
             className="button primary"
             disabled={
               disabled ||
@@ -867,7 +873,7 @@ function FlashcardReview({
             }
           >
             I checked every requested entry · start studying
-          </button>
+          </InkButton>
         </section>
       )}
     </div>
@@ -935,7 +941,7 @@ function EntryEditor({
       <div className="flash-fields">
         <label>
           {deck.frontLabel}
-          <textarea
+          <InkTextarea
             value={edit.value.front}
             aria-label={deck.frontLabel}
             maxLength={4000}
@@ -944,7 +950,7 @@ function EntryEditor({
         </label>
         <label>
           {deck.backLabel}
-          <textarea
+          <InkTextarea
             value={edit.value.back}
             aria-label={deck.backLabel}
             maxLength={4000}
@@ -954,7 +960,7 @@ function EntryEditor({
       </div>
       <label>
         Chapter or group
-        <input
+        <InkInput
           value={edit.value.group}
           maxLength={200}
           onChange={(e) => set("group", e.target.value)}
@@ -962,7 +968,7 @@ function EntryEditor({
       </label>
       <label>
         Example (optional)
-        <textarea
+        <InkTextarea
           value={edit.value.example}
           aria-label="Example (optional)"
           maxLength={4000}
@@ -971,7 +977,7 @@ function EntryEditor({
       </label>
       <label>
         Source
-        <select
+        <InkSelect
           value={edit.value.sourceId}
           onChange={(e) => set("sourceId", e.target.value)}
         >
@@ -980,11 +986,11 @@ function EntryEditor({
               {s.title}
             </option>
           ))}
-        </select>
+        </InkSelect>
       </label>
       <label>
         Exact supporting passage
-        <textarea
+        <InkTextarea
           rows={5}
           aria-label="Exact supporting passage"
           maxLength={12000}
@@ -993,7 +999,7 @@ function EntryEditor({
         />
       </label>
       <label className="flash-check">
-        <input
+        <InkInput
           type="checkbox"
           checked={edit.value.manual}
           onChange={(e) =>
@@ -1012,7 +1018,7 @@ function EntryEditor({
           </p>
           <label>
             Location in original
-            <input
+            <InkInput
               maxLength={300}
               placeholder="Page 12, chapter 3, row 8"
               value={edit.value.location}
@@ -1021,7 +1027,7 @@ function EntryEditor({
           </label>
           <label>
             What was corrected
-            <textarea
+            <InkTextarea
               maxLength={1000}
               aria-label="What was corrected"
               value={edit.value.note}
@@ -1032,7 +1038,7 @@ function EntryEditor({
       )}
       {edit.error && <p role="alert">{edit.error}</p>}
       <div className="flash-actions">
-        <button
+        <InkButton
           className="button primary"
           disabled={
             disabled ||
@@ -1064,18 +1070,18 @@ function EntryEditor({
           }
         >
           Save entry
-        </button>
-        <button className="button quiet" onClick={onClose}>
+        </InkButton>
+        <InkButton className="button quiet" onClick={onClose}>
           Close editor
-        </button>
+        </InkButton>
         {deck.cards.some((c) => c.id === card.id) && (
-          <button
+          <InkButton
             className="button quiet"
             disabled={disabled}
             onClick={() => setRemoveConfirm(!removeConfirm)}
           >
             Remove this entry
-          </button>
+          </InkButton>
         )}
       </div>
       {removeConfirm && (
@@ -1084,19 +1090,19 @@ function EntryEditor({
             Remove “{card.front}” from this deck? The saved source stays
             available so you can add it again.
           </p>
-          <button
+          <InkButton
             className="button"
             disabled={disabled}
             onClick={() => void remove()}
           >
             Confirm removal
-          </button>
-          <button
+          </InkButton>
+          <InkButton
             className="button quiet"
             onClick={() => setRemoveConfirm(false)}
           >
             Keep entry
-          </button>
+          </InkButton>
         </div>
       )}
     </div>

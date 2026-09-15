@@ -1,0 +1,203 @@
+/*
+THESIS: Liquid glass panes over a real photograph; refuses AI gradient blobs and mismatched curves.
+OWN-WORLD: a chosen landscape photo as the desk; a see-through rail and a clearer working pane, both flush to the window so no curve fights the window corner; one surface radius and one control radius, squircle-shaped; specular edge light on every glass layer; one system-blue action.
+STORY: calm, premium, physically lit, with the photo visible through the tool.
+FIRST VIEWPORT: photo behind a clear rail, frosted working pane, glass section tabs with a blue bookmark.
+FORM: exploration 1, premium. See docs/ui/style-explorations.md.
+*/
+:root[data-theme="glass"] {
+  --forest: #0a5fe6;
+  --ink: #0e1420;
+  --muted: #384254;
+  --line: rgba(255, 255, 255, 0.5);
+  --paper: rgba(255, 255, 255, 0.42);
+  --canvas: #c9d1d8;
+  --accent: #ffb340;
+  --bookmark: #0a5fe6;
+  --bookmark-right: 9px;
+  --titlebar-symbol: #0e1420;
+  --wallpaper: url("/wallpapers/mist.jpg");
+  /* Tuning knobs: how see-through each layer is. */
+  --rail-tint: rgba(255, 255, 255, 0.16);
+  --rail-blur: 10px;
+  --pane-tint: rgba(255, 255, 255, 0.36);
+  --pane-blur: 22px;
+  --glass: rgba(255, 255, 255, 0.34);
+  --glass-strong: rgba(255, 255, 255, 0.58);
+  --edge: rgba(255, 255, 255, 0.62);
+  --liquid:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+    inset 1px 0 0 rgba(255, 255, 255, 0.3),
+    inset -1px 0 0 rgba(255, 255, 255, 0.3),
+    0 12px 30px -20px rgba(8, 18, 36, 0.55);
+  /* One surface curve, one control curve. Nothing else. */
+  --r-surface: 16px;
+  --r-control: 9px;
+  color: var(--ink);
+  background: var(--canvas);
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+
+  @supports (corner-shape: squircle) {
+    --r-surface: 26px;
+    --r-control: 15px;
+  }
+
+  & body {
+    background: var(--wallpaper) center / cover fixed, var(--canvas);
+  }
+  & p, & .muted, & .empty { color: var(--muted); }
+  & :focus-visible { outline-color: var(--forest); }
+  & h1 {
+    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 46px;
+    letter-spacing: -0.03em;
+  }
+  & :is(h2, h3) {
+    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  & .kicker { color: #0a55cc; font-weight: 650; }
+
+  /* Two flush panes: clear rail, frosted working pane. */
+  & .sidebar {
+    background: var(--rail-tint);
+    -webkit-backdrop-filter: blur(var(--rail-blur)) saturate(170%);
+    backdrop-filter: blur(var(--rail-blur)) saturate(170%);
+    border-right: 1px solid var(--edge);
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.25);
+    color: var(--ink);
+  }
+  & .main {
+    background: var(--pane-tint);
+    -webkit-backdrop-filter: blur(var(--pane-blur)) saturate(150%);
+    backdrop-filter: blur(var(--pane-blur)) saturate(150%);
+  }
+  & .brand { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5); }
+  & .brand-mark, & .brand-dot { color: var(--forest); }
+  & :is(.sidebar-intro, .rail-label, .rail-empty, .local-note, .rail-foot, .rail-foot span) { color: #1f2735; }
+  & .notebook-item { color: var(--ink); border-radius: var(--r-control); corner-shape: squircle; }
+  & .notebook-item:hover { background: rgba(255, 255, 255, 0.28); }
+  & .notebook-item.selected { background: var(--glass-strong); color: var(--ink); box-shadow: var(--liquid); }
+  & .notebook-item small { color: var(--muted); }
+  & .icon-button.light { color: var(--ink); }
+  & .icon-button.light:hover { background: rgba(255, 255, 255, 0.35); }
+  & .button.rail-new { border: 1px solid var(--edge); background: rgba(255, 255, 255, 0.24); color: var(--ink); box-shadow: var(--liquid); }
+  & .button.rail-new:hover { background: rgba(255, 255, 255, 0.45); color: var(--ink); }
+  & .status-dot { background: #1fae4b; }
+  & .rail-settings { color: var(--ink); border-radius: var(--r-control); corner-shape: squircle; }
+  & :is(.rail-settings:hover, .rail-settings.active) { background: rgba(255, 255, 255, 0.35); }
+  & .motion-track { display: none; }
+
+  /* Chrome */
+  & .topbar { border-bottom: 1px solid var(--line); color: var(--muted); }
+  & :is(.page-footer, .next-step) { border-top-color: var(--line); }
+  & .tabs { border-bottom: 1px solid var(--line); gap: 6px; padding-bottom: 10px; }
+  & .tabs button {
+    padding: 8px 28px 8px 14px;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: var(--r-control);
+    corner-shape: squircle;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  & .tabs button:hover { background: rgba(255, 255, 255, 0.3); color: var(--ink); }
+  & .tabs button.active { background: var(--glass-strong); border-color: var(--edge); color: var(--ink); box-shadow: var(--liquid); }
+  & .tab-count { background: rgba(255, 255, 255, 0.55); border-radius: 6px; color: var(--ink); }
+
+  /* Glass layers inside the pane (no second blur: the pane already refracts). */
+  & :is(.inline-form, .reader, .goals-entry, .episode-config, .info-note, .job-banner,
+      .evidence-list blockquote, .settings-body details, .connection-summary,
+      .chat-composer, .source-list, .objective-list, .dropzone, .alert) {
+    background: var(--glass);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-surface);
+    corner-shape: squircle;
+    box-shadow: var(--liquid);
+  }
+  & :is(.source-list, .objective-list) { padding: 2px 20px; }
+  & :is(.source-row, .objective) { border-bottom-color: rgba(255, 255, 255, 0.5); }
+  & :is(.source-row, .objective):last-child { border-bottom: 0; }
+  & .extract-goals { background: rgba(255, 255, 255, 0.2); border-left-color: var(--edge); }
+  & .dropzone { border-style: dashed; }
+  & .dropzone.drag { background: var(--glass-strong); border-color: var(--forest); }
+
+  /* Controls share one curve. */
+  & .button {
+    border-radius: var(--r-control);
+    corner-shape: squircle;
+    border: 1px solid var(--edge);
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: var(--liquid);
+    color: var(--ink);
+    font-weight: 600;
+  }
+  & .button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.62); border-color: #fff; }
+  & .button.primary {
+    background: rgba(10, 95, 230, 0.9);
+    border-color: rgba(120, 170, 255, 0.9);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(0, 30, 90, 0.3), 0 10px 22px -12px rgba(10, 95, 230, 0.8);
+  }
+  & .button.primary:hover:not(:disabled) { background: rgba(10, 88, 214, 0.96); }
+  & .button.quiet { background: transparent; border-color: transparent; box-shadow: none; }
+  & .button.quiet:hover:not(:disabled) { background: rgba(255, 255, 255, 0.35); }
+  & .button.audio-button { background: rgba(255, 179, 64, 0.92); border-color: rgba(255, 220, 160, 0.9); color: #2e1c00; }
+  & .icon-button { border-radius: var(--r-control); corner-shape: squircle; color: var(--muted); }
+  & .icon-button:hover { background: rgba(255, 255, 255, 0.4); color: var(--ink); }
+  & .icon-button.delete:hover { color: #c2271c; background: rgba(255, 255, 255, 0.5); }
+  & :is(input, select, textarea) {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-control);
+    corner-shape: squircle;
+    color: var(--ink);
+  }
+  & :is(input, textarea)::placeholder { color: #4a5467; }
+  & :is(input, select, textarea):focus-visible { outline: 0; border-color: var(--forest); box-shadow: 0 0 0 3px rgba(10, 95, 230, 0.28); }
+  & .search input { background: transparent; border: 0; box-shadow: none; }
+  & .filter-group button { border-radius: var(--r-control); corner-shape: squircle; }
+  & .filter-group button.selected { background: var(--glass-strong); box-shadow: var(--liquid); }
+
+  /* Details */
+  & :is(.file-symbol, .upload-symbol) { background: rgba(255, 255, 255, 0.55); color: var(--forest); border-radius: var(--r-control); corner-shape: squircle; box-shadow: var(--liquid); }
+  & .source-index { color: var(--muted); font-variant-numeric: tabular-nums; }
+  & .badge { border-radius: 6px; background: rgba(255, 255, 255, 0.55); color: #2c3444; }
+  & .badge.covered { background: rgba(210, 245, 220, 0.8); color: #135c28; }
+  & .badge.partial { background: rgba(255, 236, 200, 0.85); color: #6e4800; }
+  & .badge.missing { background: rgba(255, 222, 218, 0.85); color: #9a1f16; }
+  & .alert.error { background: rgba(255, 226, 222, 0.75); color: #93211a; }
+  & .chapter-row.active { background: var(--glass-strong); border-radius: var(--r-control); }
+  & .host-avatar { background: var(--forest); color: #fff; }
+  & .host-b .host-avatar { background: #7b55e8; color: #fff; }
+  & .toast { background: rgba(14, 20, 32, 0.72); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border-radius: var(--r-surface); corner-shape: squircle; }
+  & .create-dialog {
+    background: rgba(255, 255, 255, 0.62);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    backdrop-filter: blur(30px) saturate(160%);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-surface);
+    corner-shape: squircle;
+    box-shadow: var(--liquid), 0 30px 70px -30px rgba(8, 18, 36, 0.6);
+  }
+  & .create-dialog::backdrop { background: rgba(8, 18, 36, 0.18); backdrop-filter: blur(4px); }
+  & .book-cover { background: var(--glass); border: 1px solid var(--edge); border-radius: var(--r-surface); corner-shape: squircle; box-shadow: var(--liquid); color: var(--forest); }
+  & .welcome-steps svg { color: var(--forest); }
+  & ::-webkit-scrollbar-thumb { background-color: rgba(14, 20, 32, 0.28); }
+  & ::-webkit-scrollbar-thumb:hover { background-color: rgba(14, 20, 32, 0.45); }
+  & .sidebar ::-webkit-scrollbar-thumb { background-color: rgba(14, 20, 32, 0.22); }
+
+  @media (prefers-reduced-transparency: reduce) {
+    --rail-tint: rgba(240, 243, 247, 0.96);
+    --pane-tint: rgba(248, 250, 252, 0.97);
+  }
+}
+/* Wallpaper choices (set by the style switcher). */
+:root[data-theme="glass"] { --rail-tint: rgba(255, 255, 255, 0.24); }
+/* Darker photos need more frost to keep rail and pane text readable. */
+:root[data-theme="glass"][data-wallpaper="silhouette"] { --wallpaper: url("/wallpapers/silhouette.jpg"); --rail-tint: rgba(255, 255, 255, 0.42); --pane-tint: rgba(255, 255, 255, 0.44); }
+:root[data-theme="glass"][data-wallpaper="forest"] { --wallpaper: url("/wallpapers/forest.jpg"); --rail-tint: rgba(255, 255, 255, 0.48); --pane-tint: rgba(255, 255, 255, 0.46); }
+:root[data-theme="glass"][data-wallpaper="lake"] { --wallpaper: url("/wallpapers/lake.jpg"); }

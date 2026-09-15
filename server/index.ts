@@ -8,7 +8,6 @@ import multer from "multer";
 import { z } from "zod";
 import {
   existsSync,
-  readFileSync,
   readdirSync,
   mkdirSync,
   rmSync,
@@ -225,12 +224,13 @@ app.get(
       const base = new URL(
         process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434",
       );
-      if (["localhost", "127.0.0.1", "[::1]"].includes(base.hostname))
-        ollama = (
-          await fetch(new URL("/api/tags", base), {
-            signal: AbortSignal.timeout(700),
-          })
-        ).ok;
+      if (["localhost", "127.0.0.1", "[::1]"].includes(base.hostname)) {
+        const response = await fetch(new URL("/api/tags", base), {
+          signal: AbortSignal.timeout(700),
+        });
+        ollama = response.ok;
+        await response.body?.cancel();
+      }
     } catch {}
     res.json({
       codex: codexAvailable(),

@@ -1,4 +1,18 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  InkInput,
+  InkTextarea,
+  InkSelect,
+  InkStroke,
+  InkButton,
+} from "./components/InkControl";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource/manrope/400.css";
 import "@fontsource/manrope/500.css";
@@ -20,7 +34,6 @@ import {
   Trash2,
   Search,
   Check,
-  ChevronDown,
   ChevronRight,
   Download,
   LoaderCircle,
@@ -78,12 +91,18 @@ import { useDraftText } from "./hooks/useDraftText";
 import { useObjectDraft } from "./hooks/useObjectDraft";
 import { version as appVersion } from "../package.json";
 import { Flashcards } from "./components/Flashcards";
-
-/* THESIS: a course becomes a conversation through visible evidence and goals.
-OWN-WORLD: forest navigation, mineral paper, ochre listening controls, serif titles and quiet ledgers.
-STORY: collect material, establish coverage, shape and listen to a precise conversation.
-FIRST VIEWPORT: left notebook rail; wide title and three-step navigation; source ledger and next action.
-FORM: reading-room workbench, chosen under user's explicit autonomous-build instruction. */
+import {
+  canAnimate,
+  MotionList,
+  MotionNavigation,
+  MotionPreferences,
+  MotionSurface,
+  InkHeading,
+  useCitationMotion,
+  useMotionEnvironment,
+} from "./components/Motion";
+import "./motion.css";
+import "./themes/ink.css";
 
 type Summary = {
   id: string;
@@ -110,10 +129,16 @@ type OpenSource = (
   startSeconds?: number,
   range?: { startOffset: number; endOffset: number },
 ) => void;
-async function api<T>(url: string, method = "GET", body?: unknown): Promise<T> {
+async function api<T>(
+  url: string,
+  method = "GET",
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   const form = body instanceof FormData;
   const response = await fetch("/api" + url, {
     method,
+    signal,
     headers: {
       ...(method !== "GET" ? { "x-sennibook": "1" } : {}),
       ...(!form && body !== undefined
@@ -134,6 +159,7 @@ function Button({
   disabled = false,
   type = "button",
   title,
+  "aria-expanded": expanded,
 }: {
   children?: React.ReactNode;
   icon?: typeof Plus;
@@ -142,18 +168,20 @@ function Button({
   disabled?: boolean;
   type?: "button" | "submit";
   title?: string;
+  "aria-expanded"?: boolean;
 }) {
   return (
-    <button
+    <InkButton
       type={type}
       className={`button ${variant}`}
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-expanded={expanded}
     >
       {Icon && <Icon size={17} />}
       <span>{children}</span>
-    </button>
+    </InkButton>
   );
 }
 function DraftNotice({
@@ -224,16 +252,35 @@ function Field({
   );
 }
 function App() {
+  useMotionEnvironment();
   const [notebooks, setNotebooks] = useState<Summary[]>([]);
   const [n, setN] = useState<Notebook | null>(null);
   const [tab, setTab] = useState<Tab>("sources");
+  const motionTab = useRef(tab);
+  const motionDirection = useMemo(() => {
+    const order: Tab[] = [
+      "sources",
+      "goals",
+      "studio",
+      "chat",
+      "flashcards",
+      "settings",
+    ];
+    const direction =
+      order.indexOf(tab) < order.indexOf(motionTab.current) ? -1 : 1;
+    return direction;
+  }, [tab]);
+  useLayoutEffect(() => {
+    motionTab.current = tab;
+  }, [tab]);
   const previousTab = useRef<Exclude<Tab, "settings">>("sources");
   const openSettings = () => {
     if (tab !== "settings") previousTab.current = tab;
     setTab("settings");
   };
   const leaveSettings = () => setTab(previousTab.current);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Reset the section before its reader/chat effects locate specific content.
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [tab]);
   const [sourceRequest, setSourceRequest] = useState<SourceRequest | null>(
@@ -259,20 +306,34 @@ function App() {
   const [notice, setNotice] = useState("");
   const selected = useRef<string | null>(null);
   const selectionRequest = useRef(0);
+  const savedRevision = useRef(0);
   const dialog = useRef<HTMLDialogElement>(null);
   const newTitleInput = useRef<HTMLInputElement>(null);
-  const loadList = async () => {
-    const list = await api<Summary[]>("/notebooks");
-    setNotebooks(list);
+  const loadList = async (signal?: AbortSignal) => {
+    const list = await api<Summary[]>("/notebooks", "GET", undefined, signal);
+    if (!signal?.aborted) setNotebooks(list);
     return list;
   };
-  const refresh = async () => {
+  const refresh = async (signal?: AbortSignal) => {
     if (selected.current) {
       const current = selected.current;
-      const book = await api<Notebook>("/notebooks/" + current);
-      if (selected.current === current) setN(book);
+      const request = selectionRequest.current;
+      const revision = savedRevision.current;
+      const book = await api<Notebook>(
+        "/notebooks/" + current,
+        "GET",
+        undefined,
+        signal,
+      );
+      if (
+        !signal?.aborted &&
+        selected.current === current &&
+        selectionRequest.current === request &&
+        savedRevision.current === revision
+      )
+        setN(book);
     }
-    await loadList();
+    if (!signal?.aborted) await loadList(signal);
   };
   const choose = async (id: string, fallbackId = n?.id || null) => {
     const request = ++selectionRequest.current;
@@ -281,9 +342,7 @@ function App() {
     selected.current = id;
     try {
       localStorage.setItem("sennibook:last", id);
-    } catch {
-      /* Remembering the last notebook is optional. */
-    }
+    } catch {}
     setError("");
     try {
       const book = await api<Notebook>("/notebooks/" + id);
@@ -308,9 +367,7 @@ function App() {
         let last: string | null = null;
         try {
           last = localStorage.getItem("sennibook:last");
-        } catch {
-          /* Open the first notebook when preferences are unavailable. */
-        }
+        } catch {}
         if (list.length)
           await choose(list.find((b) => b.id === last)?.id || list[0].id);
       } catch (e) {
@@ -329,23 +386,58 @@ function App() {
   const pendingSourceProcessing = !!n?.sources.some((source) =>
     ["recognizing", "transcribing"].includes(source.processing?.status || ""),
   );
+  const pollInputs = useRef({ status, pendingSourceProcessing });
+  useLayoutEffect(() => {
+    pollInputs.current = { status, pendingSourceProcessing };
+  }, [status, pendingSourceProcessing]);
   useEffect(() => {
-    const timer = setInterval(() => {
-      void api<Capabilities>("/status")
-        .then((st) => {
-          setStatus(st);
-          if (
-            selected.current &&
-            (st.activeJobs[selected.current] ||
-              status?.activeJobs[selected.current] ||
-              pendingSourceProcessing)
-          )
-            void refresh().catch((e) => setError(e.message));
-        })
-        .catch(() => {});
-    }, 2500);
-    return () => clearInterval(timer);
-  }, [status?.activeJobs, n?.id, pendingSourceProcessing]);
+    const controller = new AbortController();
+    const { signal } = controller;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        const st = await api<Capabilities>("/status", "GET", undefined, signal);
+        if (signal.aborted) return;
+        const id = selected.current;
+        const request = selectionRequest.current;
+        const previous = pollInputs.current;
+        const shouldRefresh =
+          id &&
+          (st.activeJobs[id] ||
+            previous.status?.activeJobs[id] ||
+            previous.pendingSourceProcessing);
+        pollInputs.current = { ...previous, status: st };
+        setStatus((current) =>
+          JSON.stringify(current) === JSON.stringify(st) ? current : st,
+        );
+        if (shouldRefresh) {
+          try {
+            await refresh(signal);
+          } catch (error) {
+            if (
+              !signal.aborted &&
+              selected.current === id &&
+              selectionRequest.current === request
+            )
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Could not refresh notebook.",
+              );
+          }
+        }
+      } catch {
+        // A missed background status check keeps the last known connection state.
+      } finally {
+        if (!signal.aborted) timer = setTimeout(() => void poll(), 2500);
+      }
+    };
+    timer = setTimeout(() => void poll(), 2500);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, []);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4000);
@@ -375,7 +467,10 @@ function App() {
     const book = await api<Notebook>(url, method, body);
     // A multi-file import can continue after the user switches notebooks.
     // Only the response's actual notebook may update the visible workspace.
-    if (book.id && book.id === selected.current) setN(book);
+    if (book.id && book.id === selected.current) {
+      savedRevision.current++;
+      setN(book);
+    }
     try {
       await loadList();
     } catch {
@@ -413,9 +508,7 @@ function App() {
     ]);
     try {
       localStorage.setItem("sennibook:last", book.id);
-    } catch {
-      /* Remembering the selected notebook is optional. */
-    }
+    } catch {}
     setTab("sources");
     try {
       await loadList();
@@ -457,26 +550,33 @@ function App() {
           </span>
           LMBook<span className="brand-dot">.</span>
         </a>
-        <button
+        <InkButton
           className="mobile-create icon-button light"
           aria-label="New notebook"
           onClick={() => setCreateOpen(true)}
         >
           <Plus size={20} />
-        </button>
+        </InkButton>
         <div className="rail-label">
           <span>Your notebooks</span>
-          <button
+          <InkButton
             className="icon-button light"
             aria-label="Create notebook"
             onClick={() => setCreateOpen(true)}
           >
             <Plus size={18} />
-          </button>
+          </InkButton>
         </div>
-        <nav className="notebook-list" aria-label="Notebooks">
+        <MotionNavigation
+          activeKey={n?.id || ""}
+          itemsKey={notebooks.map((book) => book.id).join(":")}
+          selector=".notebook-item.selected"
+          vertical
+          className="notebook-list"
+          aria-label="Notebooks"
+        >
           {notebooks.map((book) => (
-            <button
+            <InkButton
               key={book.id}
               className={`notebook-item ${n?.id === book.id ? "selected" : ""}`}
               aria-current={n?.id === book.id ? "page" : undefined}
@@ -494,12 +594,12 @@ function App() {
                   {book.sourceCount === 1 ? "source" : "sources"}
                 </small>
               </span>
-            </button>
+            </InkButton>
           ))}
           {!notebooks.length && (
             <p className="rail-empty">Your courses will live here.</p>
           )}
-        </nav>
+        </MotionNavigation>
         <Button
           icon={Plus}
           variant="rail-new"
@@ -511,7 +611,7 @@ function App() {
           <div className="local-note">
             <span className="status-dot" /> Saved on this computer
           </div>
-          <button
+          <InkButton
             className={`rail-settings ${tab === "settings" ? "active" : ""}`}
             onClick={tab === "settings" ? leaveSettings : openSettings}
             title={tab === "settings" ? "Go back" : "Connections & settings"}
@@ -525,7 +625,7 @@ function App() {
                 <Settings2 size={18} /> Connections & settings
               </>
             )}
-          </button>
+          </InkButton>
           <div className="rail-foot">
             LMBook{" "}
             <span>
@@ -556,27 +656,20 @@ function App() {
               <>
                 <Radio size={14} /> {n && status?.activeJobs[n.id]}
               </>
-            ) : (
-              <>
-                <Check size={14} />{" "}
-                {window.sennibookDesktop
-                  ? "Desktop workspace"
-                  : "Local workspace"}
-              </>
-            )}
+            ) : null}
           </span>
         </header>
         {error && !createOpen && (
           <div className="alert error app-error" role="alert">
             <CircleAlert size={19} />
             <span>{error}</span>
-            <button
+            <InkButton
               className="icon-button"
               aria-label="Dismiss error"
               onClick={() => setError("")}
             >
               <X size={17} />
-            </button>
+            </InkButton>
           </div>
         )}
         {notice && (
@@ -662,9 +755,7 @@ function App() {
                   setN(null);
                   try {
                     localStorage.removeItem("sennibook:last");
-                  } catch {
-                    /* The library remains usable without this preference. */
-                  }
+                  } catch {}
                   setTab("sources");
                 }
                 try {
@@ -684,8 +775,8 @@ function App() {
             <div className="welcome-heading">
               <h1>Your learning library.</h1>
               <p>
-                Bring your course notes, concepts and learning goals together.
-                Turn them into a conversation worth taking on a walk.
+                Add your course material to ask questions, practise flashcards
+                and create audio lessons.
               </p>
               <div className="actions">
                 <Button
@@ -725,7 +816,7 @@ function App() {
               <div>
                 <Headphones size={21} />
                 <h3>Generate audio</h3>
-                <p>Two voices. Your pace. A fuller explanation.</p>
+                <p>Create a two-person lesson from your sources.</p>
               </div>
             </div>
           </div>
@@ -752,7 +843,12 @@ function App() {
                 <Download size={16} /> Export notes
               </DownloadLink>
             </section>
-            <nav className="tabs" aria-label="Notebook sections">
+            <MotionNavigation
+              activeKey={`${n.id}:${tab}`}
+              selector="button.active"
+              className="tabs"
+              aria-label="Notebook sections"
+            >
               {(
                 [
                   {
@@ -778,10 +874,15 @@ function App() {
                     label: "Ask your sources",
                     icon: MessageSquare,
                   },
-                  { id: "flashcards", label: "Flashcards", icon: BookOpen, count: n.flashcards?.length || 0 },
+                  {
+                    id: "flashcards",
+                    label: "Flashcards",
+                    icon: BookOpen,
+                    count: n.flashcards?.length || 0,
+                  },
                 ] as const
               ).map((t) => (
-                <button
+                <InkButton
                   key={t.id}
                   className={tab === t.id ? "active" : ""}
                   aria-current={tab === t.id ? "page" : undefined}
@@ -790,10 +891,14 @@ function App() {
                   <t.icon size={18} />
                   {t.label}
                   {"count" in t && <span className="tab-count">{t.count}</span>}
-                </button>
+                </InkButton>
               ))}
-            </nav>
-            <div className="page-content">
+            </MotionNavigation>
+            <MotionSurface
+              motionKey={`${n.id}:${tab}`}
+              direction={motionDirection}
+              className="page-content"
+            >
               {job && (
                 <div className="job-banner" role="status">
                   <LoaderCircle className="spin" size={18} />
@@ -868,13 +973,18 @@ function App() {
                   openSource={openSource}
                 />
               )}
-              {tab === "flashcards" && <Flashcards key={n.id} n={n} disabled={disabled} run={run} change={change} />}
-            </div>
+              {tab === "flashcards" && (
+                <Flashcards
+                  key={n.id}
+                  n={n}
+                  disabled={disabled}
+                  run={run}
+                  change={change}
+                />
+              )}
+            </MotionSurface>
           </>
         )}
-        <footer className="page-footer">
-          <span>AI explanations deserve a source check.</span>
-        </footer>
       </main>
       <dialog
         ref={dialog}
@@ -889,15 +999,17 @@ function App() {
           }}
         >
           <div className="section-heading">
-            <h2 id="create-notebook-heading">Create a notebook</h2>
-            <button
+            <InkHeading id="create-notebook-heading" arrivalKey={createOpen}>
+              Create a notebook
+            </InkHeading>
+            <InkButton
               type="button"
               className="icon-button"
               aria-label="Close"
               onClick={() => setCreateOpen(false)}
             >
               <X size={20} />
-            </button>
+            </InkButton>
           </div>
           <p>One notebook for a course, topic or question.</p>
           {error && (
@@ -907,7 +1019,7 @@ function App() {
             </div>
           )}
           <Field label="Notebook name">
-            <input
+            <InkInput
               ref={newTitleInput}
               required
               maxLength={150}
@@ -968,16 +1080,20 @@ function Sources({
     n.sources.find((source) => source.id === reading?.sourceId) || null;
   const reader = useRef<HTMLDivElement>(null);
   const highlight = useRef<HTMLElement>(null);
-  const location =
-    selected && reading?.range
-      ? locateSourceRange(
-          selected,
-          reading.range.startOffset,
-          reading.range.endOffset,
-        )
-      : selected && reading?.quote
-        ? locateEvidence(selected, reading.quote)
-        : undefined;
+  useCitationMotion(highlight, `${reading?.sourceId}:${reading?.nonce}`);
+  const location = useMemo(
+    () =>
+      selected && reading?.range
+        ? locateSourceRange(
+            selected,
+            reading.range.startOffset,
+            reading.range.endOffset,
+          )
+        : selected && reading?.quote
+          ? locateEvidence(selected, reading.quote)
+          : undefined,
+    [selected, reading],
+  );
   useEffect(() => {
     if (request) setReading(request);
   }, [request]);
@@ -998,9 +1114,7 @@ function Sources({
     const target = highlight.current || reader.current;
     target?.scrollIntoView({
       block: "center",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
+      behavior: canAnimate() ? "smooth" : "instant",
     });
     target?.focus({ preventScroll: true });
   }, [reading]);
@@ -1072,15 +1186,16 @@ function Sources({
     <>
       <div className="section-heading">
         <div>
-          <h2>Sources</h2>
+          <InkHeading>Sources</InkHeading>
           <p>Original sources stay separate from added context.</p>
         </div>
         <Button
           icon={Plus}
           onClick={() => setAdding(!adding)}
+          aria-expanded={adding}
           disabled={disabled}
         >
-          Paste a source
+          {adding ? "Close editor" : "Paste a source"}
         </Button>
       </div>
       <div
@@ -1113,7 +1228,7 @@ function Sources({
         >
           Choose files
         </Button>
-        <input
+        <InkInput
           ref={file}
           type="file"
           multiple
@@ -1151,7 +1266,7 @@ function Sources({
           />
           <div className="form-row">
             <Field label="Source title">
-              <input
+              <InkInput
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -1160,17 +1275,17 @@ function Sources({
               />
             </Field>
             <Field label="Source type">
-              <select
+              <InkSelect
                 value={kind}
                 onChange={(e) => setKind(e.target.value as typeof kind)}
               >
                 <option value="course">Course material</option>
                 <option value="supplement">Supplementary source</option>
-              </select>
+              </InkSelect>
             </Field>
           </div>
           <Field label="Source text">
-            <textarea
+            <InkTextarea
               required
               rows={8}
               value={text}
@@ -1193,7 +1308,7 @@ function Sources({
         </span>
         <label className="search">
           <Search size={16} />
-          <input
+          <InkInput
             aria-label="Search sources"
             placeholder="Find a source…"
             value={query}
@@ -1219,9 +1334,16 @@ function Sources({
           Try a different term or clear the search to see all your sources.
         </Empty>
       ) : (
-        <div className="source-list">
+        <MotionList
+          itemsKey={visibleSources.map((source) => source.id).join(":")}
+          className="source-list"
+        >
           {visibleSources.map((s, i) => (
-            <div className="source-row" key={s.id}>
+            <div
+              className="source-row"
+              key={s.id}
+              data-source-open={selected?.id === s.id}
+            >
               <div className="file-symbol">
                 {s.attachment?.mediaType.startsWith("audio/") ? (
                   <Headphones size={20} />
@@ -1229,7 +1351,7 @@ function Sources({
                   <FileText size={20} />
                 )}
               </div>
-              <button
+              <InkButton
                 className="source-open"
                 onClick={() =>
                   setReading({ sourceId: s.id, nonce: Date.now() })
@@ -1253,11 +1375,11 @@ function Sources({
                             : "Transcription needs attention"
                           : `${sourceWordCounts.get(s.id)?.toLocaleString()} words`}
                 </span>
-              </button>
+              </InkButton>
               <span className="source-index">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <button
+              <InkButton
                 className="icon-button"
                 title="Read source"
                 aria-label={`Read ${s.title}`}
@@ -1266,8 +1388,8 @@ function Sources({
                 }
               >
                 <ArrowUpRight size={18} />
-              </button>
-              <button
+              </InkButton>
+              <InkButton
                 disabled={disabled}
                 className="icon-button delete"
                 aria-label={`Remove ${s.title}`}
@@ -1283,10 +1405,10 @@ function Sources({
                 }}
               >
                 <Trash2 size={16} />
-              </button>
+              </InkButton>
             </div>
           ))}
-        </div>
+        </MotionList>
       )}
       {n.sources.length > 0 && (
         <div className="next-step">
@@ -1306,16 +1428,18 @@ function Sources({
         </div>
       )}
       {selected && (
-        <div
+        <MotionSurface
+          kind="reader"
+          motionKey={`${selected.id}:${reading?.nonce}`}
           className="reader"
-          ref={reader}
+          elementRef={reader}
           tabIndex={-1}
           aria-label="Source reader"
         >
           <div className="section-heading">
             <div>
               <span className="kicker">Source text</span>
-              <h2>{selected.title}</h2>
+              <InkHeading>{selected.title}</InkHeading>
             </div>
             <Button
               icon={X}
@@ -1392,7 +1516,7 @@ function Sources({
               )}
             </div>
           )}
-        </div>
+        </MotionSurface>
       )}
     </>
   );
@@ -1406,17 +1530,27 @@ function EvidenceList({
   n: Notebook;
   onOpenSource?: OpenSource;
 }) {
+  const passages = useMemo(
+    () =>
+      evidence.map((item) => {
+        const source = n.sources.find((source) => source.id === item.sourceId);
+        return {
+          evidence: item,
+          source,
+          location: source ? locateEvidence(source, item.quote) : undefined,
+        };
+      }),
+    [evidence, n.sources],
+  );
   return (
     <div className="evidence-list">
-      {evidence.map((e, i) => {
-        const source = n.sources.find((s) => s.id === e.sourceId);
-        const location = source ? locateEvidence(source, e.quote) : undefined;
+      {passages.map(({ evidence: e, source, location }, i) => {
         return (
           <blockquote key={i}>
             <p>“{e.quote}”</p>
             <cite>
               {source && onOpenSource ? (
-                <button
+                <InkButton
                   className="evidence-link"
                   onClick={() =>
                     onOpenSource(source.id, e.quote, location?.startSeconds)
@@ -1424,7 +1558,7 @@ function EvidenceList({
                 >
                   <FileText size={13} /> {source.title}
                   {location ? ` · ${location.label}` : " · passage has changed"}
-                </button>
+                </InkButton>
               ) : (
                 <>
                   <FileText size={13} />
@@ -1469,7 +1603,7 @@ function Goals({
     <>
       <div className="section-heading">
         <div>
-          <h2>What do you want to understand?</h2>
+          <InkHeading>What do you want to understand?</InkHeading>
         </div>
         <Button
           variant="primary"
@@ -1517,7 +1651,7 @@ function Goals({
           }}
         >
           <Field label="Paste your list — one item per line">
-            <textarea
+            <InkTextarea
               rows={3}
               required
               value={text}
@@ -1530,14 +1664,14 @@ function Goals({
             restored={goalsDraft.restored}
           />
           <div className="form-row entry-actions">
-            <select
+            <InkSelect
               aria-label="Item type"
               value={kind}
               onChange={(e) => setKind(e.target.value as typeof kind)}
             >
               <option value="goal">Learning objectives / leerdoelen</option>
               <option value="concept">Concepts / begrippen</option>
-            </select>
+            </InkSelect>
             <Button
               type="submit"
               icon={Plus}
@@ -1552,7 +1686,7 @@ function Goals({
             Upload your objectives as a source, then let the model extract the
             list.
           </p>
-          <select
+          <InkSelect
             aria-label="Source to extract goals from"
             value={fromSource}
             onChange={(e) => setFromSource(e.target.value)}
@@ -1563,7 +1697,7 @@ function Goals({
                 {s.title}
               </option>
             ))}
-          </select>
+          </InkSelect>
           <Button
             icon={Sparkles}
             disabled={disabled || !fromSource}
@@ -1587,14 +1721,14 @@ function Goals({
             ["partial", "Partial"],
             ["missing", "Gaps"],
           ].map(([value, label]) => (
-            <button
+            <InkButton
               key={value}
               className={filter === value ? "selected" : ""}
               aria-pressed={filter === value}
               onClick={() => setFilter(value)}
             >
               {label}
-            </button>
+            </InkButton>
           ))}
         </div>
         {n.coverage.length > 0 ? (
@@ -1626,7 +1760,10 @@ function Goals({
             : "Coverage has not been assessed yet. Your goals are still in the notebook."}
         </Empty>
       ) : (
-        <div className="objective-list">
+        <MotionList
+          itemsKey={`${visibleGoals.map((goal) => goal.id).join(":")}:${expanded}`}
+          className="objective-list"
+        >
           {visibleGoals.map((o) => {
             const i = n.objectives.findIndex(
               (objective) => objective.id === o.id,
@@ -1638,7 +1775,7 @@ function Goals({
                   <span className="objective-number">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <button
+                  <InkButton
                     className={`bookmark ${o.important ? "marked" : ""}`}
                     aria-pressed={o.important}
                     aria-label={`${o.important ? "Unmark" : "Mark"} ${o.text} as important`}
@@ -1659,8 +1796,8 @@ function Goals({
                       size={18}
                       fill={o.important ? "currentColor" : "none"}
                     />
-                  </button>
-                  <button
+                  </InkButton>
+                  <InkButton
                     className="objective-main"
                     aria-expanded={expanded === o.id}
                     aria-controls={
@@ -1672,14 +1809,14 @@ function Goals({
                       {o.kind === "goal" ? "Learning objective" : "Concept"}
                     </span>
                     <strong>{o.text}</strong>
-                  </button>
+                  </InkButton>
                   <span className={`badge ${c?.status || "unmapped"}`}>
                     {c?.status === "covered" ? <Check size={13} /> : null}
                     {c?.status === "missing"
                       ? "Not established"
                       : c?.status || "Not mapped"}
                   </span>
-                  <button
+                  <InkButton
                     className="icon-button"
                     aria-label={
                       expanded === o.id
@@ -1692,13 +1829,9 @@ function Goals({
                     }
                     onClick={() => setExpanded(expanded === o.id ? null : o.id)}
                   >
-                    {expanded === o.id ? (
-                      <ChevronDown size={18} />
-                    ) : (
-                      <ChevronRight size={18} />
-                    )}
-                  </button>
-                  <button
+                    <ChevronRight size={18} />
+                  </InkButton>
+                  <InkButton
                     className="icon-button delete"
                     aria-label={`Remove goal ${i + 1}`}
                     disabled={disabled}
@@ -1709,7 +1842,7 @@ function Goals({
                     }
                   >
                     <X size={15} />
-                  </button>
+                  </InkButton>
                 </div>
                 {expanded === o.id && (
                   <div
@@ -1762,7 +1895,7 @@ function Goals({
               </div>
             );
           })}
-        </div>
+        </MotionList>
       )}
       <p className="fine-print">
         <Bookmark size={13} /> Marked items get extra emphasis. All objectives
@@ -1855,9 +1988,7 @@ function Studio({
         `sennibook:studio:${n.id}`,
         JSON.stringify({ episodeId: e.id, chapterId: c?.id || "" }),
       );
-    } catch {
-      // Remembering the selected chapter is optional; playback remains usable.
-    }
+    } catch {}
   }, [n.id, e?.id, c?.id]);
   const savedScript = useMemo(
     () => c?.turns.map((t) => `${t.speaker}: ${t.text}`).join("\n\n") || "",
@@ -1870,14 +2001,26 @@ function Studio({
   const { text: script, setText: setScript } = scriptDraft;
   const episodeSources = e?.sources || n.sources;
   const episodeObjectives = e?.objectives || n.objectives;
-  const totalWords =
-    e?.chapters.reduce(
-      (sum, ch) => sum + words(ch.turns.map((t) => t.text).join(" ")),
-      0,
-    ) || 0;
+  const chapterWords = useMemo(
+    () =>
+      new Map(
+        e?.chapters.map((chapter) => [
+          chapter.id,
+          words(chapter.turns.map((turn) => turn.text).join(" ")),
+        ]),
+      ),
+    [e?.chapters],
+  );
+  const totalWords = [...chapterWords.values()].reduce(
+    (sum, count) => sum + count,
+    0,
+  );
   const hasScript = !!e?.chapters.every((ch) => ch.turns.length);
   const fullAudio = !!e?.chapters.every((ch) => ch.audioFile);
-  const qualityWarnings = e ? evaluateEpisodeQuality(e) : [];
+  const qualityWarnings = useMemo(
+    () => (e ? evaluateEpisodeQuality(e) : []),
+    [e],
+  );
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setDraft({ ...draft, [key]: value });
   const ttsCost = estimateSpeech(
@@ -1889,9 +2032,14 @@ function Studio({
     (e?.settings || draft).ttsProvider === "cartesia"
       ? !!status?.cartesia
       : !!status?.googleProject;
-  const episodeCredits = cartesiaCredits(
-    e?.chapters.flatMap((ch) => ch.turns.map((turn) => turn.text)).join("") ||
-      "",
+  const episodeCredits = useMemo(
+    () =>
+      cartesiaCredits(
+        e?.chapters
+          .flatMap((ch) => ch.turns.map((turn) => turn.text))
+          .join("") || "",
+      ),
+    [e?.chapters],
   );
   const speechEstimate = episodeCartesia
     ? `~${episodeCredits.toLocaleString()} credits`
@@ -1928,7 +2076,7 @@ function Studio({
       <aside className="episode-config">
         <div className="config-heading">
           <Radio size={21} />
-          <h2>Shape the conversation</h2>
+          <h2>Episode settings</h2>
         </div>
         <p className="muted">These settings apply to your next episode.</p>
         <DraftNotice
@@ -1945,7 +2093,7 @@ function Studio({
           </Button>
         )}
         <Field label="Subject profile">
-          <select
+          <InkSelect
             value={draft.subject}
             disabled={disabled}
             onChange={(ev) => {
@@ -1956,11 +2104,11 @@ function Studio({
             {subjects.map((s) => (
               <option key={s}>{s}</option>
             ))}
-          </select>
+          </InkSelect>
         </Field>
         <div className="form-row">
           <Field label="Language">
-            <select
+            <InkSelect
               value={draft.language}
               disabled={disabled}
               onChange={(ev) =>
@@ -1969,10 +2117,10 @@ function Studio({
             >
               <option value="en">English</option>
               <option value="nl">Nederlands</option>
-            </select>
+            </InkSelect>
           </Field>
           <Field label="Depth">
-            <select
+            <InkSelect
               value={draft.depth}
               disabled={disabled}
               onChange={(ev) =>
@@ -1982,11 +2130,11 @@ function Studio({
               <option>Foundations</option>
               <option>Intermediate</option>
               <option>Advanced</option>
-            </select>
+            </InkSelect>
           </Field>
         </div>
         <Field label="Listening purpose">
-          <select
+          <InkSelect
             value={draft.purpose}
             disabled={disabled}
             onChange={(ev) =>
@@ -1996,13 +2144,13 @@ function Studio({
             <option>Introduction</option>
             <option>Deep exploration</option>
             <option>Exam refresher</option>
-          </select>
+          </InkSelect>
         </Field>
         <Field
           label={`Target length · ${draft.minutes} minutes`}
-          hint="A target, not padding. Actual length depends on the script and delivery."
+          hint="Actual length depends on the script and delivery."
         >
-          <input
+          <InkInput
             type="range"
             min={5}
             max={120}
@@ -2017,7 +2165,7 @@ function Studio({
           </div>
         </Field>
         <Field label="What can the hosts assume you know?">
-          <textarea
+          <InkTextarea
             rows={3}
             value={draft.assumedKnowledge}
             disabled={disabled}
@@ -2025,19 +2173,20 @@ function Studio({
             placeholder="e.g. I understand parliamentary systems. Skip introductory definitions."
           />
         </Field>
-        <button
+        <InkButton
           className="disclosure"
+          aria-expanded={showHarness}
           onClick={() => setShowHarness(!showHarness)}
         >
           <Settings2 size={15} /> Edit teaching instructions{" "}
-          {showHarness ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-        </button>
+          <ChevronRight size={15} />
+        </InkButton>
         {showHarness && (
           <Field
             label="Subject harness"
             hint="Saved with each episode so you can compare approaches."
           >
-            <textarea
+            <InkTextarea
               rows={7}
               value={draft.harness}
               disabled={disabled}
@@ -2114,7 +2263,7 @@ function Studio({
       <section className="studio-work">
         <div className="section-heading">
           <div>
-            <h2>Audio studio</h2>
+            <InkHeading>Audio studio</InkHeading>
           </div>
           <Headphones size={26} strokeWidth={1.5} />
         </div>
@@ -2162,7 +2311,7 @@ function Studio({
           <>
             {n.episodes.length > 1 && (
               <Field label="Episode">
-                <select
+                <InkSelect
                   value={e.id}
                   onChange={(ev) => {
                     setEid(ev.target.value);
@@ -2174,7 +2323,7 @@ function Studio({
                       {ep.title} · {new Date(ep.createdAt).toLocaleDateString()}
                     </option>
                   ))}
-                </select>
+                </InkSelect>
               </Field>
             )}
             <div className="episode-title">
@@ -2199,9 +2348,16 @@ function Studio({
                 <span>{e.error}</span>
               </div>
             )}
-            <div className="chapter-list">
+            <MotionNavigation
+              as="div"
+              activeKey={c?.id || ""}
+              itemsKey={e.chapters.map((chapter) => chapter.id).join(":")}
+              selector="button.active"
+              vertical
+              className="chapter-list"
+            >
               {e.chapters.map((ch, i) => (
-                <button
+                <InkButton
                   key={ch.id}
                   className={`chapter-row ${c?.id === ch.id ? "active" : ""}`}
                   onClick={() => {
@@ -2221,7 +2377,7 @@ function Studio({
                     <small>
                       {ch.objectiveIds.length} learning goals ·{" "}
                       {ch.turns.length
-                        ? `${words(ch.turns.map((t) => t.text).join(" ")).toLocaleString()} words`
+                        ? `${chapterWords.get(ch.id)?.toLocaleString()} words`
                         : "Outline ready"}
                     </small>
                   </span>
@@ -2232,9 +2388,9 @@ function Studio({
                   ) : (
                     <ChevronRight size={17} />
                   )}
-                </button>
+                </InkButton>
               ))}
-            </div>
+            </MotionNavigation>
             {hasScript && qualityWarnings.length > 0 && (
               <details className="script-checks">
                 <summary>
@@ -2506,7 +2662,7 @@ function Studio({
                       label="Dialogue"
                       hint="Use A: and B: for speaker turns. Edited passages lose their old source links until reviewed."
                     >
-                      <textarea
+                      <InkTextarea
                         rows={18}
                         value={script}
                         onChange={(ev) => setScript(ev.target.value)}
@@ -2558,7 +2714,7 @@ function Studio({
                         {turn.sourceIds.length > 0 && (
                           <div className="turn-sources">
                             {turn.sourceIds.map((sourceId) => (
-                              <button
+                              <InkButton
                                 key={sourceId}
                                 onClick={() => {
                                   const source = episodeSources.find(
@@ -2582,7 +2738,7 @@ function Studio({
                                 <FileText size={12} />
                                 {episodeSources.find((s) => s.id === sourceId)
                                   ?.title || "Source removed"}
-                              </button>
+                              </InkButton>
                             ))}
                           </div>
                         )}
@@ -2624,28 +2780,32 @@ function Chat({
   change,
   openSource,
 }: WorkProps & { openSource: OpenSource }) {
+  const initialMessageIds = useMemo(
+    () => new Set(n.messages.map((message) => message.id)),
+    [n.id],
+  );
   const questionDraft = useDraftText(`${n.id}:question`, "", 6000);
   const { text: message, setText: setMessage } = questionDraft;
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    end.current?.scrollIntoView({
+      block: "nearest",
+      behavior: canAnimate() ? "smooth" : "instant",
+    });
   }, [n.messages.length]);
   return (
     <section className="chat">
       <div className="section-heading">
         <div>
-          <h2>Follow a question further</h2>
-          <p>
-            Answers draw on this notebook’s sources, with passages you can
-            inspect.
-          </p>
+          <InkHeading>Ask your sources</InkHeading>
+          <p>Ask about this notebook. Open citations to check an answer.</p>
         </div>
         <MessageSquare size={24} />
       </div>
       {!n.messages.length ? (
         <div className="chat-empty">
           <BookOpen size={40} strokeWidth={1} />
-          <h3>What’s the part you want to get into?</h3>
+          <h3>What would you like to know?</h3>
           <p>
             Ask for a mechanism, challenge an argument, or connect two ideas.
           </p>
@@ -2655,17 +2815,20 @@ function Chat({
               "Where do these sources agree or disagree?",
               "Explain the mechanism behind the central argument.",
             ].map((q) => (
-              <button key={q} onClick={() => setMessage(q)}>
+              <InkButton key={q} onClick={() => setMessage(q)}>
                 {q}
                 <ArrowUpRight size={15} />
-              </button>
+              </InkButton>
             ))}
           </div>
         </div>
       ) : (
         <div className="messages">
-          {n.messages.map((m) => (
-            <article key={m.id} className={`message ${m.role}`}>
+          {n.messages.map((m, index) => (
+            <article
+              key={m.id}
+              className={`message ${m.role}${index === n.messages.length - 1 && !initialMessageIds.has(m.id) ? " message-latest" : ""}`}
+            >
               <span className="message-label">
                 {m.role === "user" ? "You" : "LMBook"}
               </span>
@@ -2696,7 +2859,7 @@ function Chat({
         </div>
       )}
       <form
-        className="chat-composer"
+        className="chat-composer ink-writing-surface"
         onSubmit={(e) => {
           e.preventDefault();
           void run("Reading your sources", async () => {
@@ -2705,8 +2868,9 @@ function Chat({
           });
         }}
       >
-        <textarea
+        <InkTextarea
           rows={2}
+          surface
           aria-label="Question for your sources"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -2721,6 +2885,7 @@ function Chat({
         >
           Ask
         </Button>
+        <InkStroke />
       </form>
       <DraftNotice
         error={questionDraft.storageError}
@@ -2787,13 +2952,11 @@ function Connections({
   const [checkingCodex, setCheckingCodex] = useState(false);
   const bundleInput = useRef<HTMLInputElement>(null);
   return (
-    <div className="settings-page">
+    <MotionSurface motionKey="settings" className="settings-page">
       <div className="page-heading">
         <div>
           <h1>Connections & settings</h1>
-          <p>
-            Local storage. Your model accounts. An editable teaching harness.
-          </p>
+          <p>Connect your accounts and manage saved notebooks.</p>
         </div>
       </div>
       <section className="settings-section">
@@ -2857,7 +3020,7 @@ function Connections({
                 restored={providerDraft.restored}
               />
               <Field label="Notebook provider">
-                <select
+                <InkSelect
                   value={draft.provider}
                   onChange={(e) =>
                     setDraft({
@@ -2872,7 +3035,7 @@ function Connections({
                     OpenCode Go · existing login or key
                   </option>
                   <option value="ollama">Ollama · local model</option>
-                </select>
+                </InkSelect>
               </Field>
               <Field
                 label="Model ID"
@@ -2886,7 +3049,7 @@ function Connections({
                       : "Leave blank for qwen3:8b, or enter an installed Ollama model."
                 }
               >
-                <input
+                <InkInput
                   value={draft.model}
                   maxLength={100}
                   onChange={(e) =>
@@ -2928,9 +3091,9 @@ function Connections({
             <summary>Connection instructions</summary>
             <p>
               <strong>Codex:</strong> install the CLI and run{" "}
-              <code>codex login</code>. LMBook connects through Codex App
-              Server using your local login. Your subscription or API billing
-              and usage limits apply.
+              <code>codex login</code>. LMBook connects through Codex App Server
+              using your local login. Your subscription or API billing and usage
+              limits apply.
             </p>
             <p>
               <strong>OpenCode Go:</strong> install OpenCode and connect your Go
@@ -3034,6 +3197,7 @@ function Connections({
         </div>
         <div className="settings-body">
           {window.sennibookDesktop && <DesktopDetails />}
+          <MotionPreferences />
           <h3>Notebook backups</h3>
           <p>
             A ZIP backup includes notes, saved source evidence, episode scripts
@@ -3057,7 +3221,7 @@ function Connections({
             >
               Restore a notebook
             </Button>
-            <input
+            <InkInput
               ref={bundleInput}
               type="file"
               accept=".zip"
@@ -3086,7 +3250,7 @@ function Connections({
                 restored={detailsDraft.restored}
               />
               <Field label="Notebook title">
-                <input
+                <InkInput
                   value={title}
                   required
                   maxLength={150}
@@ -3094,7 +3258,7 @@ function Connections({
                 />
               </Field>
               <Field label="Notebook description">
-                <textarea
+                <InkTextarea
                   rows={2}
                   value={description}
                   maxLength={2000}
@@ -3165,7 +3329,7 @@ function Connections({
           </details>
         </div>
       </section>
-    </div>
+    </MotionSurface>
   );
 }
 
@@ -3230,3 +3394,8 @@ createRoot(document.getElementById("root")!).render(
     </DownloadProvider>
   </React.StrictMode>,
 );
+if (
+  import.meta.env.DEV &&
+  new URLSearchParams(location.search).has("theme-lab")
+)
+  void import("./theme-lab/ThemeLab");

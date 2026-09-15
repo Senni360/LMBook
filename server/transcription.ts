@@ -124,7 +124,6 @@ async function waitForClose(child: ChildProcess, timeoutMs: number) {
   });
 }
 
-/** Request a process-tree stop, then wait for the launched process to close. */
 async function stopAndWait(child: ChildProcess) {
   requestStopProcess(child);
   const stopped = await waitForClose(child, maxStopMs);
@@ -246,7 +245,7 @@ async function runProcess(command: string, args: string[], options: RunOptions =
   return { ...close, records, stderr, stdout: plainStdout };
 }
 
-async function modelReady(model: TranscriptionModel, verifyHashes = false) {
+async function modelReady(model: TranscriptionModel, requireWorker = false) {
   const config = modelConfigs[model];
   const directory = path.join(modelsRoot, model);
   try {
@@ -273,7 +272,7 @@ async function modelReady(model: TranscriptionModel, verifyHashes = false) {
     // The Python worker performs the expensive hash check immediately before
     // preparation/transcription. Status only checks recorded sizes so it
     // remains bounded and never reads model weights.
-    if (verifyHashes && !(await exists(workerPath()))) return false;
+    if (requireWorker && !(await exists(workerPath()))) return false;
     return true;
   } catch {
     return false;

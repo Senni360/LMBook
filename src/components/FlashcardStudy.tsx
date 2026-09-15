@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, RotateCcw, Shuffle } from "lucide-react";
+import { InkInput, InkButton } from "./InkControl";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { RotateCcw, Shuffle } from "lucide-react";
 import { flashAnswerMatches, type FlashDeck } from "../../shared/flashcards";
 import { useDraftText } from "../hooks/useDraftText";
+import { LanguageDirection, motion, playMotion } from "./Motion";
 
 type Session = {
   version: 1;
@@ -102,6 +104,9 @@ export function FlashcardStudy({
   const input = useRef<HTMLInputElement>(null);
   const typedSubmit = useRef<HTMLButtonElement>(null);
   const question = useRef<HTMLButtonElement>(null);
+  const travel = useRef(0);
+  const previousFace = useRef("");
+  const previousPaper = useRef("");
   const root = useRef<HTMLElement>(null);
   useEffect(() => {
     const frame = requestAnimationFrame(() =>
@@ -112,6 +117,69 @@ export function FlashcardStudy({
   const card = deck.cards.find((c) => c.id === session.order[session.pos]);
   const faceKey = `${card?.id || "done"}:${session.reverse}`;
   const showingAnswer = !!card && revealed === faceKey;
+  useLayoutEffect(() => {
+    const node = question.current;
+    const revealChange = previousFace.current === faceKey;
+    previousFace.current = faceKey;
+    if (!node) return;
+    const paper = getComputedStyle(node).backgroundColor;
+    const animations: (Animation | undefined)[] = [];
+    // The old node is already gone. Never snapshot, clone, or retain either side.
+    animations.push(
+      playMotion(
+        node,
+        revealChange
+          ? [
+              { backgroundColor: previousPaper.current || paper },
+              { backgroundColor: paper },
+            ]
+          : [
+              {
+                transform: `translateX(${-travel.current * 12}px)`,
+              },
+              { transform: "none", opacity: 1 },
+            ],
+        { duration: revealChange ? motion.change : 180 },
+      ),
+    );
+    if (revealChange)
+      animations.push(
+        playMotion(
+          node.querySelector<HTMLElement>(".flash-term"),
+          [
+            {
+              transform: "translateY(-3px)",
+              clipPath: "inset(0 0 100% 0)",
+            },
+            { transform: "none", opacity: 1, clipPath: "inset(0)" },
+          ],
+          { duration: 180, delay: revealChange ? 35 : 0 },
+        ),
+      );
+    animations.push(
+      playMotion(
+        node.querySelector<HTMLElement>(".flash-face-label"),
+        [{ opacity: 0.5 }, { opacity: 1 }],
+        { duration: motion.quick },
+      ),
+    );
+    previousPaper.current = paper;
+    return () => animations.forEach((animation) => animation?.cancel());
+  }, [faceKey, showingAnswer]);
+  useLayoutEffect(() => {
+    if (checked !== "wrong") return;
+    const animation = playMotion(
+      input.current,
+      [
+        { transform: "translateX(0)" },
+        { transform: "translateX(-3px)" },
+        { transform: "translateX(2px)" },
+        { transform: "translateX(0)" },
+      ],
+      { duration: 180, easing: "ease-out" },
+    );
+    return () => animation?.cancel();
+  }, [checked]);
   const answer = card && (session.reverse ? card.front : card.back);
   const outcomeKey = (id: string) =>
     `${session.reverse ? "back" : "front"}:${id}`;
@@ -131,6 +199,7 @@ export function FlashcardStudy({
     setWrongAttempt(false);
   };
   const move = (delta: number) => {
+    travel.current = delta < 0 ? -1 : 1;
     clearFace();
     const current = sessionRef.current;
     update({
@@ -140,6 +209,7 @@ export function FlashcardStudy({
   };
   const mark = (value: "known" | "missed") => {
     if (!card) return;
+    travel.current = 1;
     clearFace();
     update({
       ...session,
@@ -151,6 +221,7 @@ export function FlashcardStudy({
     mode: "all" | "missed" | "unanswered" | "shuffle",
     selectedGroups = session.groups,
   ) => {
+    travel.current = 0;
     clearFace();
     const selected = deck.cards.filter((c) =>
       selectedGroups.includes(c.group || "All entries"),
@@ -312,7 +383,7 @@ export function FlashcardStudy({
         </summary>
         <div className="flash-groups" aria-label="Practice chapters">
           {groups.map((group) => (
-            <button
+            <InkButton
               className="button"
               key={group}
               aria-pressed={session.groups.includes(group)}
@@ -326,29 +397,34 @@ export function FlashcardStudy({
               }
             >
               {group}
-            </button>
+            </InkButton>
           ))}
         </div>
         {groups.length > 1 && (
           <div className="flash-actions">
-            <button
+            <InkButton
               className="button quiet"
               onClick={() => restart("all", groups)}
             >
               Select all chapters
-            </button>
-            <button className="button quiet" onClick={() => restart("all", [])}>
+            </InkButton>
+            <InkButton
+              className="button quiet"
+              onClick={() => restart("all", [])}
+            >
               Deselect all chapters
-            </button>
+            </InkButton>
           </div>
         )}
       </details>
       <div className="flash-study-controls">
-        <button
+        <InkButton
           className="button"
           aria-label={`Switch direction: ${session.reverse ? deck.backLabel : deck.frontLabel} to ${session.reverse ? deck.frontLabel : deck.backLabel}`}
           title="Switch direction using this same word list"
+          data-reversed={session.reverse}
           onClick={() => {
+            travel.current = 0;
             clearFace();
             update({
               ...session,
@@ -358,18 +434,20 @@ export function FlashcardStudy({
             });
           }}
         >
-          <ArrowLeftRight size={16} />{" "}
-          {session.reverse ? deck.backLabel : deck.frontLabel} →{" "}
-          {session.reverse ? deck.frontLabel : deck.backLabel}
-        </button>
-        <button
+          <LanguageDirection
+            front={deck.frontLabel}
+            back={deck.backLabel}
+            reverse={session.reverse}
+          />
+        </InkButton>
+        <InkButton
           className="button"
           onClick={() => restart("shuffle")}
           disabled={!selectedCards.length}
         >
           <Shuffle size={16} /> Shuffle
-        </button>
-        <button
+        </InkButton>
+        <InkButton
           className="button"
           aria-pressed={!session.typing}
           onClick={() => {
@@ -378,8 +456,8 @@ export function FlashcardStudy({
           }}
         >
           Flashcards
-        </button>
-        <button
+        </InkButton>
+        <InkButton
           className="button"
           aria-pressed={session.typing}
           onClick={() => {
@@ -388,11 +466,11 @@ export function FlashcardStudy({
           }}
         >
           Type answers
-        </button>
+        </InkButton>
         <details>
           <summary>Practice options</summary>
           <label className="flash-check">
-            <input
+            <InkInput
               type="checkbox"
               checked={session.examples}
               onChange={(e) =>
@@ -402,7 +480,7 @@ export function FlashcardStudy({
             Show examples after reveal
           </label>
           <label className="flash-check">
-            <input
+            <InkInput
               type="checkbox"
               checked={session.dark}
               onChange={(e) => update({ ...session, dark: e.target.checked })}
@@ -410,7 +488,7 @@ export function FlashcardStudy({
             Dark study surface
           </label>
           <label className="flash-check">
-            <input
+            <InkInput
               type="checkbox"
               checked={session.mouseGrading}
               onChange={(e) =>
@@ -422,7 +500,13 @@ export function FlashcardStudy({
         </details>
       </div>
       <p className="flash-help">
-        {known}/{selectedCards.length} marked known in this direction · {missed}{" "}
+        <span
+          key={`${known}:${missed}:${session.reverse}`}
+          className="flash-round-counts"
+        >
+          {known}/{selectedCards.length} marked known in this direction ·{" "}
+          {missed}
+        </span>{" "}
         to revisit. Progress is saved on this device.
       </p>
       {storage.storageError && <p role="alert">{storage.storageError}</p>}
@@ -440,10 +524,11 @@ export function FlashcardStudy({
             max={session.order.length}
           />
           {/* One face only. A new card can never inherit or briefly paint a hidden answer. */}
-          <button
+          <InkButton
             ref={question}
             type="button"
             className="flash-question"
+            data-face={showingAnswer ? "answer" : "question"}
             key={`${faceKey}:${showingAnswer ? "answer" : "question"}`}
             onClick={() =>
               session.mouseGrading && !session.typing
@@ -483,7 +568,7 @@ export function FlashcardStudy({
                   ? "Answer revealed"
                   : "Reveal when you are ready"}
             </span>
-          </button>
+          </InkButton>
           {session.typing && (
             <form
               className="flash-typing"
@@ -494,7 +579,7 @@ export function FlashcardStudy({
             >
               <label>
                 Type the exact answer
-                <input
+                <InkInput
                   ref={input}
                   value={typed}
                   autoComplete="off"
@@ -520,7 +605,7 @@ export function FlashcardStudy({
                       : ""}
               </div>
               <div className="flash-actions">
-                <button
+                <InkButton
                   className="button primary"
                   type="submit"
                   ref={typedSubmit}
@@ -531,9 +616,9 @@ export function FlashcardStudy({
                   }
                 >
                   {checked === "correct" ? "Next card" : "Check answer"}
-                </button>
+                </InkButton>
                 {checked === "wrong" && (
-                  <button
+                  <InkButton
                     className="button"
                     type="button"
                     onClick={() => {
@@ -544,20 +629,20 @@ export function FlashcardStudy({
                     }}
                   >
                     Try again
-                  </button>
+                  </InkButton>
                 )}
               </div>
             </form>
           )}
           <div className="flash-study-nav">
-            <button
+            <InkButton
               className="button"
               disabled={session.pos === 0}
               onClick={() => move(-1)}
             >
               ← Previous
-            </button>
-            <button
+            </InkButton>
+            <InkButton
               className="button"
               onClick={() => {
                 if (session.typing && !showingAnswer)
@@ -572,23 +657,23 @@ export function FlashcardStudy({
               }}
             >
               {showingAnswer ? "Show question" : "Reveal answer"}
-            </button>
+            </InkButton>
             {!session.typing && (
               <>
-                <button className="button" onClick={() => mark("missed")}>
+                <InkButton className="button" onClick={() => mark("missed")}>
                   Learn again · 1
-                </button>
-                <button
+                </InkButton>
+                <InkButton
                   className="button primary"
                   onClick={() => mark("known")}
                 >
                   I know this · 2
-                </button>
+                </InkButton>
               </>
             )}
-            <button className="button" onClick={() => move(1)}>
+            <InkButton className="button" onClick={() => move(1)}>
               Next →
-            </button>
+            </InkButton>
           </div>
         </>
       ) : !session.groups.length ? (
@@ -597,30 +682,30 @@ export function FlashcardStudy({
           <p>Your saved progress is kept when you change the selection.</p>
         </div>
       ) : (
-        <div className="flash-round-done">
+        <div className="flash-round-done flash-round-complete">
           <h3>Round finished</h3>
           <p>
             {known} marked known · {missed} to revisit ·{" "}
             {selectedCards.length - known - missed} unanswered.
           </p>
           <div className="flash-actions">
-            <button
+            <InkButton
               className="button primary"
               disabled={!missed}
               onClick={() => restart("missed")}
             >
               Practice missed cards
-            </button>
-            <button
+            </InkButton>
+            <InkButton
               className="button"
               disabled={selectedCards.length === known + missed}
               onClick={() => restart("unanswered")}
             >
               Practice unanswered
-            </button>
-            <button className="button" onClick={() => restart("all")}>
+            </InkButton>
+            <InkButton className="button" onClick={() => restart("all")}>
               <RotateCcw size={16} /> Start another round
-            </button>
+            </InkButton>
           </div>
         </div>
       )}

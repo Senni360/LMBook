@@ -1,0 +1,47 @@
+.theme-lab,
+.theme-lab-reopen {
+  position: fixed;
+  right: 150px;
+  top: 12px;
+  z-index: 2147483000;
+  font: 600 12px/1 "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  color: #fff;
+  background: rgba(18, 18, 20, 0.88);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.45);
+  -webkit-app-region: no-drag;
+}
+.theme-lab {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+}
+.theme-lab-label {
+  padding: 0 8px 0 10px;
+  color: #9b9ba0;
+}
+.theme-lab button,
+.theme-lab-reopen {
+  font: inherit;
+  border: 0;
+  background: transparent;
+  color: #d8d8dc;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.theme-lab button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.theme-lab button[aria-pressed="true"] {
+  background: #fff;
+  color: #111;
+}
+.theme-lab-reopen {
+  background: rgba(18, 18, 20, 0.88);
+}

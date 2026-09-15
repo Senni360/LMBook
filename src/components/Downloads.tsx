@@ -1,3 +1,4 @@
+import { InkButton, InkLink } from "./InkControl";
 import {
   createContext,
   useContext,
@@ -112,7 +113,11 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     <DownloadsContext.Provider value={{ pending, start }}>
       {children}
       {current && (
-        <section className="download-status" aria-label="File download">
+        <section
+          className="download-status"
+          aria-label="File download"
+          data-state={current.state}
+        >
           <div className="download-status-heading">
             <Icon
               size={18}
@@ -121,16 +126,16 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
             />
             <strong>{current.name}</strong>
             {!pending && (
-              <button
+              <InkButton
                 className="icon-button"
                 aria-label="Dismiss download status"
                 onClick={() => setCurrent(null)}
               >
                 <X size={18} />
-              </button>
+              </InkButton>
             )}
           </div>
-          <p role="status">
+          <p role="status" key={current.state}>
             {pending
               ? current.started
                 ? "Saving file…"
@@ -164,9 +169,9 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
             </p>
           )}
           {pending && (
-            <button className="button quiet" onClick={cancel}>
+            <InkButton className="button quiet" onClick={cancel}>
               Cancel download
-            </button>
+            </InkButton>
           )}
         </section>
       )}
@@ -187,7 +192,7 @@ export function DownloadLink({
   const downloads = useContext(DownloadsContext);
   const desktop = !!window.sennibookDesktop?.download;
   return (
-    <a
+    <InkLink
       {...props}
       href={href}
       aria-disabled={(desktop && downloads?.pending) || undefined}
@@ -199,6 +204,6 @@ export function DownloadLink({
       }}
     >
       {children}
-    </a>
+    </InkLink>
   );
 }
