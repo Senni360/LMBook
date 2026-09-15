@@ -1,26 +1,64 @@
-name: Windows release
+name: Desktop release
 
 on:
   push:
+    branches: [master]
+  pull_request:
     branches: [master]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Finish an upload before another merge can start publishing a release.
 concurrency:
-  group: windows-release
+  group: desktop-release-${{ github.event.pull_request.number || 'master' }}
   cancel-in-progress: false
 
 jobs:
-  build:
-    if: github.ref == 'refs/heads/master'
-    runs-on: windows-latest
-    timeout-minutes: 35
+  plan:
+    runs-on: ubuntu-latest
     outputs:
       publish: ${{ steps.plan.outputs.publish }}
-      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - name: Check version or prepare a PR build
+        id: plan
+        run: node scripts/release.mjs plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.publish == 'true'
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows-latest
+            args: --win --x64
+            executable: release/win-unpacked/LMBook.exe
+          - target: mac-arm64
+            os: macos-15
+            args: --mac --arm64
+            executable: release/mac-arm64/LMBook.app/Contents/MacOS/LMBook
+            app: release/mac-arm64/LMBook.app
+          - target: mac-x64
+            os: macos-15-intel
+            args: --mac --x64
+            executable: release/mac/LMBook.app/Contents/MacOS/LMBook
+            app: release/mac/LMBook.app
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -29,50 +67,67 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-      - name: Check whether this version needs a release
-        id: plan
-        run: node scripts/release.mjs plan
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
       - name: Install locked dependencies
-        if: steps.plan.outputs.publish == 'true'
         run: npm ci
-      - name: Install the browser used by existing checks
-        if: steps.plan.outputs.publish == 'true'
+      - name: Install browser used by existing checks
         run: npx playwright install chromium
       - name: Build and run existing application checks
-        if: steps.plan.outputs.publish == 'true'
         run: npm test
-      - name: Package Windows installer and portable app
-        if: steps.plan.outputs.publish == 'true'
+      - name: Package native desktop app
         run: |
           node scripts/build-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npx electron-builder --win --publish never
+          npx electron-builder ${{ matrix.args }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      - name: Check the packaged desktop app
-        if: steps.plan.outputs.publish == 'true'
-        run: |
-          $env:SENNIBOOK_TEST_EXECUTABLE = Join-Path $PWD 'release/win-unpacked/LMBook.exe'
-          npx tsx --test tests/desktop.smoke.ts
-      - name: Prepare downloads and SHA-256 checksums
-        if: steps.plan.outputs.publish == 'true'
-        run: node scripts/release.mjs stage
-      - name: Transfer checked artifacts to the publishing job
-        if: steps.plan.outputs.publish == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+          # The configured identity is ad-hoc; no signing secrets enter PR jobs.
+          CSC_FOR_PULL_REQUEST: "true"
+      - name: Verify the Mac app signature
+        if: runner.os == 'macOS'
+        run: codesign --verify --deep --strict "${{ github.workspace }}/${{ matrix.app }}"
+      - name: Check packaged app on its native architecture
+        run: npx tsx --test tests/desktop.smoke.ts
+        env:
+          SENNIBOOK_TEST_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
+      - name: Stage checked platform downloads
+        run: node scripts/release.mjs stage ${{ matrix.target }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: windows-release-${{ github.sha }}
-          path: .work/release-assets/*
+          name: desktop-${{ matrix.target }}-${{ github.sha }}
+          path: .work/release-assets/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          compression-level: 0
+
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: desktop-*-${{ github.sha }}
+          merge-multiple: true
+          path: .work/release-assets
+      - name: Verify every platform and combine checksums
+        run: node scripts/release.mjs collect
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-desktop-${{ github.sha }}
+          path: .work/release-assets/*.*
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 7
           compression-level: 0
 
   publish:
-    needs: build
-    if: needs.build.outputs.publish == 'true'
+    needs: verify
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -86,9 +141,9 @@ jobs:
           node-version: "24"
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: windows-release-${{ github.sha }}
+          name: verified-desktop-${{ github.sha }}
           path: .work/release-assets
-      - name: Publish only after every download is verified
+      - name: Publish only verified downloads
         run: node scripts/release.mjs publish
         env:
           GITHUB_TOKEN: ${{ github.token }}

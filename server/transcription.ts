@@ -65,7 +65,7 @@ function isSupportedModel(model: unknown): model is TranscriptionModel {
 }
 
 function systemPython() {
-  return process.env.LMBOOK_PYTHON || process.env.SENNIBOOK_PYTHON || "python";
+  return process.env.LMBOOK_PYTHON || process.env.SENNIBOOK_PYTHON || (process.platform === "win32" ? "python" : "python3");
 }
 
 function workerPath() {

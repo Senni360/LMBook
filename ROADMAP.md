@@ -1,5 +1,7 @@
 # LMBook roadmap
 
+- Version 0.3.8 adds native Apple Silicon and Intel Mac packaging, Finder tool discovery and Mac window/menu behavior. Native CI and release verification are part of [PR #8](https://github.com/Senni360/LMBook/pull/8); see [Mac setup](docs/macos.md).
+
 - Version 0.3.7 refines Ink's shared hover, editing focus and heading-arrival rules, fits desktop chat to the window, and removes repetitive interface copy. Research, visual revisions, package checks and long-list performance limits are in [the interaction evaluation](docs/ui/ink-interactions.md). Local build complete; owner review remains next.
 
 - Version 0.3.6 adopts the owner's Ink direction: individual pen contours across controls, restrained imperfections and underlines replacing bookmarks. See [the refinement and evaluation](docs/ui/ink.md).

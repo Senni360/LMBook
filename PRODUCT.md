@@ -3,7 +3,7 @@
 ## Platform
 web
 
-Electron desktop app with a reusable web interface, chosen by the owner on 2026-09-14. Windows is the first desktop target. Deliver features and examples in Electron; the browser's separate development library is not the owner's desktop library. Phone-friendly listening remains a product requirement.
+Electron desktop app with a reusable web interface, chosen by the owner on 2026-09-14. Windows is the first desktop target. The owner requested a macOS version on 2026-09-15, covering Apple Silicon and Intel with native build checks; see [Mac delivery and limits](docs/macos.md). Deliver features and examples in Electron; the browser's separate development library is not the owner's desktop library. Phone-friendly listening remains a product requirement.
 ## Users
 The owner and friends study in Dutch and English, from high school to advanced politics, biology and economics. English is the confirmed default for new notebooks. They listen while walking, sometimes ten hours in a week, sometimes none. The owner listens on an iPhone and does not currently use Obsidian. LMBook must work independently; vault integration remains optional.
 ## Product Purpose

@@ -2,18 +2,21 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { executableOnPath } from "./executable-path.ts";
 import { stopProcess } from "./process-lifecycle.ts";
 
 export const openCodePath =
   process.env.OPENCODE_CLI_PATH ||
-  path.join(
-    process.env.APPDATA || "",
-    "npm",
-    "node_modules",
-    "opencode-ai",
-    "bin",
-    process.platform === "win32" ? "opencode.exe" : "opencode",
-  );
+  (process.platform !== "win32"
+    ? executableOnPath("opencode")
+    : path.join(
+        process.env.APPDATA || "",
+        "npm",
+        "node_modules",
+        "opencode-ai",
+        "bin",
+        "opencode.exe",
+      ));
 export const openCodeAvailable = () => existsSync(openCodePath);
 export const defaultGoModel = "muse-spark-1.3-contributor";
 

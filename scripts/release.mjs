@@ -32,9 +32,24 @@ if (
   );
 const tag = `v${version}`;
 const directory = ".work/release-assets";
+const targets = {
+  "windows-x64": [
+    [`LMBook-${version}-portable.exe`, `LMBook-${version}-portable.exe`],
+    [`LMBook Setup ${version}.exe`, `LMBook-Setup-${version}.exe`],
+  ],
+  "mac-arm64": [
+    [`LMBook-${version}-mac-arm64.dmg`, `LMBook-${version}-mac-arm64.dmg`],
+    [`LMBook-${version}-mac-arm64.zip`, `LMBook-${version}-mac-arm64.zip`],
+  ],
+  "mac-x64": [
+    [`LMBook-${version}-mac-x64.dmg`, `LMBook-${version}-mac-x64.dmg`],
+    [`LMBook-${version}-mac-x64.zip`, `LMBook-${version}-mac-x64.zip`],
+  ],
+};
 const names = [
-  `LMBook-${version}-portable.exe`,
-  `LMBook-Setup-${version}.exe`,
+  ...Object.values(targets)
+    .flat()
+    .map(([, name]) => name),
   "SHA256SUMS.txt",
 ];
 const notes = await readFile(`docs/releases/${version}.md`, "utf8");
@@ -99,7 +114,10 @@ async function digest(file) {
 }
 
 if (command === "plan") {
-  const { published } = await releaseState();
+  const { published } =
+    process.env.GITHUB_EVENT_NAME === "pull_request"
+      ? { published: false }
+      : await releaseState();
   await output("publish", String(!published));
   await output("version", version);
   await summary(
@@ -108,41 +126,72 @@ if (command === "plan") {
       : `Build and verify ${tag} from ${sha} before publication.`,
   );
 } else if (command === "stage") {
-  await mkdir(directory, { recursive: true });
-  if ((await readdir(directory)).length)
+  const target = process.argv[3];
+  if (!Object.hasOwn(targets, target))
+    throw new Error("Choose windows-x64, mac-arm64 or mac-x64.");
+  const outputDir = path.join(directory, target);
+  await mkdir(outputDir, { recursive: true });
+  if ((await readdir(outputDir)).length)
     throw new Error("Artifact staging directory must be empty.");
-  const sourceNames = [
-    `LMBook-${version}-portable.exe`,
-    `LMBook Setup ${version}.exe`,
-  ];
-  for (let i = 0; i < 2; i++) {
-    const file = path.join("release", sourceNames[i]);
-    if ((await stat(file)).size < 1_000_000)
-      throw new Error(`Unexpectedly small executable: ${file}`);
-    await copyFile(file, path.join(directory, names[i]));
-  }
   const files = [];
-  for (const name of names.slice(0, 2))
+  for (const [source, name] of targets[target]) {
+    const file = path.join("release", source);
+    if ((await stat(file)).size < 1_000_000)
+      throw new Error(`Unexpectedly small download: ${file}`);
+    await copyFile(file, path.join(outputDir, name));
     files.push({
       name,
-      sha256: await digest(path.join(directory, name)),
-      size: (await stat(path.join(directory, name))).size,
+      sha256: await digest(file),
+      size: (await stat(file)).size,
     });
+  }
   await writeFile(
-    path.join(directory, names[2]),
-    files.map((f) => `${f.sha256}  ${f.name}\n`).join(""),
+    path.join(outputDir, "manifest.json"),
+    JSON.stringify({ version, sha, target, files }, null, 2),
+  );
+  await summary(`Prepared checked ${target} downloads for ${tag}.`);
+} else if (command === "collect") {
+  const files = [];
+  for (const [target, expected] of Object.entries(targets)) {
+    const inputDir = path.join(directory, target);
+    const manifest = JSON.parse(
+      await readFile(path.join(inputDir, "manifest.json"), "utf8"),
+    );
+    if (
+      manifest.version !== version ||
+      manifest.sha !== sha ||
+      manifest.target !== target ||
+      manifest.files?.length !== expected.length ||
+      manifest.files.some((file, i) => file.name !== expected[i][1])
+    )
+      throw new Error(`Artifact manifest mismatch: ${target}`);
+    for (const file of manifest.files) {
+      const source = path.join(inputDir, file.name);
+      if (
+        (await stat(source)).size !== file.size ||
+        (await digest(source)) !== file.sha256
+      )
+        throw new Error(`Artifact checksum mismatch: ${file.name}`);
+      await copyFile(source, path.join(directory, file.name));
+      files.push(file);
+    }
+  }
+  const checksums = path.join(directory, "SHA256SUMS.txt");
+  await writeFile(
+    checksums,
+    files.map((file) => `${file.sha256}  ${file.name}\n`).join(""),
   );
   files.push({
-    name: names[2],
-    sha256: await digest(path.join(directory, names[2])),
-    size: (await stat(path.join(directory, names[2]))).size,
+    name: "SHA256SUMS.txt",
+    sha256: await digest(checksums),
+    size: (await stat(checksums)).size,
   });
   await writeFile(
     path.join(directory, "manifest.json"),
     JSON.stringify({ version, sha, files }, null, 2),
   );
   await summary(
-    `Prepared installer, portable executable and SHA256SUMS.txt for ${tag}.`,
+    `Verified all three platform builds and prepared combined checksums for ${tag}.`,
   );
 } else if (command === "publish") {
   if (process.env.GITHUB_REF !== "refs/heads/master")
@@ -175,7 +224,7 @@ if (command === "plan") {
         (_, href) =>
           `](${new URL(href, `https://github.com/${repo}/blob/${sha}/docs/releases/${version}.md`)})`,
       ) +
-      `\n\nBuilt from commit ${sha} by the [Windows release workflow](https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}). Existing application checks and the packaged desktop smoke check passed before publication.\n`;
+      `\n\nBuilt from commit ${sha} by the [Desktop release workflow](https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}). Existing application checks and the packaged desktop smoke check passed before publication.\n`;
     release ||= await request("releases", {
       method: "POST",
       body: {
@@ -208,7 +257,7 @@ if (command === "plan") {
           method: "POST",
           headers: {
             Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-            "Content-Type": file.name.endsWith(".exe")
+            "Content-Type": !file.name.endsWith(".txt")
               ? "application/octet-stream"
               : "text/plain",
             "Content-Length": String(file.size),
@@ -255,9 +304,11 @@ if (command === "plan") {
       body: { draft: false, body, make_latest: "legacy" },
     });
     await summary(
-      `Published [${tag}](${release.html_url}) with all three verified downloads.`,
+      `Published [${tag}](${release.html_url}) with all seven verified downloads.`,
     );
   }
 } else {
-  throw new Error("Usage: node scripts/release.mjs plan|stage|publish");
+  throw new Error(
+    "Usage: node scripts/release.mjs plan|stage <target>|collect|publish",
+  );
 }

@@ -45,6 +45,23 @@ function isAppUrl(value) {
   }
 }
 
+// Finder launches do not inherit a terminal's Homebrew/user CLI search paths.
+if (process.platform === "darwin") {
+  const searchPaths = [
+    ...(process.env.PATH || "").split(path.delimiter),
+    path.join(app.getPath("home"), ".local", "bin"),
+    path.join(app.getPath("home"), ".opencode", "bin"),
+    path.join(app.getPath("home"), ".npm-global", "bin"),
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    "/usr/bin",
+    "/bin",
+  ];
+  process.env.PATH = [...new Set(searchPaths.filter(Boolean))].join(
+    path.delimiter,
+  );
+}
+
 app.setName("LMBook");
 // Keep the existing library, provider configuration and Chromium profile together.
 // The private origin and persisted storage keys also retain their original names.
@@ -93,8 +110,7 @@ async function requestQuit() {
         signal: AbortSignal.timeout(2000),
       });
       activeJobs = Object.keys((await response.json()).activeJobs || {}).length;
-    } catch {
-    }
+    } catch {}
   }
   if (activeJobs) {
     closePrompt = true;
@@ -216,7 +232,7 @@ function verifySender(event) {
     event.senderFrame !== window.webContents.mainFrame ||
     !isAppUrl(event.senderFrame.url)
   )
-  throw new Error("Untrusted desktop request.");
+    throw new Error("Untrusted desktop request.");
 }
 async function setup() {
   origin = await startBackend();
@@ -252,10 +268,17 @@ async function setup() {
     minWidth: 700,
     minHeight: 560,
     autoHideMenuBar: true,
-    // Keep native Windows caption buttons, but paint them into the app surface
-    // so the dark system title bar no longer clashes with the light canvas.
-    titleBarStyle: "hidden",
-    titleBarOverlay: { color: "#00000000", symbolColor: "#223b34", height: 44 },
+    // macOS keeps its native title bar and traffic lights clear of notebook controls.
+    ...(process.platform === "win32"
+      ? {
+          titleBarStyle: "hidden",
+          titleBarOverlay: {
+            color: "#00000000",
+            symbolColor: "#223b34",
+            height: 44,
+          },
+        }
+      : {}),
     backgroundColor: "#f5f6f2",
     show: false,
     icon: path.join(root, "electron", "icon.png"),
@@ -299,7 +322,8 @@ async function setup() {
   window.on("close", (event) => {
     if (!quitting) {
       event.preventDefault();
-      void requestQuit();
+      if (process.platform === "darwin") window.hide();
+      else void requestQuit();
     }
   });
   window.once("ready-to-show", () => {
@@ -337,6 +361,18 @@ async function setup() {
       {
         label: "LMBook",
         submenu: [
+          ...(process.platform === "darwin"
+            ? [
+                { role: "about" },
+                { type: "separator" },
+                { role: "services" },
+                { type: "separator" },
+                { role: "hide" },
+                { role: "hideOthers" },
+                { role: "unhide" },
+                { type: "separator" },
+              ]
+            : []),
           { label: "Show LMBook", click: showWindow },
           {
             label: "Open data folder",
@@ -351,6 +387,7 @@ async function setup() {
         ],
       },
       { role: "editMenu" },
+      ...(process.platform === "darwin" ? [{ role: "windowMenu" }] : []),
       {
         label: "View",
         submenu: [
@@ -367,8 +404,13 @@ async function setup() {
   // Keep native window controls and menu accelerators without a second bar.
   // Alt temporarily reveals the menu on Windows/Linux.
   window.setMenuBarVisibility(false);
+  const trayIcon = nativeImage.createFromPath(
+    path.join(root, "electron", "icon.png"),
+  );
   tray = new Tray(
-    nativeImage.createFromPath(path.join(root, "electron", "icon.png")),
+    process.platform === "darwin"
+      ? trayIcon.resize({ width: 18, height: 18 })
+      : trayIcon,
   );
   tray.setToolTip("LMBook");
   tray.setContextMenu(

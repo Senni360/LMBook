@@ -33,3 +33,15 @@ nsis:
   deleteAppDataOnUninstall: false
 portable:
   artifactName: LMBook-${version}-portable.${ext}
+
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.education
+  icon: electron/icon.svg
+  artifactName: LMBook-${version}-mac-${arch}.${ext}
+  # No Developer ID certificate is configured yet; these builds are not notarized.
+  identity: "-"
+  hardenedRuntime: false
+  notarize: false
