@@ -1,3 +1,4 @@
+import { InkSelect, InkButton } from "./InkControl";
 import { PlaybackMark } from "./Motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DownloadLink } from "./Downloads";
@@ -229,8 +230,7 @@ export function EpisodePlayer({
     if (audioRef.current) audioRef.current.playbackRate = speed;
     try {
       storage?.setItem(SPEED_KEY, String(speed));
-    } catch {
-    }
+    } catch {}
   }, [speed, storage]);
 
   useEffect(() => {
@@ -310,7 +310,7 @@ export function EpisodePlayer({
         </div>
         <label className="episode-player-speed">
           <span>Speed</span>
-          <select
+          <InkSelect
             aria-label="Playback speed"
             value={speed}
             onChange={(event) => setSpeed(Number(event.target.value))}
@@ -320,7 +320,7 @@ export function EpisodePlayer({
                 {value}×
               </option>
             ))}
-          </select>
+          </InkSelect>
         </label>
       </div>
       {hasAudio ? (
@@ -360,13 +360,13 @@ export function EpisodePlayer({
       {playbackError && hasAudio && (
         <div className="episode-player-error" role="alert">
           <span>{playbackError}</span>
-          <button type="button" onClick={retryPlayback}>
+          <InkButton type="button" onClick={retryPlayback}>
             Retry playback
-          </button>
+          </InkButton>
         </div>
       )}
       <div className="episode-player-controls">
-        <button
+        <InkButton
           type="button"
           className="episode-player-button"
           aria-label={
@@ -384,8 +384,8 @@ export function EpisodePlayer({
         >
           <ChevronLeft size={17} aria-hidden="true" />
           Previous
-        </button>
-        <button
+        </InkButton>
+        <InkButton
           type="button"
           className="episode-player-button"
           aria-label="Back 15 seconds"
@@ -395,8 +395,8 @@ export function EpisodePlayer({
         >
           <Rewind size={17} aria-hidden="true" />
           15 sec
-        </button>
-        <button
+        </InkButton>
+        <InkButton
           type="button"
           className="episode-player-button"
           aria-label="Forward 15 seconds"
@@ -406,8 +406,8 @@ export function EpisodePlayer({
         >
           15 sec
           <FastForward size={17} aria-hidden="true" />
-        </button>
-        <button
+        </InkButton>
+        <InkButton
           type="button"
           className="episode-player-button"
           aria-label={
@@ -425,7 +425,7 @@ export function EpisodePlayer({
         >
           Next
           <ChevronRight size={17} aria-hidden="true" />
-        </button>
+        </InkButton>
         {activeChapter.audioFile && (
           <DownloadLink
             className="episode-player-download"
@@ -440,7 +440,7 @@ export function EpisodePlayer({
       </div>
       <label className="episode-player-chapter">
         <span>Chapter</span>
-        <select
+        <InkSelect
           aria-label="Choose chapter"
           value={activeChapter.id}
           onChange={(event) => changeChapter(event.target.value)}
@@ -451,7 +451,7 @@ export function EpisodePlayer({
               {chapter.audioFile ? "" : " · audio pending"}
             </option>
           ))}
-        </select>
+        </InkSelect>
       </label>
       <span className="sr-only">
         Current position is saved for this episode and chapter.

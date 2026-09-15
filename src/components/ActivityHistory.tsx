@@ -1,3 +1,4 @@
+import { InkButton } from "./InkControl";
 import { MotionList } from "./Motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, History, LoaderCircle } from "lucide-react";
@@ -152,9 +153,9 @@ export function ActivityHistory({
               <CircleAlert size={15} aria-hidden="true" />
               {error}
             </p>
-            <button type="button" onClick={() => void load(true)}>
+            <InkButton type="button" onClick={() => void load(true)}>
               Try again
-            </button>
+            </InkButton>
           </div>
         )}
         {!loading && !error && rows.length === 0 && (

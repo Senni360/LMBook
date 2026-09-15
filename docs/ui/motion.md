@@ -1,5 +1,9 @@
 # Purposeful motion in LMBook
 
+The owner rejected the consistency of the earlier interaction treatment. The current rules and evaluation are in [Ink interactions](ink-interactions.md); the entries below preserve the earlier implementation history.
+
+Ink update, 2026-09-15: the owner selected pen contours and removed the bookmark motif. Ink uses stable selected underlines instead of traveling markers; the existing directional surface transitions and single-face practice behavior remain. Its brief contour retrace and reduced-motion treatment are documented in [ink.md](ink.md). Earlier marker descriptions below describe the original motion implementation.
+
 The owner requested a full application sweep on 14 September 2026: plentiful, creative motion whose parts work together and each explain a real interaction. Their imaginary card-to-sidebar sequence illustrates coordinated choreography, not a requested interaction to copy. Preserve the existing reading-room identity and all learning behavior.
 
 ## Thesis

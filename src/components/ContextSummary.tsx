@@ -1,3 +1,4 @@
+import { InkButton } from "./InkControl";
 import { useState } from "react";
 import { ChevronDown, ExternalLink, TriangleAlert } from "lucide-react";
 import type { Source } from "../../shared/model";
@@ -171,7 +172,7 @@ export function ContextSummary({
                       </div>
                       {excerpt ? (
                         canOpen ? (
-                          <button
+                          <InkButton
                             type="button"
                             className="context-summary-excerpt context-summary-excerpt-button"
                             onClick={() => {
@@ -195,7 +196,7 @@ export function ContextSummary({
                           >
                             “{excerpt.display}”
                             <ExternalLink size={14} aria-hidden="true" />
-                          </button>
+                          </InkButton>
                         ) : (
                           <p className="context-summary-excerpt">
                             “{excerpt.display}”
@@ -219,13 +220,13 @@ export function ContextSummary({
                         </p>
                       )}
                       {(changed || unverified) && onOpenSource && (
-                        <button
+                        <InkButton
                           type="button"
                           className="context-summary-more"
                           onClick={() => onOpenSource(source.id)}
                         >
                           Open available source
-                        </button>
+                        </InkButton>
                       )}
                     </div>
                   </li>
@@ -239,13 +240,13 @@ export function ContextSummary({
           )}
 
           {remaining > 0 && (
-            <button
+            <InkButton
               type="button"
               className="context-summary-more"
               onClick={() => setVisibleCount((count) => count + 50)}
             >
               Show more passages ({numberLabel(remaining)} remaining)
-            </button>
+            </InkButton>
           )}
         </div>
       )}

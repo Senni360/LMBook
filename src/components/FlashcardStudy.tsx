@@ -1,3 +1,4 @@
+import { InkInput, InkButton } from "./InkControl";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { RotateCcw, Shuffle } from "lucide-react";
 import { flashAnswerMatches, type FlashDeck } from "../../shared/flashcards";
@@ -382,7 +383,7 @@ export function FlashcardStudy({
         </summary>
         <div className="flash-groups" aria-label="Practice chapters">
           {groups.map((group) => (
-            <button
+            <InkButton
               className="button"
               key={group}
               aria-pressed={session.groups.includes(group)}
@@ -396,25 +397,28 @@ export function FlashcardStudy({
               }
             >
               {group}
-            </button>
+            </InkButton>
           ))}
         </div>
         {groups.length > 1 && (
           <div className="flash-actions">
-            <button
+            <InkButton
               className="button quiet"
               onClick={() => restart("all", groups)}
             >
               Select all chapters
-            </button>
-            <button className="button quiet" onClick={() => restart("all", [])}>
+            </InkButton>
+            <InkButton
+              className="button quiet"
+              onClick={() => restart("all", [])}
+            >
               Deselect all chapters
-            </button>
+            </InkButton>
           </div>
         )}
       </details>
       <div className="flash-study-controls">
-        <button
+        <InkButton
           className="button"
           aria-label={`Switch direction: ${session.reverse ? deck.backLabel : deck.frontLabel} to ${session.reverse ? deck.frontLabel : deck.backLabel}`}
           title="Switch direction using this same word list"
@@ -435,15 +439,15 @@ export function FlashcardStudy({
             back={deck.backLabel}
             reverse={session.reverse}
           />
-        </button>
-        <button
+        </InkButton>
+        <InkButton
           className="button"
           onClick={() => restart("shuffle")}
           disabled={!selectedCards.length}
         >
           <Shuffle size={16} /> Shuffle
-        </button>
-        <button
+        </InkButton>
+        <InkButton
           className="button"
           aria-pressed={!session.typing}
           onClick={() => {
@@ -452,8 +456,8 @@ export function FlashcardStudy({
           }}
         >
           Flashcards
-        </button>
-        <button
+        </InkButton>
+        <InkButton
           className="button"
           aria-pressed={session.typing}
           onClick={() => {
@@ -462,11 +466,11 @@ export function FlashcardStudy({
           }}
         >
           Type answers
-        </button>
+        </InkButton>
         <details>
           <summary>Practice options</summary>
           <label className="flash-check">
-            <input
+            <InkInput
               type="checkbox"
               checked={session.examples}
               onChange={(e) =>
@@ -476,7 +480,7 @@ export function FlashcardStudy({
             Show examples after reveal
           </label>
           <label className="flash-check">
-            <input
+            <InkInput
               type="checkbox"
               checked={session.dark}
               onChange={(e) => update({ ...session, dark: e.target.checked })}
@@ -484,7 +488,7 @@ export function FlashcardStudy({
             Dark study surface
           </label>
           <label className="flash-check">
-            <input
+            <InkInput
               type="checkbox"
               checked={session.mouseGrading}
               onChange={(e) =>
@@ -520,7 +524,7 @@ export function FlashcardStudy({
             max={session.order.length}
           />
           {/* One face only. A new card can never inherit or briefly paint a hidden answer. */}
-          <button
+          <InkButton
             ref={question}
             type="button"
             className="flash-question"
@@ -564,7 +568,7 @@ export function FlashcardStudy({
                   ? "Answer revealed"
                   : "Reveal when you are ready"}
             </span>
-          </button>
+          </InkButton>
           {session.typing && (
             <form
               className="flash-typing"
@@ -575,7 +579,7 @@ export function FlashcardStudy({
             >
               <label>
                 Type the exact answer
-                <input
+                <InkInput
                   ref={input}
                   value={typed}
                   autoComplete="off"
@@ -601,7 +605,7 @@ export function FlashcardStudy({
                       : ""}
               </div>
               <div className="flash-actions">
-                <button
+                <InkButton
                   className="button primary"
                   type="submit"
                   ref={typedSubmit}
@@ -612,9 +616,9 @@ export function FlashcardStudy({
                   }
                 >
                   {checked === "correct" ? "Next card" : "Check answer"}
-                </button>
+                </InkButton>
                 {checked === "wrong" && (
-                  <button
+                  <InkButton
                     className="button"
                     type="button"
                     onClick={() => {
@@ -625,20 +629,20 @@ export function FlashcardStudy({
                     }}
                   >
                     Try again
-                  </button>
+                  </InkButton>
                 )}
               </div>
             </form>
           )}
           <div className="flash-study-nav">
-            <button
+            <InkButton
               className="button"
               disabled={session.pos === 0}
               onClick={() => move(-1)}
             >
               ← Previous
-            </button>
-            <button
+            </InkButton>
+            <InkButton
               className="button"
               onClick={() => {
                 if (session.typing && !showingAnswer)
@@ -653,23 +657,23 @@ export function FlashcardStudy({
               }}
             >
               {showingAnswer ? "Show question" : "Reveal answer"}
-            </button>
+            </InkButton>
             {!session.typing && (
               <>
-                <button className="button" onClick={() => mark("missed")}>
+                <InkButton className="button" onClick={() => mark("missed")}>
                   Learn again · 1
-                </button>
-                <button
+                </InkButton>
+                <InkButton
                   className="button primary"
                   onClick={() => mark("known")}
                 >
                   I know this · 2
-                </button>
+                </InkButton>
               </>
             )}
-            <button className="button" onClick={() => move(1)}>
+            <InkButton className="button" onClick={() => move(1)}>
               Next →
-            </button>
+            </InkButton>
           </div>
         </>
       ) : !session.groups.length ? (
@@ -685,23 +689,23 @@ export function FlashcardStudy({
             {selectedCards.length - known - missed} unanswered.
           </p>
           <div className="flash-actions">
-            <button
+            <InkButton
               className="button primary"
               disabled={!missed}
               onClick={() => restart("missed")}
             >
               Practice missed cards
-            </button>
-            <button
+            </InkButton>
+            <InkButton
               className="button"
               disabled={selectedCards.length === known + missed}
               onClick={() => restart("unanswered")}
             >
               Practice unanswered
-            </button>
-            <button className="button" onClick={() => restart("all")}>
+            </InkButton>
+            <InkButton className="button" onClick={() => restart("all")}>
               <RotateCcw size={16} /> Start another round
-            </button>
+            </InkButton>
           </div>
         </div>
       )}

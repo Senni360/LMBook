@@ -1,3 +1,4 @@
+import { InkInput, InkButton } from "./InkControl";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   Check,
@@ -56,7 +57,7 @@ function CommandRow({
   return (
     <div className="google-setup-command-row">
       <code>{command}</code>
-      <button
+      <InkButton
         type="button"
         className="google-setup-copy"
         onClick={onCopy}
@@ -69,7 +70,7 @@ function CommandRow({
           <Copy size={15} aria-hidden="true" />
         )}
         <span>{copied ? "Copied" : "Copy"}</span>
-      </button>
+      </InkButton>
       {feedback && (
         <span
           className={`google-setup-copy-feedback is-${feedback.kind}`}
@@ -196,7 +197,7 @@ export function GoogleSetup({
     const isOpen = openStep === step;
     return (
       <section className={`google-setup-step ${isOpen ? "is-open" : ""}`}>
-        <button
+        <InkButton
           type="button"
           className="google-setup-step-toggle"
           aria-expanded={isOpen}
@@ -218,7 +219,7 @@ export function GoogleSetup({
           ) : (
             <ChevronRight size={18} aria-hidden="true" />
           )}
-        </button>
+        </InkButton>
         {isOpen && <div className="google-setup-step-body">{content}</div>}
       </section>
     );
@@ -364,15 +365,15 @@ export function GoogleSetup({
           "Save the project here, then verify",
           <>
             <p>
-              Save the project ID in LMBook. The connection check verifies
-              local authentication only; it does not verify billing, credit
+              Save the project ID in LMBook. The connection check verifies local
+              authentication only; it does not verify billing, credit
               eligibility, or voice quality. Try a short preview before a long
               episode.
             </p>
             <div className="google-setup-project-form">
               <label htmlFor="google-project-id">Google Cloud project ID</label>
               <div className="google-setup-project-row">
-                <input
+                <InkInput
                   id="google-project-id"
                   value={projectId}
                   onChange={(event) => {
@@ -386,14 +387,14 @@ export function GoogleSetup({
                   inputMode="text"
                   aria-describedby="google-project-help"
                 />
-                <button
+                <InkButton
                   type="button"
                   className="google-setup-button google-setup-button-primary"
                   onClick={() => void save()}
                   disabled={saveState === "saving"}
                 >
                   {saveState === "saving" ? "Saving…" : "Save project"}
-                </button>
+                </InkButton>
               </div>
               <p id="google-project-help" className="google-setup-field-help">
                 Use the project ID, not the display name or project number.
@@ -406,7 +407,7 @@ export function GoogleSetup({
               )}
             </div>
             <div className="google-setup-verify-row">
-              <button
+              <InkButton
                 type="button"
                 className="google-setup-button"
                 onClick={() => void verify()}
@@ -415,7 +416,7 @@ export function GoogleSetup({
                 {connection.kind === "checking"
                   ? "Checking…"
                   : "Check connection"}
-              </button>
+              </InkButton>
               {connection.kind === "success" && (
                 <p className="google-setup-success" role="status">
                   <CheckCircle2 size={16} aria-hidden="true" />

@@ -252,6 +252,10 @@ async function setup() {
     minWidth: 700,
     minHeight: 560,
     autoHideMenuBar: true,
+    // Keep native Windows caption buttons, but paint them into the app surface
+    // so the dark system title bar no longer clashes with the light canvas.
+    titleBarStyle: "hidden",
+    titleBarOverlay: { color: "#00000000", symbolColor: "#223b34", height: 44 },
     backgroundColor: "#f5f6f2",
     show: false,
     icon: path.join(root, "electron", "icon.png"),

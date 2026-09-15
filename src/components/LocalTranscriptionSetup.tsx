@@ -1,3 +1,4 @@
+import { InkInput, InkSelect, InkButton } from "./InkControl";
 import { responseError } from "../response-error";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, ExternalLink, LoaderCircle, Square } from "lucide-react";
@@ -205,7 +206,7 @@ export function LocalTranscriptionSetup({
       <div className="local-transcription-form">
         <label htmlFor="local-transcription-model">
           <span>Model to prepare</span>
-          <select
+          <InkSelect
             id="local-transcription-model"
             value={model}
             onChange={(event) =>
@@ -220,10 +221,10 @@ export function LocalTranscriptionSetup({
                 </option>
               ),
             )}
-          </select>
+          </InkSelect>
         </label>
         <label className="local-transcription-gpu">
-          <input
+          <InkInput
             type="checkbox"
             checked={gpu}
             disabled={running || loading}
@@ -258,16 +259,16 @@ export function LocalTranscriptionSetup({
 
       <div className="local-transcription-actions">
         {running ? (
-          <button
+          <InkButton
             type="button"
             className="button"
             onClick={() => void cancel()}
           >
             <Square size={15} fill="currentColor" aria-hidden="true" /> Cancel
             {activityIsTranscription ? " local work" : " setup"}
-          </button>
+          </InkButton>
         ) : (
-          <button
+          <InkButton
             type="button"
             className="button primary"
             onClick={() => void prepare()}
@@ -281,17 +282,17 @@ export function LocalTranscriptionSetup({
               />
             ) : null}
             {ready ? "Model ready" : "Prepare local transcription"}
-          </button>
+          </InkButton>
         )}
         {!ready && !running && (
-          <button
+          <InkButton
             type="button"
             className="local-transcription-recheck"
             onClick={() => void loadStatus(true)}
             disabled={loading}
           >
             Check again
-          </button>
+          </InkButton>
         )}
       </div>
 

@@ -1,3 +1,4 @@
+import { InkInput, InkSelect, InkButton } from "./InkControl";
 import { useEffect, useRef, useState } from "react";
 import type { Settings } from "../../shared/model";
 import type { CartesiaVoice, CartesiaVoicePage } from "../../shared/speech";
@@ -81,7 +82,7 @@ export function SpeechSettings({
     <div className="speech-settings-fields">
       <label className="field">
         <span>Speech provider</span>
-        <select
+        <InkSelect
           aria-label="Speech provider"
           value={value.ttsProvider || "google"}
           disabled={disabled}
@@ -91,7 +92,7 @@ export function SpeechSettings({
         >
           <option value="google">Google Cloud</option>
           <option value="cartesia">Cartesia · Sonic 3.6</option>
-        </select>
+        </InkSelect>
       </label>
       {cartesia ? (
         <>
@@ -104,7 +105,7 @@ export function SpeechSettings({
             <>
               <label className="field">
                 <span>Find a voice</span>
-                <input
+                <InkInput
                   aria-label="Find a voice"
                   type="search"
                   value={search}
@@ -123,7 +124,7 @@ export function SpeechSettings({
           {(["cartesiaVoiceA", "cartesiaVoiceB"] as const).map((key, index) => (
             <label className="field" key={key}>
               <span>Host {index ? "B" : "A"}</span>
-              <select
+              <InkSelect
                 aria-label={`Host ${index ? "B" : "A"}`}
                 value={value[key] || ""}
                 disabled={disabled || !connected}
@@ -139,7 +140,7 @@ export function SpeechSettings({
                     {voice.language ? ` · ${voice.language}` : ""}
                   </option>
                 ))}
-              </select>
+              </InkSelect>
               {knownVoices.current.get(value[key])?.description && (
                 <small>
                   {knownVoices.current.get(value[key])!.description}
@@ -149,24 +150,24 @@ export function SpeechSettings({
           ))}
           <div className="cartesia-actions">
             {connected && (
-              <button
+              <InkButton
                 type="button"
                 className="button quiet"
                 disabled={disabled || loading}
                 onClick={() => setReload((n) => n + 1)}
               >
                 Refresh voices
-              </button>
+              </InkButton>
             )}
             {cursor && (
-              <button
+              <InkButton
                 type="button"
                 className="button quiet"
                 disabled={disabled || loading}
                 onClick={() => void load(cursor, abort.current?.signal)}
               >
                 Load more
-              </button>
+              </InkButton>
             )}
           </div>
           {loading && (
@@ -186,7 +187,7 @@ export function SpeechSettings({
           )}
           <label className="field">
             <span>Audio quality</span>
-            <select
+            <InkSelect
               aria-label="Audio quality"
               value={value.cartesiaSampleRate ?? 44100}
               disabled={disabled}
@@ -199,7 +200,7 @@ export function SpeechSettings({
             >
               <option value={44100}>High · 44.1 kHz (recommended)</option>
               <option value={24000}>Standard · 24 kHz</option>
-            </select>
+            </InkSelect>
             <small>
               Applies to newly generated audio. Existing recordings keep their
               original quality.
@@ -209,7 +210,7 @@ export function SpeechSettings({
             <span>
               Delivery speed · {(value.cartesiaSpeed ?? 1).toFixed(2)}×
             </span>
-            <input
+            <InkInput
               aria-label="Delivery speed"
               type="range"
               min={0.6}
@@ -231,7 +232,7 @@ export function SpeechSettings({
         <>
           <label className="field">
             <span>Speech model</span>
-            <select
+            <InkSelect
               aria-label="Speech model"
               value={value.ttsModel}
               disabled={disabled}
@@ -244,13 +245,13 @@ export function SpeechSettings({
                 Gemini 3.1 Flash TTS · preview
               </option>
               <option value="gemini-2.5-pro-tts">Gemini 2.5 Pro TTS</option>
-            </select>
+            </InkSelect>
           </label>
           <div className="form-row">
             {(["voiceA", "voiceB"] as const).map((key, index) => (
               <label className="field" key={key}>
                 <span>Host {index ? "B" : "A"}</span>
-                <select
+                <InkSelect
                   aria-label={`Host ${index ? "B" : "A"}`}
                   value={value[key]}
                   disabled={disabled}
@@ -270,7 +271,7 @@ export function SpeechSettings({
                   ].map((voice) => (
                     <option key={voice}>{voice}</option>
                   ))}
-                </select>
+                </InkSelect>
               </label>
             ))}
           </div>

@@ -1,5 +1,9 @@
 # LMBook roadmap
 
+- Version 0.3.7 refines Ink's shared hover, editing focus and heading-arrival rules, fits desktop chat to the window, and removes repetitive interface copy. Research, visual revisions, package checks and long-list performance limits are in [the interaction evaluation](docs/ui/ink-interactions.md). Local build complete; owner review remains next.
+
+- Version 0.3.6 adopts the owner's Ink direction: individual pen contours across controls, restrained imperfections and underlines replacing bookmarks. See [the refinement and evaluation](docs/ui/ink.md).
+
 - Version 0.3.5 completes the requested code cleanup and measured optimization sweep. It reduces repeated citation/episode work and audio copies, and fixes overlapping/stale refreshes. See [coverage, measurements and limits](docs/audits/app-cleanup.md).
 
 - Version 0.3.4 adds the owner's requested application-wide purposeful motion sweep. Navigation, readers, evidence, editable lists, practice, playback, disclosures, dialogs and recovery use one motion system. See [coverage and verification](docs/ui/motion.md).

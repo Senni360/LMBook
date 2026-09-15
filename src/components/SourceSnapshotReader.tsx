@@ -1,3 +1,4 @@
+import { InkButton } from "./InkControl";
 import { canAnimate, MotionSurface, useCitationMotion } from "./Motion";
 import { useEffect, useRef } from "react";
 import { Download, X } from "lucide-react";
@@ -101,9 +102,9 @@ export function SourceSnapshotReader({
           </span>
           <h3 id={`source-snapshot-title-${source.id}`}>{source.title}</h3>
         </div>
-        <button type="button" className="button" onClick={onClose}>
+        <InkButton type="button" className="button" onClick={onClose}>
           <X size={16} aria-hidden="true" /> Close source
-        </button>
+        </InkButton>
       </div>
 
       {source.attachment && (

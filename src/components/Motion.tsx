@@ -1,5 +1,8 @@
+import { InkSelect } from "./InkControl";
 import {
   createElement,
+  createContext,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -103,7 +106,7 @@ export function MotionPreferences() {
       <h3>Motion</h3>
       <label>
         <span>Interface animations</span>
-        <select
+        <InkSelect
           value={value}
           onChange={(event) => {
             const next = event.target.value as Preference;
@@ -119,7 +122,7 @@ export function MotionPreferences() {
         >
           <option value="system">Follow device preference</option>
           <option value="reduced">Reduce motion</option>
-        </select>
+        </InkSelect>
       </label>
       <p>
         Transitions help you follow changes. Reduced motion keeps the same
@@ -131,6 +134,56 @@ export function MotionPreferences() {
 }
 
 type Container = "div" | "section" | "nav" | "ol";
+const ArrivalContext = createContext("");
+
+export function InkHeading({
+  children,
+  arrivalKey,
+  ...props
+}: HTMLAttributes<HTMLHeadingElement> & { arrivalKey?: string | boolean }) {
+  const context = useContext(ArrivalContext);
+  const mark = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const node = mark.current;
+    if (
+      !node ||
+      !canAnimate() ||
+      document.documentElement.dataset.theme !== "ink"
+    )
+      return;
+    // Establish the starting mark before paint while visibility is determined.
+    node.style.transform = "scaleX(0.03)";
+    node.style.opacity = "0.35";
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      node.style.transform = "";
+      node.style.opacity = "";
+      playMotion(
+        node,
+        [
+          { transform: "scaleX(0.03)", opacity: 0.35 },
+          { transform: "scaleX(1)", opacity: 1 },
+        ],
+        { duration: 340, delay: 45 },
+      );
+    });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      stopMotion(node);
+      node.style.transform = "";
+      node.style.opacity = "";
+    };
+  }, [context, arrivalKey, children]);
+  return (
+    <h2 {...props}>
+      {children}
+      <span ref={mark} className="ink-heading-mark" aria-hidden="true" />
+    </h2>
+  );
+}
+
 type ContainerProps = HTMLAttributes<HTMLElement> & {
   as?: Container;
   children: ReactNode;
@@ -210,7 +263,13 @@ export function MotionSurface({
     }
     return () => animations.forEach((animation) => animation.cancel());
   }, [motionKey, kind, direction]);
-  return createElement(as, { ...props, ref }, children);
+  return createElement(
+    as,
+    { ...props, ref },
+    <ArrivalContext.Provider value={motionKey}>
+      {children}
+    </ArrivalContext.Provider>,
+  );
 }
 
 type Position = { left: number; top: number };

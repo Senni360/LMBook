@@ -1,3 +1,4 @@
+import { InkSelect, InkButton } from "./InkControl";
 import { responseError } from "../response-error";
 import { useEffect, useRef, useState } from "react";
 import { CircleAlert, LoaderCircle, ScanText, Square } from "lucide-react";
@@ -148,13 +149,13 @@ export function SourceOcr({
             <small>OCR reads printed text from page images.</small>
           </span>
         </span>
-        <button
+        <InkButton
           type="button"
           onClick={() => setExpanded(true)}
           disabled={disabled}
         >
           {source.ocr ? "Read scanned text" : "Read pages"}
-        </button>
+        </InkButton>
       </div>
     );
   }
@@ -172,14 +173,14 @@ export function SourceOcr({
           </h3>
         </div>
         {!isRunning && (
-          <button
+          <InkButton
             type="button"
             className="source-ocr-collapse"
             onClick={() => setExpanded(false)}
             disabled={disabled}
           >
             Hide
-          </button>
+          </InkButton>
         )}
       </div>
       <p className="source-ocr-intro">
@@ -224,7 +225,7 @@ export function SourceOcr({
         <div className="source-ocr-controls">
           <label>
             <span>OCR language</span>
-            <select
+            <InkSelect
               value={ocrLanguage}
               onChange={(event) =>
                 setOcrLanguage(event.target.value as OcrOptions["language"])
@@ -238,11 +239,11 @@ export function SourceOcr({
                   </option>
                 ),
               )}
-            </select>
+            </InkSelect>
           </label>
           <label>
             <span>Pages to process</span>
-            <select
+            <InkSelect
               value={mode}
               onChange={(event) =>
                 setMode(event.target.value as OcrOptions["mode"])
@@ -251,7 +252,7 @@ export function SourceOcr({
             >
               <option value="missing">Only pages without usable text</option>
               <option value="all">All pages</option>
-            </select>
+            </InkSelect>
           </label>
         </div>
       )}
@@ -283,7 +284,7 @@ export function SourceOcr({
 
       <div className="source-ocr-actions">
         {isRunning ? (
-          <button
+          <InkButton
             type="button"
             className="button"
             onClick={() => void cancelOcr()}
@@ -291,9 +292,9 @@ export function SourceOcr({
           >
             <Square size={15} fill="currentColor" aria-hidden="true" /> Cancel
             reading
-          </button>
+          </InkButton>
         ) : (
-          <button
+          <InkButton
             type="button"
             className="button primary"
             onClick={() => void startOcr()}
@@ -313,7 +314,7 @@ export function SourceOcr({
                 : source.ocr
                   ? "Read pages again"
                   : "Read pages"}
-          </button>
+          </InkButton>
         )}
       </div>
     </section>

@@ -1,3 +1,10 @@
+import {
+  InkInput,
+  InkTextarea,
+  InkSelect,
+  InkStroke,
+  InkButton,
+} from "./components/InkControl";
 import React, {
   useEffect,
   useLayoutEffect,
@@ -27,7 +34,6 @@ import {
   Trash2,
   Search,
   Check,
-  ChevronDown,
   ChevronRight,
   Download,
   LoaderCircle,
@@ -91,10 +97,12 @@ import {
   MotionNavigation,
   MotionPreferences,
   MotionSurface,
+  InkHeading,
   useCitationMotion,
   useMotionEnvironment,
 } from "./components/Motion";
 import "./motion.css";
+import "./themes/ink.css";
 
 type Summary = {
   id: string;
@@ -151,6 +159,7 @@ function Button({
   disabled = false,
   type = "button",
   title,
+  "aria-expanded": expanded,
 }: {
   children?: React.ReactNode;
   icon?: typeof Plus;
@@ -159,18 +168,20 @@ function Button({
   disabled?: boolean;
   type?: "button" | "submit";
   title?: string;
+  "aria-expanded"?: boolean;
 }) {
   return (
-    <button
+    <InkButton
       type={type}
       className={`button ${variant}`}
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-expanded={expanded}
     >
       {Icon && <Icon size={17} />}
       <span>{children}</span>
-    </button>
+    </InkButton>
   );
 }
 function DraftNotice({
@@ -539,22 +550,22 @@ function App() {
           </span>
           LMBook<span className="brand-dot">.</span>
         </a>
-        <button
+        <InkButton
           className="mobile-create icon-button light"
           aria-label="New notebook"
           onClick={() => setCreateOpen(true)}
         >
           <Plus size={20} />
-        </button>
+        </InkButton>
         <div className="rail-label">
           <span>Your notebooks</span>
-          <button
+          <InkButton
             className="icon-button light"
             aria-label="Create notebook"
             onClick={() => setCreateOpen(true)}
           >
             <Plus size={18} />
-          </button>
+          </InkButton>
         </div>
         <MotionNavigation
           activeKey={n?.id || ""}
@@ -565,7 +576,7 @@ function App() {
           aria-label="Notebooks"
         >
           {notebooks.map((book) => (
-            <button
+            <InkButton
               key={book.id}
               className={`notebook-item ${n?.id === book.id ? "selected" : ""}`}
               aria-current={n?.id === book.id ? "page" : undefined}
@@ -583,7 +594,7 @@ function App() {
                   {book.sourceCount === 1 ? "source" : "sources"}
                 </small>
               </span>
-            </button>
+            </InkButton>
           ))}
           {!notebooks.length && (
             <p className="rail-empty">Your courses will live here.</p>
@@ -600,7 +611,7 @@ function App() {
           <div className="local-note">
             <span className="status-dot" /> Saved on this computer
           </div>
-          <button
+          <InkButton
             className={`rail-settings ${tab === "settings" ? "active" : ""}`}
             onClick={tab === "settings" ? leaveSettings : openSettings}
             title={tab === "settings" ? "Go back" : "Connections & settings"}
@@ -614,7 +625,7 @@ function App() {
                 <Settings2 size={18} /> Connections & settings
               </>
             )}
-          </button>
+          </InkButton>
           <div className="rail-foot">
             LMBook{" "}
             <span>
@@ -645,27 +656,20 @@ function App() {
               <>
                 <Radio size={14} /> {n && status?.activeJobs[n.id]}
               </>
-            ) : (
-              <>
-                <Check size={14} />{" "}
-                {window.sennibookDesktop
-                  ? "Desktop workspace"
-                  : "Local workspace"}
-              </>
-            )}
+            ) : null}
           </span>
         </header>
         {error && !createOpen && (
           <div className="alert error app-error" role="alert">
             <CircleAlert size={19} />
             <span>{error}</span>
-            <button
+            <InkButton
               className="icon-button"
               aria-label="Dismiss error"
               onClick={() => setError("")}
             >
               <X size={17} />
-            </button>
+            </InkButton>
           </div>
         )}
         {notice && (
@@ -771,8 +775,8 @@ function App() {
             <div className="welcome-heading">
               <h1>Your learning library.</h1>
               <p>
-                Bring your course notes, concepts and learning goals together.
-                Turn them into a conversation worth taking on a walk.
+                Add your course material to ask questions, practise flashcards
+                and create audio lessons.
               </p>
               <div className="actions">
                 <Button
@@ -812,7 +816,7 @@ function App() {
               <div>
                 <Headphones size={21} />
                 <h3>Generate audio</h3>
-                <p>Two voices. Your pace. A fuller explanation.</p>
+                <p>Create a two-person lesson from your sources.</p>
               </div>
             </div>
           </div>
@@ -878,7 +882,7 @@ function App() {
                   },
                 ] as const
               ).map((t) => (
-                <button
+                <InkButton
                   key={t.id}
                   className={tab === t.id ? "active" : ""}
                   aria-current={tab === t.id ? "page" : undefined}
@@ -887,11 +891,11 @@ function App() {
                   <t.icon size={18} />
                   {t.label}
                   {"count" in t && <span className="tab-count">{t.count}</span>}
-                </button>
+                </InkButton>
               ))}
             </MotionNavigation>
             <MotionSurface
-              motionKey={tab}
+              motionKey={`${n.id}:${tab}`}
               direction={motionDirection}
               className="page-content"
             >
@@ -981,9 +985,6 @@ function App() {
             </MotionSurface>
           </>
         )}
-        <footer className="page-footer">
-          <span>AI explanations deserve a source check.</span>
-        </footer>
       </main>
       <dialog
         ref={dialog}
@@ -998,15 +999,17 @@ function App() {
           }}
         >
           <div className="section-heading">
-            <h2 id="create-notebook-heading">Create a notebook</h2>
-            <button
+            <InkHeading id="create-notebook-heading" arrivalKey={createOpen}>
+              Create a notebook
+            </InkHeading>
+            <InkButton
               type="button"
               className="icon-button"
               aria-label="Close"
               onClick={() => setCreateOpen(false)}
             >
               <X size={20} />
-            </button>
+            </InkButton>
           </div>
           <p>One notebook for a course, topic or question.</p>
           {error && (
@@ -1016,7 +1019,7 @@ function App() {
             </div>
           )}
           <Field label="Notebook name">
-            <input
+            <InkInput
               ref={newTitleInput}
               required
               maxLength={150}
@@ -1183,15 +1186,16 @@ function Sources({
     <>
       <div className="section-heading">
         <div>
-          <h2>Sources</h2>
+          <InkHeading>Sources</InkHeading>
           <p>Original sources stay separate from added context.</p>
         </div>
         <Button
           icon={Plus}
           onClick={() => setAdding(!adding)}
+          aria-expanded={adding}
           disabled={disabled}
         >
-          Paste a source
+          {adding ? "Close editor" : "Paste a source"}
         </Button>
       </div>
       <div
@@ -1224,7 +1228,7 @@ function Sources({
         >
           Choose files
         </Button>
-        <input
+        <InkInput
           ref={file}
           type="file"
           multiple
@@ -1262,7 +1266,7 @@ function Sources({
           />
           <div className="form-row">
             <Field label="Source title">
-              <input
+              <InkInput
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -1271,17 +1275,17 @@ function Sources({
               />
             </Field>
             <Field label="Source type">
-              <select
+              <InkSelect
                 value={kind}
                 onChange={(e) => setKind(e.target.value as typeof kind)}
               >
                 <option value="course">Course material</option>
                 <option value="supplement">Supplementary source</option>
-              </select>
+              </InkSelect>
             </Field>
           </div>
           <Field label="Source text">
-            <textarea
+            <InkTextarea
               required
               rows={8}
               value={text}
@@ -1304,7 +1308,7 @@ function Sources({
         </span>
         <label className="search">
           <Search size={16} />
-          <input
+          <InkInput
             aria-label="Search sources"
             placeholder="Find a source…"
             value={query}
@@ -1347,7 +1351,7 @@ function Sources({
                   <FileText size={20} />
                 )}
               </div>
-              <button
+              <InkButton
                 className="source-open"
                 onClick={() =>
                   setReading({ sourceId: s.id, nonce: Date.now() })
@@ -1371,11 +1375,11 @@ function Sources({
                             : "Transcription needs attention"
                           : `${sourceWordCounts.get(s.id)?.toLocaleString()} words`}
                 </span>
-              </button>
+              </InkButton>
               <span className="source-index">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <button
+              <InkButton
                 className="icon-button"
                 title="Read source"
                 aria-label={`Read ${s.title}`}
@@ -1384,8 +1388,8 @@ function Sources({
                 }
               >
                 <ArrowUpRight size={18} />
-              </button>
-              <button
+              </InkButton>
+              <InkButton
                 disabled={disabled}
                 className="icon-button delete"
                 aria-label={`Remove ${s.title}`}
@@ -1401,7 +1405,7 @@ function Sources({
                 }}
               >
                 <Trash2 size={16} />
-              </button>
+              </InkButton>
             </div>
           ))}
         </MotionList>
@@ -1435,7 +1439,7 @@ function Sources({
           <div className="section-heading">
             <div>
               <span className="kicker">Source text</span>
-              <h2>{selected.title}</h2>
+              <InkHeading>{selected.title}</InkHeading>
             </div>
             <Button
               icon={X}
@@ -1546,7 +1550,7 @@ function EvidenceList({
             <p>“{e.quote}”</p>
             <cite>
               {source && onOpenSource ? (
-                <button
+                <InkButton
                   className="evidence-link"
                   onClick={() =>
                     onOpenSource(source.id, e.quote, location?.startSeconds)
@@ -1554,7 +1558,7 @@ function EvidenceList({
                 >
                   <FileText size={13} /> {source.title}
                   {location ? ` · ${location.label}` : " · passage has changed"}
-                </button>
+                </InkButton>
               ) : (
                 <>
                   <FileText size={13} />
@@ -1599,7 +1603,7 @@ function Goals({
     <>
       <div className="section-heading">
         <div>
-          <h2>What do you want to understand?</h2>
+          <InkHeading>What do you want to understand?</InkHeading>
         </div>
         <Button
           variant="primary"
@@ -1647,7 +1651,7 @@ function Goals({
           }}
         >
           <Field label="Paste your list — one item per line">
-            <textarea
+            <InkTextarea
               rows={3}
               required
               value={text}
@@ -1660,14 +1664,14 @@ function Goals({
             restored={goalsDraft.restored}
           />
           <div className="form-row entry-actions">
-            <select
+            <InkSelect
               aria-label="Item type"
               value={kind}
               onChange={(e) => setKind(e.target.value as typeof kind)}
             >
               <option value="goal">Learning objectives / leerdoelen</option>
               <option value="concept">Concepts / begrippen</option>
-            </select>
+            </InkSelect>
             <Button
               type="submit"
               icon={Plus}
@@ -1682,7 +1686,7 @@ function Goals({
             Upload your objectives as a source, then let the model extract the
             list.
           </p>
-          <select
+          <InkSelect
             aria-label="Source to extract goals from"
             value={fromSource}
             onChange={(e) => setFromSource(e.target.value)}
@@ -1693,7 +1697,7 @@ function Goals({
                 {s.title}
               </option>
             ))}
-          </select>
+          </InkSelect>
           <Button
             icon={Sparkles}
             disabled={disabled || !fromSource}
@@ -1717,14 +1721,14 @@ function Goals({
             ["partial", "Partial"],
             ["missing", "Gaps"],
           ].map(([value, label]) => (
-            <button
+            <InkButton
               key={value}
               className={filter === value ? "selected" : ""}
               aria-pressed={filter === value}
               onClick={() => setFilter(value)}
             >
               {label}
-            </button>
+            </InkButton>
           ))}
         </div>
         {n.coverage.length > 0 ? (
@@ -1771,7 +1775,7 @@ function Goals({
                   <span className="objective-number">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <button
+                  <InkButton
                     className={`bookmark ${o.important ? "marked" : ""}`}
                     aria-pressed={o.important}
                     aria-label={`${o.important ? "Unmark" : "Mark"} ${o.text} as important`}
@@ -1792,8 +1796,8 @@ function Goals({
                       size={18}
                       fill={o.important ? "currentColor" : "none"}
                     />
-                  </button>
-                  <button
+                  </InkButton>
+                  <InkButton
                     className="objective-main"
                     aria-expanded={expanded === o.id}
                     aria-controls={
@@ -1805,14 +1809,14 @@ function Goals({
                       {o.kind === "goal" ? "Learning objective" : "Concept"}
                     </span>
                     <strong>{o.text}</strong>
-                  </button>
+                  </InkButton>
                   <span className={`badge ${c?.status || "unmapped"}`}>
                     {c?.status === "covered" ? <Check size={13} /> : null}
                     {c?.status === "missing"
                       ? "Not established"
                       : c?.status || "Not mapped"}
                   </span>
-                  <button
+                  <InkButton
                     className="icon-button"
                     aria-label={
                       expanded === o.id
@@ -1826,8 +1830,8 @@ function Goals({
                     onClick={() => setExpanded(expanded === o.id ? null : o.id)}
                   >
                     <ChevronRight size={18} />
-                  </button>
-                  <button
+                  </InkButton>
+                  <InkButton
                     className="icon-button delete"
                     aria-label={`Remove goal ${i + 1}`}
                     disabled={disabled}
@@ -1838,7 +1842,7 @@ function Goals({
                     }
                   >
                     <X size={15} />
-                  </button>
+                  </InkButton>
                 </div>
                 {expanded === o.id && (
                   <div
@@ -2072,7 +2076,7 @@ function Studio({
       <aside className="episode-config">
         <div className="config-heading">
           <Radio size={21} />
-          <h2>Shape the conversation</h2>
+          <h2>Episode settings</h2>
         </div>
         <p className="muted">These settings apply to your next episode.</p>
         <DraftNotice
@@ -2089,7 +2093,7 @@ function Studio({
           </Button>
         )}
         <Field label="Subject profile">
-          <select
+          <InkSelect
             value={draft.subject}
             disabled={disabled}
             onChange={(ev) => {
@@ -2100,11 +2104,11 @@ function Studio({
             {subjects.map((s) => (
               <option key={s}>{s}</option>
             ))}
-          </select>
+          </InkSelect>
         </Field>
         <div className="form-row">
           <Field label="Language">
-            <select
+            <InkSelect
               value={draft.language}
               disabled={disabled}
               onChange={(ev) =>
@@ -2113,10 +2117,10 @@ function Studio({
             >
               <option value="en">English</option>
               <option value="nl">Nederlands</option>
-            </select>
+            </InkSelect>
           </Field>
           <Field label="Depth">
-            <select
+            <InkSelect
               value={draft.depth}
               disabled={disabled}
               onChange={(ev) =>
@@ -2126,11 +2130,11 @@ function Studio({
               <option>Foundations</option>
               <option>Intermediate</option>
               <option>Advanced</option>
-            </select>
+            </InkSelect>
           </Field>
         </div>
         <Field label="Listening purpose">
-          <select
+          <InkSelect
             value={draft.purpose}
             disabled={disabled}
             onChange={(ev) =>
@@ -2140,13 +2144,13 @@ function Studio({
             <option>Introduction</option>
             <option>Deep exploration</option>
             <option>Exam refresher</option>
-          </select>
+          </InkSelect>
         </Field>
         <Field
           label={`Target length · ${draft.minutes} minutes`}
-          hint="A target, not padding. Actual length depends on the script and delivery."
+          hint="Actual length depends on the script and delivery."
         >
-          <input
+          <InkInput
             type="range"
             min={5}
             max={120}
@@ -2161,7 +2165,7 @@ function Studio({
           </div>
         </Field>
         <Field label="What can the hosts assume you know?">
-          <textarea
+          <InkTextarea
             rows={3}
             value={draft.assumedKnowledge}
             disabled={disabled}
@@ -2169,19 +2173,20 @@ function Studio({
             placeholder="e.g. I understand parliamentary systems. Skip introductory definitions."
           />
         </Field>
-        <button
+        <InkButton
           className="disclosure"
+          aria-expanded={showHarness}
           onClick={() => setShowHarness(!showHarness)}
         >
           <Settings2 size={15} /> Edit teaching instructions{" "}
-          {showHarness ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-        </button>
+          <ChevronRight size={15} />
+        </InkButton>
         {showHarness && (
           <Field
             label="Subject harness"
             hint="Saved with each episode so you can compare approaches."
           >
-            <textarea
+            <InkTextarea
               rows={7}
               value={draft.harness}
               disabled={disabled}
@@ -2258,7 +2263,7 @@ function Studio({
       <section className="studio-work">
         <div className="section-heading">
           <div>
-            <h2>Audio studio</h2>
+            <InkHeading>Audio studio</InkHeading>
           </div>
           <Headphones size={26} strokeWidth={1.5} />
         </div>
@@ -2306,7 +2311,7 @@ function Studio({
           <>
             {n.episodes.length > 1 && (
               <Field label="Episode">
-                <select
+                <InkSelect
                   value={e.id}
                   onChange={(ev) => {
                     setEid(ev.target.value);
@@ -2318,7 +2323,7 @@ function Studio({
                       {ep.title} · {new Date(ep.createdAt).toLocaleDateString()}
                     </option>
                   ))}
-                </select>
+                </InkSelect>
               </Field>
             )}
             <div className="episode-title">
@@ -2352,7 +2357,7 @@ function Studio({
               className="chapter-list"
             >
               {e.chapters.map((ch, i) => (
-                <button
+                <InkButton
                   key={ch.id}
                   className={`chapter-row ${c?.id === ch.id ? "active" : ""}`}
                   onClick={() => {
@@ -2383,7 +2388,7 @@ function Studio({
                   ) : (
                     <ChevronRight size={17} />
                   )}
-                </button>
+                </InkButton>
               ))}
             </MotionNavigation>
             {hasScript && qualityWarnings.length > 0 && (
@@ -2657,7 +2662,7 @@ function Studio({
                       label="Dialogue"
                       hint="Use A: and B: for speaker turns. Edited passages lose their old source links until reviewed."
                     >
-                      <textarea
+                      <InkTextarea
                         rows={18}
                         value={script}
                         onChange={(ev) => setScript(ev.target.value)}
@@ -2709,7 +2714,7 @@ function Studio({
                         {turn.sourceIds.length > 0 && (
                           <div className="turn-sources">
                             {turn.sourceIds.map((sourceId) => (
-                              <button
+                              <InkButton
                                 key={sourceId}
                                 onClick={() => {
                                   const source = episodeSources.find(
@@ -2733,7 +2738,7 @@ function Studio({
                                 <FileText size={12} />
                                 {episodeSources.find((s) => s.id === sourceId)
                                   ?.title || "Source removed"}
-                              </button>
+                              </InkButton>
                             ))}
                           </div>
                         )}
@@ -2792,18 +2797,15 @@ function Chat({
     <section className="chat">
       <div className="section-heading">
         <div>
-          <h2>Follow a question further</h2>
-          <p>
-            Answers draw on this notebook’s sources, with passages you can
-            inspect.
-          </p>
+          <InkHeading>Ask your sources</InkHeading>
+          <p>Ask about this notebook. Open citations to check an answer.</p>
         </div>
         <MessageSquare size={24} />
       </div>
       {!n.messages.length ? (
         <div className="chat-empty">
           <BookOpen size={40} strokeWidth={1} />
-          <h3>What’s the part you want to get into?</h3>
+          <h3>What would you like to know?</h3>
           <p>
             Ask for a mechanism, challenge an argument, or connect two ideas.
           </p>
@@ -2813,10 +2815,10 @@ function Chat({
               "Where do these sources agree or disagree?",
               "Explain the mechanism behind the central argument.",
             ].map((q) => (
-              <button key={q} onClick={() => setMessage(q)}>
+              <InkButton key={q} onClick={() => setMessage(q)}>
                 {q}
                 <ArrowUpRight size={15} />
-              </button>
+              </InkButton>
             ))}
           </div>
         </div>
@@ -2857,7 +2859,7 @@ function Chat({
         </div>
       )}
       <form
-        className="chat-composer"
+        className="chat-composer ink-writing-surface"
         onSubmit={(e) => {
           e.preventDefault();
           void run("Reading your sources", async () => {
@@ -2866,8 +2868,9 @@ function Chat({
           });
         }}
       >
-        <textarea
+        <InkTextarea
           rows={2}
+          surface
           aria-label="Question for your sources"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -2882,6 +2885,7 @@ function Chat({
         >
           Ask
         </Button>
+        <InkStroke />
       </form>
       <DraftNotice
         error={questionDraft.storageError}
@@ -2952,9 +2956,7 @@ function Connections({
       <div className="page-heading">
         <div>
           <h1>Connections & settings</h1>
-          <p>
-            Local storage. Your model accounts. An editable teaching harness.
-          </p>
+          <p>Connect your accounts and manage saved notebooks.</p>
         </div>
       </div>
       <section className="settings-section">
@@ -3018,7 +3020,7 @@ function Connections({
                 restored={providerDraft.restored}
               />
               <Field label="Notebook provider">
-                <select
+                <InkSelect
                   value={draft.provider}
                   onChange={(e) =>
                     setDraft({
@@ -3033,7 +3035,7 @@ function Connections({
                     OpenCode Go · existing login or key
                   </option>
                   <option value="ollama">Ollama · local model</option>
-                </select>
+                </InkSelect>
               </Field>
               <Field
                 label="Model ID"
@@ -3047,7 +3049,7 @@ function Connections({
                       : "Leave blank for qwen3:8b, or enter an installed Ollama model."
                 }
               >
-                <input
+                <InkInput
                   value={draft.model}
                   maxLength={100}
                   onChange={(e) =>
@@ -3219,7 +3221,7 @@ function Connections({
             >
               Restore a notebook
             </Button>
-            <input
+            <InkInput
               ref={bundleInput}
               type="file"
               accept=".zip"
@@ -3248,7 +3250,7 @@ function Connections({
                 restored={detailsDraft.restored}
               />
               <Field label="Notebook title">
-                <input
+                <InkInput
                   value={title}
                   required
                   maxLength={150}
@@ -3256,7 +3258,7 @@ function Connections({
                 />
               </Field>
               <Field label="Notebook description">
-                <textarea
+                <InkTextarea
                   rows={2}
                   value={description}
                   maxLength={2000}
@@ -3392,3 +3394,8 @@ createRoot(document.getElementById("root")!).render(
     </DownloadProvider>
   </React.StrictMode>,
 );
+if (
+  import.meta.env.DEV &&
+  new URLSearchParams(location.search).has("theme-lab")
+)
+  void import("./theme-lab/ThemeLab");

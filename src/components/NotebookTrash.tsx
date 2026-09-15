@@ -1,3 +1,4 @@
+import { InkButton } from "./InkControl";
 import { MotionList } from "./Motion";
 import { useEffect, useRef, useState } from "react";
 import { CircleAlert, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
@@ -179,12 +180,12 @@ export function NotebookTrash({
         </div>
       )}
       {loadError && !pending && (
-        <button
+        <InkButton
           className="button quiet"
           onClick={() => setRevision((value) => value + 1)}
         >
           Refresh Trash
-        </button>
+        </InkButton>
       )}
       {!loading && entries?.length === 0 && <p>Trash is empty.</p>}
       <MotionList itemsKey={entries?.map((entry) => entry.id).join(":") || ""}>
@@ -207,16 +208,16 @@ export function NotebookTrash({
             </div>
             <div className="trash-entry-actions">
               {entry.state === "trashed" && (
-                <button
+                <InkButton
                   className="button"
                   disabled={disabled || !!pending}
                   onClick={() => void act(entry, false)}
                   aria-label={`Restore ${entry.title}`}
                 >
                   <RotateCcw size={16} aria-hidden="true" /> Restore
-                </button>
+                </InkButton>
               )}
-              <button
+              <InkButton
                 className="button quiet trash-purge"
                 disabled={disabled || !!pending}
                 onClick={() => void act(entry, true)}
@@ -226,7 +227,7 @@ export function NotebookTrash({
                 {entry.state === "purging"
                   ? "Retry permanent deletion"
                   : "Delete permanently"}
-              </button>
+              </InkButton>
             </div>
           </div>
         ))}

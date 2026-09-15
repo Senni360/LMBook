@@ -2299,3 +2299,84 @@ input[type="file"] {
 .evidence-link:hover {
   color: #223b34;
 }
+
+/* Window chrome: the desktop title bar is drawn by the app (titleBarOverlay). */
+.topbar {
+  -webkit-app-region: drag;
+  padding-right: max(
+    44px,
+    calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 20px)
+  );
+}
+.topbar * {
+  -webkit-app-region: no-drag;
+}
+.sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 26px;
+  -webkit-app-region: drag;
+}
+
+/* Scrollbars: slim tinted pills that sit inside the surface, no arrow buttons. */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c3ccc0;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #8f9d8c;
+}
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--forest);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+.sidebar ::-webkit-scrollbar-thumb {
+  background-color: #4d665a;
+}
+.sidebar ::-webkit-scrollbar-thumb:hover {
+  background-color: #6f8a7c;
+}
+
+/* Bookmark ribbon: marks the current section in every style. */
+.tabs button {
+  position: relative;
+}
+.tabs button.active::after {
+  content: "";
+  position: absolute;
+  top: var(--bookmark-top, -1px);
+  right: var(--bookmark-right, -15px);
+  width: 9px;
+  height: 18px;
+  background: var(--bookmark, var(--accent));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  transform-origin: top center;
+  animation: bookmark-drop var(--motion-travel, 300ms) var(--motion-ease, ease-out) both;
+  pointer-events: none;
+}
+@keyframes bookmark-drop {
+  from {
+    transform: scaleY(0.15);
+    opacity: 0;
+  }
+  60% {
+    transform: scaleY(1.12);
+    opacity: 1;
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
