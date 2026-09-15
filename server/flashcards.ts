@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { parseFragment } from "parse5";
+import { parseFragment, type DefaultTreeAdapterTypes } from "parse5";
 import { uid, type Notebook } from "../shared/model.ts";
 import {
   FLASHCARD_MODEL,
@@ -226,7 +226,7 @@ Complete selected sources (JSON data):\n${JSON.stringify(deck.sources.map(({ id,
 }
 
 /** Parse data literals only. Uploaded scripts are never evaluated. */
-function referenceData(html: string): unknown {
+function parseWordListLiteral(html: string): unknown {
   const marker = /\bconst\s+DATA\s*=\s*/g.exec(html);
   if (!marker)
     throw new Error(
@@ -251,13 +251,15 @@ function referenceData(html: string): unknown {
         "Only literal word-list data is supported; script expressions are not imported.",
       );
     pos++;
-    const value: any = array ? [] : Object.create(null);
+    const value: unknown[] | Record<string, unknown> = array
+      ? []
+      : Object.create(null);
     const end = array ? "]" : "}";
     space();
     let count = 0;
     while (html[pos] !== end) {
       if (++count > 10000) throw new Error("The word list is too large.");
-      if (array) value.push(read(depth + 1));
+      if (Array.isArray(value)) value.push(read(depth + 1));
       else {
         space();
         let key: string;
@@ -291,12 +293,14 @@ function referenceData(html: string): unknown {
 }
 
 function plainExample(html: string) {
-  const walk = (node: any): string =>
-    node.nodeName === "#text"
+  const walk = (node: DefaultTreeAdapterTypes.Node): string =>
+    "value" in node
       ? node.value
-      : ["script", "style"].includes(node.tagName)
+      : "tagName" in node && ["script", "style"].includes(node.tagName)
         ? ""
-        : (node.childNodes || []).map(walk).join("");
+        : "childNodes" in node
+          ? node.childNodes.map(walk).join("")
+          : "";
   return walk(parseFragment(html));
 }
 
@@ -336,7 +340,7 @@ export function importFlashText(
           })
           .strict(),
       )
-      .parse(referenceData(content));
+      .parse(parseWordListLiteral(content));
     for (const [chapter, section] of Object.entries(data))
       for (const word of section.words)
         rows.push({
@@ -373,7 +377,6 @@ export function importFlashText(
     throw new Error("Import between 1 and 2,000 word pairs.");
   const now = new Date().toISOString();
   const sourceId = uid();
-  // Each row is constructed from the literal supplied pair, never translated.
   const quotes = rows.map(
     (r, index) =>
       `${index + 1}. ${r.front}\t${r.back}\t${r.group}\t${r.example}`,

@@ -279,7 +279,6 @@ function useListMotion(
       if (animation) animations.push(animation);
     }
     positions.current = next;
-    // Cancel animations on detached rows without keeping them in the document.
     for (const node of previous.keys()) if (!next.has(node)) stopMotion(node);
     return () => {
       for (const node of next.keys()) if (!node.isConnected) stopMotion(node);

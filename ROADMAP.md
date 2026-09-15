@@ -1,5 +1,7 @@
 # LMBook roadmap
 
+- Version 0.3.5 completes the requested code cleanup and measured optimization sweep. It reduces repeated citation/episode work and audio copies, and fixes overlapping/stale refreshes. See [coverage, measurements and limits](docs/audits/app-cleanup.md).
+
 - Version 0.3.4 adds the owner's requested application-wide purposeful motion sweep. Navigation, readers, evidence, editable lists, practice, playback, disclosures, dialogs and recovery use one motion system. See [coverage and verification](docs/ui/motion.md).
 
 - LMBook is the owner's selected name from 2026-09-14. Version 0.3.3 rebrands the app and Windows downloads while preserving existing profiles and backup compatibility. See [upgrade behavior](docs/rebranding.md) and [release notes](docs/releases/0.3.3.md).

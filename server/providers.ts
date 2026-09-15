@@ -1,4 +1,5 @@
 import { GoogleAuth } from "google-auth-library";
+import { z } from "zod";
 import { baseInstructions, type Settings } from "../shared/model.ts";
 import { generateWithOpenCode } from "./opencode.ts";
 import { googleProject } from "./preferences.ts";
@@ -49,10 +50,18 @@ export async function generate(
       throw new Error(
         `OpenCode Go returned ${response.status}. Check the model ID, API key and available allowance.`,
       );
-    const data = (await response.json()) as any;
-    if (!data.choices?.[0]?.message?.content)
+    const result = z
+      .object({
+        choices: z
+          .tuple([
+            z.object({ message: z.object({ content: z.string().min(1) }) }),
+          ])
+          .rest(z.unknown()),
+      })
+      .safeParse(await response.json());
+    if (!result.success)
       throw new Error("OpenCode returned an empty response.");
-    return data.choices[0].message.content;
+    return result.data.choices[0].message.content;
   }
   const base = new URL(process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434");
   if (!["localhost", "127.0.0.1", "[::1]"].includes(base.hostname))
@@ -73,10 +82,11 @@ export async function generate(
     throw new Error(
       `Ollama returned ${response.status}. Make sure it is running and the selected model is installed.`,
     );
-  const data = (await response.json()) as any;
-  if (!data.message?.content)
-    throw new Error("Ollama returned an empty response.");
-  return data.message.content;
+  const result = z
+    .object({ message: z.object({ content: z.string().min(1) }) })
+    .safeParse(await response.json());
+  if (!result.success) throw new Error("Ollama returned an empty response.");
+  return result.data.message.content;
 }
 
 const googleAuth = new GoogleAuth({
@@ -152,12 +162,16 @@ export async function synthesize(
     },
   );
   if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as any;
+    const result = z
+      .object({ error: z.object({ message: z.string().min(1) }) })
+      .safeParse(await response.json().catch(() => null));
     throw new Error(
-      `Google speech returned ${response.status}: ${String(body.error?.message || "Check Cloud billing, API access and credentials.").slice(0, 400)}`,
+      `Google speech returned ${response.status}: ${(result.success ? result.data.error.message : "Check Cloud billing, API access and credentials.").slice(0, 400)}`,
     );
   }
-  const data = (await response.json()) as any;
-  if (!data.audioContent) throw new Error("Google returned no audio.");
-  return Buffer.from(data.audioContent, "base64");
+  const result = z
+    .object({ audioContent: z.string().min(1) })
+    .safeParse(await response.json());
+  if (!result.success) throw new Error("Google returned no audio.");
+  return Buffer.from(result.data.audioContent, "base64");
 }
