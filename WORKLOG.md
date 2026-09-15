@@ -1,5 +1,9 @@
 # Work log
 
+## 2026-09-15 — macOS delivery, in progress
+
+The owner requested a Mac version and PR. Work is isolated in `.work/lmbook-macos`, branch `feat/macos-release`, based on merged Ink PR #7. Added Apple Silicon/Intel DMG and ZIP targets, native build/check matrix with PR artifacts, all-platform manifest verification, Finder CLI paths, Python 3 default and native Mac menu/window behavior. No Apple signing secrets are configured: initial packages use an ad-hoc signature and explicitly disclose that notarization is absent. Existing tests and native CI checks are pending; no new repository tests or provider runs.
+
 ## 2026-09-15 — Ink pull request delivery
 
 Opened [PR #7](https://github.com/Senni360/LMBook/pull/7), `feat/ink-interactions` → `master`, from isolated checkout `.work/lmbook-ink-pr`. PR #6 had merged into the motion branch while PR #5 was closed without reaching master, so this PR includes that existing dependency history and isolates the new Ink implementation in commit `f586968`. Preserved newer committed work-log history instead of overwriting it with the shared checkout's older entries. All 114 checked runtime/build/test files match the evaluated workspace; the isolated tree passed production/TypeScript, 38 existing tests and desktop backend build. Version 0.3.7 will use the existing Windows release workflow after merge. The PR is open, not merged; no release was published by opening it. Unrelated root edits and local libraries remain untouched.
