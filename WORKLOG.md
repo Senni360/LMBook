@@ -2,7 +2,7 @@
 
 ## 2026-09-15 — macOS delivery, in progress
 
-The owner requested a Mac version and PR. Work is isolated in `.work/lmbook-macos`, branch `feat/macos-release`, based on merged Ink PR #7. Added Apple Silicon/Intel DMG and ZIP targets, native build/check matrix with PR artifacts, all-platform manifest verification, Finder CLI paths, Python 3 default and native Mac menu/window behavior. No Apple signing secrets are configured: initial packages use an ad-hoc signature and explicitly disclose that notarization is absent. Existing tests and native CI checks are pending; no new repository tests or provider runs.
+The owner requested a Mac version and PR. Work is isolated in `.work/lmbook-macos`, branch `feat/macos-release`, based on merged Ink PR #7. Added Apple Silicon/Intel DMG and ZIP targets, native build/check matrix with PR artifacts, all-platform manifest verification, Finder CLI paths, Python 3 default and native Mac menu/window behavior. No Apple signing secrets are configured: initial packages use an ad-hoc signature and explicitly disclose that notarization is absent. Windows production/TypeScript, all 38 existing tests and desktop startup/persistence checks pass. Authored release fixtures verify missing-platform, wrong-commit and tampering rejection. The first native Mac run passed its application checks (37 passed, one conditional skip) but exposed the old 256px icon as too small for macOS packaging. Added a scalable SVG of the same book mark for Mac packaging; native package checks are being rerun. No new repository tests or provider runs.
 
 ## 2026-09-15 — Ink pull request delivery
 

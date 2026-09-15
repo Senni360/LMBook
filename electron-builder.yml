@@ -39,7 +39,7 @@ mac:
     - dmg
     - zip
   category: public.app-category.education
-  icon: electron/icon.png
+  icon: electron/icon.svg
   artifactName: LMBook-${version}-mac-${arch}.${ext}
   # No Developer ID certificate is configured yet; these builds are not notarized.
   identity: "-"
