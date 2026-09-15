@@ -97,4 +97,3 @@ All 21 frontend TS/TSX files were inspected for state/effects/data flow. Long fi
 | `src/components/activity-history.css`, `cartesia.css`, `context-summary.css`, `downloads.css`, `episode-player.css`, `flashcards.css`, `google-setup.css`, `local-transcription-setup.css`, `notebook-trash.css`, `source-audio.css`, `source-image.css`, `source-ocr.css`, `source-snapshot-reader.css` | Inventoried/scanned; flash legacy rule identified, other animation selectors need runtime visual QA before alteration. |
 
 Supporting implementations read: `shared/quality.ts`, `shared/evidence-location.ts`, relevant `shared/model.ts` types/helpers, `package.json`.
-
