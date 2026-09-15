@@ -16,7 +16,7 @@ It also includes the hidden native menu bar (Alt reveals it), settings sidebar b
 
 The installed app includes its runtime and starts the learning engine automatically. New installations store notebooks under `%APPDATA%/LMBook/data` on Windows or `~/Library/Application Support/LMBook/data` on Mac. If an existing `%APPDATA%/SenniBook` profile is present, LMBook reuses it, including its saved notebooks, provider configuration and browser storage. The exact folder appears in Connections & settings. See [upgrade compatibility](docs/rebranding.md). The original browser edition's `data/` folder stays untouched. Provider accounts and optional external CLIs still need to be configured separately.
 
-The desktop interface uses a stable private app address, a sandboxed renderer and a per-launch backend token. External documentation opens in your normal browser. If generation is active when you close the window, you can keep working in the tray or cancel and quit. Completed work is saved. The app prevents automatic system sleep while generation is active; it cannot keep a powered-off computer working.
+The desktop interface uses a stable private app address, a sandboxed renderer and a per-launch backend token. External documentation opens in your normal browser. On Windows, closing during generation offers background work or cancel-and-quit. On Mac, closing hides the window; Command-Q asks before quitting active work. Completed work is saved. The app prevents automatic system sleep while generation is active; it cannot keep a powered-off computer working.
 
 These builds are unsigned; automatic updates are not yet enabled.
 

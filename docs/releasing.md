@@ -14,7 +14,7 @@ A merge without a version bump does not produce another release for an already p
 
 ## Failures and retries
 
-Inspect **Actions → Windows release**. Failed builds or desktop checks publish nothing. Failed uploads leave an unpublished draft; rerunning the failed jobs can complete that same release. The workflow never replaces published downloads or moves an existing version tag. If a tag or draft belongs to a different commit, it stops for inspection; use a new version for changed application code.
+Inspect **Actions → Desktop release**. Failed builds or desktop checks publish nothing. Failed uploads leave an unpublished draft; rerunning the failed jobs can complete that same release. The workflow never replaces published downloads or moves an existing version tag. If a tag or draft belongs to a different commit, it stops for inspection; use a new version for changed application code.
 
 **Run workflow** on `master` can publish an already merged but unreleased version. Re-running a published version skips the build and leaves its downloads unchanged. Runs are serialized so releases cannot upload over each other.
 

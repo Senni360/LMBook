@@ -50,10 +50,12 @@ jobs:
             os: macos-15
             args: --mac --arm64
             executable: release/mac-arm64/LMBook.app/Contents/MacOS/LMBook
+            app: release/mac-arm64/LMBook.app
           - target: mac-x64
             os: macos-15-intel
             args: --mac --x64
             executable: release/mac/LMBook.app/Contents/MacOS/LMBook
+            app: release/mac/LMBook.app
     defaults:
       run:
         shell: bash
@@ -77,6 +79,11 @@ jobs:
           npx electron-builder ${{ matrix.args }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # The configured identity is ad-hoc; no signing secrets enter PR jobs.
+          CSC_FOR_PULL_REQUEST: "true"
+      - name: Verify the Mac app signature
+        if: runner.os == 'macOS'
+        run: codesign --verify --deep --strict "${{ github.workspace }}/${{ matrix.app }}"
       - name: Check packaged app on its native architecture
         run: npx tsx --test tests/desktop.smoke.ts
         env:
