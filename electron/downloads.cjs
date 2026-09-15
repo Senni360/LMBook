@@ -55,7 +55,6 @@ async function readBoundedError(response, secret) {
     try {
       await reader.cancel();
     } catch {
-      /* The body is only an error diagnostic; cancellation is best effort. */
     }
   }
   const text = Buffer.concat(chunks).toString("utf8");
@@ -236,7 +235,6 @@ function createDownloadManager({
     try {
       onProgress?.(info);
     } catch {
-      /* A closed renderer must not interrupt a file transfer. */
     }
   }
 
@@ -387,7 +385,6 @@ function createDownloadManager({
     },
     cancelDownload,
     cancelAll,
-    hasActive: () => active.size > 0,
   };
 }
 

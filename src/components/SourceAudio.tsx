@@ -1,3 +1,5 @@
+import { responseError } from "../response-error";
+import { canAnimate } from "./Motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleAlert,
@@ -47,18 +49,6 @@ const modelLabels: Record<TranscriptionModel, string> = {
   "large-v3": "large-v3 · detailed transcription",
   "large-v3-turbo": "large-v3-turbo · faster transcription",
 };
-
-async function responseError(response: Response, fallback: string) {
-  let message = fallback;
-  try {
-    const body = (await response.json()) as { error?: unknown };
-    if (typeof body.error === "string" && body.error.trim())
-      message = body.error;
-  } catch {
-    // Keep the useful fallback for an empty or non-JSON error response.
-  }
-  return message;
-}
 
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes < 1) return "Unknown size";
@@ -269,9 +259,7 @@ export function SourceAudio({
       if (!target) return;
       target.scrollIntoView({
         block: "center",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
+        behavior: canAnimate() ? "smooth" : "instant",
       });
       target.focus({ preventScroll: true });
     });
@@ -493,9 +481,9 @@ export function SourceAudio({
               )}
             </div>
             <p className="source-audio-explainer">
-              LMBook uses faster-whisper on this computer. The result is
-              machine generated, so check names, numbers and technical terms
-              against the audio.
+              LMBook uses faster-whisper on this computer. The result is machine
+              generated, so check names, numbers and technical terms against the
+              audio.
             </p>
             {isTranscribing && (
               <p className="source-audio-progress" role="status">

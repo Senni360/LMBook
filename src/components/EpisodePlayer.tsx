@@ -1,3 +1,4 @@
+import { PlaybackMark } from "./Motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DownloadLink } from "./Downloads";
 import {
@@ -77,6 +78,7 @@ export function EpisodePlayer({
       return 1;
     }
   });
+  const [playing, setPlaying] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const speedRef = useRef(speed);
   speedRef.current = speed;
@@ -94,6 +96,7 @@ export function EpisodePlayer({
   const key = activeChapter
     ? playbackStorageKey(episode.id, activeChapter.id)
     : null;
+  useEffect(() => setPlaying(false), [key, activeChapter?.audioFile]);
   const activeSource = activeChapter?.audioFile
     ? chapterFileUrl(activeChapter.audioFile)
     : null;
@@ -227,7 +230,6 @@ export function EpisodePlayer({
     try {
       storage?.setItem(SPEED_KEY, String(speed));
     } catch {
-      // The current speed still works if this device cannot save preferences.
     }
   }, [speed, storage]);
 
@@ -303,7 +305,8 @@ export function EpisodePlayer({
     <section className="episode-player" aria-label="Episode player">
       <div className="episode-player-heading">
         <div>
-          <strong>{activeChapter.title}</strong>
+          <PlaybackMark playing={playing} />
+          <strong key={activeChapter.id}>{activeChapter.title}</strong>
         </div>
         <label className="episode-player-speed">
           <span>Speed</span>
@@ -328,14 +331,22 @@ export function EpisodePlayer({
           aria-label={`Audio for ${activeChapter.title}`}
           onCanPlay={() => setPlaybackError(null)}
           onPlay={() => setPlaybackError(null)}
-          onError={() =>
+          onPlaying={() => setPlaying(true)}
+          onWaiting={() => setPlaying(false)}
+          onEmptied={() => setPlaying(false)}
+          onError={() => {
+            setPlaying(false);
             setPlaybackError(
               "Audio could not load. Check the chapter audio and try again.",
-            )
-          }
+            );
+          }}
           onTimeUpdate={() => persistPosition()}
-          onPause={() => persistPosition(true)}
+          onPause={() => {
+            setPlaying(false);
+            persistPosition(true);
+          }}
           onEnded={() => {
+            setPlaying(false);
             if (key) clearPlaybackPosition(storage, key);
             if (nextChapter)
               changeChapter(nextChapter.id, !!nextChapter.audioFile);

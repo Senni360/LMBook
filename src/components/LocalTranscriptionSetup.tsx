@@ -1,3 +1,4 @@
+import { responseError } from "../response-error";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, ExternalLink, LoaderCircle, Square } from "lucide-react";
 import {
@@ -24,18 +25,6 @@ const modelLabels: Record<TranscriptionModel, string> = {
   "large-v3": "large-v3 · detailed transcription",
   "large-v3-turbo": "large-v3-turbo · faster transcription",
 };
-
-async function responseError(response: Response, fallback: string) {
-  let message = fallback;
-  try {
-    const body = (await response.json()) as { error?: unknown };
-    if (typeof body.error === "string" && body.error.trim())
-      message = body.error;
-  } catch {
-    // Preserve a useful message for empty or non-JSON errors.
-  }
-  return message;
-}
 
 function setupMessage(
   status: StatusPayload | null,

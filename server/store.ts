@@ -527,9 +527,6 @@ export function saveNotebook(n: Notebook) {
   ).run(n.id, JSON.stringify(n));
   return n;
 }
-export function removeNotebook(id: string) {
-  db.prepare("DELETE FROM notebooks WHERE id = ?").run(id);
-}
 export function newNotebook(title: string, example = false): Notebook {
   const now = new Date().toISOString();
   return {

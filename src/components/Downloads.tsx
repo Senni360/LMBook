@@ -112,7 +112,11 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     <DownloadsContext.Provider value={{ pending, start }}>
       {children}
       {current && (
-        <section className="download-status" aria-label="File download">
+        <section
+          className="download-status"
+          aria-label="File download"
+          data-state={current.state}
+        >
           <div className="download-status-heading">
             <Icon
               size={18}
@@ -130,7 +134,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
               </button>
             )}
           </div>
-          <p role="status">
+          <p role="status" key={current.state}>
             {pending
               ? current.started
                 ? "Saving file…"

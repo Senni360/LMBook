@@ -64,7 +64,6 @@ export function validEvidence(
     );
   });
 }
-// Keep UTF-8 byte limits, speaker identity and complete words across TTS requests.
 export function speechChunks(turns: Turn[], maxBytes = 2800): string[] {
   const lines: string[] = [];
   for (const turn of turns) {
@@ -125,18 +124,18 @@ export function combineWavs(buffers: Buffer[]) {
   const fmt = parts[0].format;
   if (parts.some((p) => !p.format.equals(fmt)))
     throw new Error("Speech segments have incompatible audio formats.");
-  const pcm = Buffer.concat(parts.map((p) => p.pcm));
+  const pcmLength = parts.reduce((length, part) => length + part.pcm.length, 0);
   const header = Buffer.alloc(28 + fmt.length);
   header.write("RIFF", 0);
-  header.writeUInt32LE(header.length + pcm.length - 8, 4);
+  header.writeUInt32LE(header.length + pcmLength - 8, 4);
   header.write("WAVEfmt ", 8);
   header.writeUInt32LE(fmt.length, 16);
   fmt.copy(header, 20);
   header.write("data", 20 + fmt.length);
-  header.writeUInt32LE(pcm.length, 24 + fmt.length);
+  header.writeUInt32LE(pcmLength, 24 + fmt.length);
   return {
-    buffer: Buffer.concat([header, pcm]),
-    seconds: pcm.length / fmt.readUInt32LE(8),
+    buffer: Buffer.concat([header, ...parts.map((part) => part.pcm)]),
+    seconds: pcmLength / fmt.readUInt32LE(8),
   };
 }
 export function exportMarkdown(n: Notebook) {

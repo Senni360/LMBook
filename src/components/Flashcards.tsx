@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { MotionNavigation } from "./Motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Download, Plus } from "lucide-react";
 import { uid, type Notebook } from "../../shared/model";
 import {
@@ -94,9 +95,8 @@ export function Flashcards({ n, disabled, change, run }: Props) {
           n.sources.some((s) => s.id === id && sourceReady(s)),
       );
   } catch {
-    /* Recover through selection controls. */
   }
-  const report = deck && flashDeckReport(deck);
+  const report = useMemo(() => deck && flashDeckReport(deck), [deck]);
   return (
     <div className="flashcards-workspace">
       <div className="section-heading">
@@ -505,7 +505,13 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                   source review.
                 </p>
               )}
-              <div className="flash-actions" aria-label="Deck view">
+              <MotionNavigation
+                as="div"
+                activeKey={view}
+                selector="button[aria-pressed=true]"
+                className="flash-actions"
+                aria-label="Deck view"
+              >
                 <button
                   className="button"
                   aria-pressed={view === "words"}
@@ -529,7 +535,7 @@ export function Flashcards({ n, disabled, change, run }: Props) {
                 >
                   Review sources
                 </button>
-              </div>
+              </MotionNavigation>
               {!!pending.size && (
                 <p role="status" className="flash-help">
                   Finish saving your edits before practice and export.
@@ -585,7 +591,7 @@ function FlashcardReview({
     deck.expectedCount === undefined ? "" : String(deck.expectedCount),
     10,
   );
-  const report = flashDeckReport(deck);
+  const report = useMemo(() => flashDeckReport(deck), [deck]);
   const cards = deck.cards.filter(
     (c) =>
       (!onlyUnchecked || !deck.reviewedIds.includes(c.id)) &&

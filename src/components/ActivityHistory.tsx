@@ -1,3 +1,4 @@
+import { MotionList } from "./Motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, History, LoaderCircle } from "lucide-react";
 import "./activity-history.css";
@@ -55,7 +56,7 @@ export function ActivityHistory({
   const [rows, setRows] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const loadingRef = useRef(false);
+  const request = useRef<AbortController | null>(null);
   const loadedToken = useRef<string | null>(null);
   const openRef = useRef(false);
   const refreshToken =
@@ -64,18 +65,22 @@ export function ActivityHistory({
   const load = useCallback(
     async (force = false) => {
       if (
-        loadingRef.current ||
+        (request.current && !force) ||
         (!force && loadedToken.current === refreshToken)
       )
         return;
-      loadingRef.current = true;
+      request.current?.abort();
+      const controller = new AbortController();
+      request.current = controller;
       setLoading(true);
       setError("");
       try {
         const response = await fetch(
           `/api/notebooks/${encodeURIComponent(notebookId)}/activity`,
+          { signal: controller.signal },
         );
         const payload = (await response.json()) as unknown;
+        if (controller.signal.aborted) return;
         if (!response.ok)
           throw new Error(
             payload && typeof payload === "object" && "error" in payload
@@ -87,14 +92,17 @@ export function ActivityHistory({
         setRows(payload as ActivityRow[]);
         loadedToken.current = refreshToken;
       } catch (loadError) {
+        if (controller.signal.aborted) return;
         setError(
           loadError instanceof Error
             ? loadError.message
             : "Generation history is unavailable right now.",
         );
       } finally {
-        loadingRef.current = false;
-        setLoading(false);
+        if (request.current === controller) {
+          request.current = null;
+          setLoading(false);
+        }
       }
     },
     [notebookId, refreshToken],
@@ -103,6 +111,10 @@ export function ActivityHistory({
   useEffect(() => {
     loadedToken.current = null;
     if (openRef.current) void load(true);
+    return () => {
+      request.current?.abort();
+      request.current = null;
+    };
   }, [load]);
 
   return (
@@ -149,7 +161,11 @@ export function ActivityHistory({
           <p className="activity-history-message">No generation jobs yet.</p>
         )}
         {!error && rows.length > 0 && (
-          <ol className="activity-history-list">
+          <MotionList
+            as="ol"
+            itemsKey={rows.map((row) => row.id).join(":")}
+            className="activity-history-list"
+          >
             {rows.map((activity) => (
               <li key={activity.id} className="activity-history-row">
                 <span
@@ -174,7 +190,7 @@ export function ActivityHistory({
                 </time>
               </li>
             ))}
-          </ol>
+          </MotionList>
         )}
       </div>
     </details>

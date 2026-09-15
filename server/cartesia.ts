@@ -29,7 +29,6 @@ export function cartesiaKey() {
     const stored = JSON.parse(readFileSync(credentialFile, "utf8"));
     return typeof stored.apiKey === "string" ? stored.apiKey : "";
   } catch {
-    // Do not break library loading or echo contents of a corrupt credential file.
     return "";
   }
 }

@@ -1,5 +1,5 @@
 import { open, type FileHandle } from "node:fs/promises";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn } from "node:child_process";
 import { PassThrough, Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
@@ -301,13 +301,18 @@ export async function createMp3Stream(
       "pipe:1",
     ],
     { stdio: ["pipe", "pipe", "pipe"], shell: false, windowsHide: true },
-  ) as ChildProcessWithoutNullStreams;
+  );
   const output = new PassThrough();
   const stderr: Buffer[] = [];
+  let stderrBytes = 0;
   let closed = false;
   child.stderr.on("data", (chunk: Buffer) => {
-    if (Buffer.byteLength(Buffer.concat(stderr)) < 32 * 1024)
-      stderr.push(Buffer.from(chunk));
+    const remaining = 32 * 1024 - stderrBytes;
+    if (remaining > 0) {
+      const diagnostic = Buffer.from(chunk.subarray(0, remaining));
+      stderr.push(diagnostic);
+      stderrBytes += diagnostic.length;
+    }
   });
   child.stdout.pipe(output, { end: false });
   child.stdout.once("error", (error) => output.destroy(error));

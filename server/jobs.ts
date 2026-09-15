@@ -349,7 +349,7 @@ export async function createAudio(
         if (cached) {
           buffer = cached;
         } else {
-          buffer = Buffer.from(await synthesizeAudio(text, e.settings, signal));
+          buffer = await synthesizeAudio(text, e.settings, signal);
           if (signal.aborted)
             throw new Error(
               "Audio generation cancelled. Completed segments are cached.",

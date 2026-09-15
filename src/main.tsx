@@ -1,4 +1,11 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource/manrope/400.css";
 import "@fontsource/manrope/500.css";
@@ -78,12 +85,16 @@ import { useDraftText } from "./hooks/useDraftText";
 import { useObjectDraft } from "./hooks/useObjectDraft";
 import { version as appVersion } from "../package.json";
 import { Flashcards } from "./components/Flashcards";
-
-/* THESIS: a course becomes a conversation through visible evidence and goals.
-OWN-WORLD: forest navigation, mineral paper, ochre listening controls, serif titles and quiet ledgers.
-STORY: collect material, establish coverage, shape and listen to a precise conversation.
-FIRST VIEWPORT: left notebook rail; wide title and three-step navigation; source ledger and next action.
-FORM: reading-room workbench, chosen under user's explicit autonomous-build instruction. */
+import {
+  canAnimate,
+  MotionList,
+  MotionNavigation,
+  MotionPreferences,
+  MotionSurface,
+  useCitationMotion,
+  useMotionEnvironment,
+} from "./components/Motion";
+import "./motion.css";
 
 type Summary = {
   id: string;
@@ -110,10 +121,16 @@ type OpenSource = (
   startSeconds?: number,
   range?: { startOffset: number; endOffset: number },
 ) => void;
-async function api<T>(url: string, method = "GET", body?: unknown): Promise<T> {
+async function api<T>(
+  url: string,
+  method = "GET",
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   const form = body instanceof FormData;
   const response = await fetch("/api" + url, {
     method,
+    signal,
     headers: {
       ...(method !== "GET" ? { "x-sennibook": "1" } : {}),
       ...(!form && body !== undefined
@@ -224,16 +241,35 @@ function Field({
   );
 }
 function App() {
+  useMotionEnvironment();
   const [notebooks, setNotebooks] = useState<Summary[]>([]);
   const [n, setN] = useState<Notebook | null>(null);
   const [tab, setTab] = useState<Tab>("sources");
+  const motionTab = useRef(tab);
+  const motionDirection = useMemo(() => {
+    const order: Tab[] = [
+      "sources",
+      "goals",
+      "studio",
+      "chat",
+      "flashcards",
+      "settings",
+    ];
+    const direction =
+      order.indexOf(tab) < order.indexOf(motionTab.current) ? -1 : 1;
+    return direction;
+  }, [tab]);
+  useLayoutEffect(() => {
+    motionTab.current = tab;
+  }, [tab]);
   const previousTab = useRef<Exclude<Tab, "settings">>("sources");
   const openSettings = () => {
     if (tab !== "settings") previousTab.current = tab;
     setTab("settings");
   };
   const leaveSettings = () => setTab(previousTab.current);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Reset the section before its reader/chat effects locate specific content.
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [tab]);
   const [sourceRequest, setSourceRequest] = useState<SourceRequest | null>(
@@ -259,20 +295,34 @@ function App() {
   const [notice, setNotice] = useState("");
   const selected = useRef<string | null>(null);
   const selectionRequest = useRef(0);
+  const savedRevision = useRef(0);
   const dialog = useRef<HTMLDialogElement>(null);
   const newTitleInput = useRef<HTMLInputElement>(null);
-  const loadList = async () => {
-    const list = await api<Summary[]>("/notebooks");
-    setNotebooks(list);
+  const loadList = async (signal?: AbortSignal) => {
+    const list = await api<Summary[]>("/notebooks", "GET", undefined, signal);
+    if (!signal?.aborted) setNotebooks(list);
     return list;
   };
-  const refresh = async () => {
+  const refresh = async (signal?: AbortSignal) => {
     if (selected.current) {
       const current = selected.current;
-      const book = await api<Notebook>("/notebooks/" + current);
-      if (selected.current === current) setN(book);
+      const request = selectionRequest.current;
+      const revision = savedRevision.current;
+      const book = await api<Notebook>(
+        "/notebooks/" + current,
+        "GET",
+        undefined,
+        signal,
+      );
+      if (
+        !signal?.aborted &&
+        selected.current === current &&
+        selectionRequest.current === request &&
+        savedRevision.current === revision
+      )
+        setN(book);
     }
-    await loadList();
+    if (!signal?.aborted) await loadList(signal);
   };
   const choose = async (id: string, fallbackId = n?.id || null) => {
     const request = ++selectionRequest.current;
@@ -281,9 +331,7 @@ function App() {
     selected.current = id;
     try {
       localStorage.setItem("sennibook:last", id);
-    } catch {
-      /* Remembering the last notebook is optional. */
-    }
+    } catch {}
     setError("");
     try {
       const book = await api<Notebook>("/notebooks/" + id);
@@ -308,9 +356,7 @@ function App() {
         let last: string | null = null;
         try {
           last = localStorage.getItem("sennibook:last");
-        } catch {
-          /* Open the first notebook when preferences are unavailable. */
-        }
+        } catch {}
         if (list.length)
           await choose(list.find((b) => b.id === last)?.id || list[0].id);
       } catch (e) {
@@ -329,23 +375,58 @@ function App() {
   const pendingSourceProcessing = !!n?.sources.some((source) =>
     ["recognizing", "transcribing"].includes(source.processing?.status || ""),
   );
+  const pollInputs = useRef({ status, pendingSourceProcessing });
+  useLayoutEffect(() => {
+    pollInputs.current = { status, pendingSourceProcessing };
+  }, [status, pendingSourceProcessing]);
   useEffect(() => {
-    const timer = setInterval(() => {
-      void api<Capabilities>("/status")
-        .then((st) => {
-          setStatus(st);
-          if (
-            selected.current &&
-            (st.activeJobs[selected.current] ||
-              status?.activeJobs[selected.current] ||
-              pendingSourceProcessing)
-          )
-            void refresh().catch((e) => setError(e.message));
-        })
-        .catch(() => {});
-    }, 2500);
-    return () => clearInterval(timer);
-  }, [status?.activeJobs, n?.id, pendingSourceProcessing]);
+    const controller = new AbortController();
+    const { signal } = controller;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        const st = await api<Capabilities>("/status", "GET", undefined, signal);
+        if (signal.aborted) return;
+        const id = selected.current;
+        const request = selectionRequest.current;
+        const previous = pollInputs.current;
+        const shouldRefresh =
+          id &&
+          (st.activeJobs[id] ||
+            previous.status?.activeJobs[id] ||
+            previous.pendingSourceProcessing);
+        pollInputs.current = { ...previous, status: st };
+        setStatus((current) =>
+          JSON.stringify(current) === JSON.stringify(st) ? current : st,
+        );
+        if (shouldRefresh) {
+          try {
+            await refresh(signal);
+          } catch (error) {
+            if (
+              !signal.aborted &&
+              selected.current === id &&
+              selectionRequest.current === request
+            )
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Could not refresh notebook.",
+              );
+          }
+        }
+      } catch {
+        // A missed background status check keeps the last known connection state.
+      } finally {
+        if (!signal.aborted) timer = setTimeout(() => void poll(), 2500);
+      }
+    };
+    timer = setTimeout(() => void poll(), 2500);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, []);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 4000);
@@ -375,7 +456,10 @@ function App() {
     const book = await api<Notebook>(url, method, body);
     // A multi-file import can continue after the user switches notebooks.
     // Only the response's actual notebook may update the visible workspace.
-    if (book.id && book.id === selected.current) setN(book);
+    if (book.id && book.id === selected.current) {
+      savedRevision.current++;
+      setN(book);
+    }
     try {
       await loadList();
     } catch {
@@ -413,9 +497,7 @@ function App() {
     ]);
     try {
       localStorage.setItem("sennibook:last", book.id);
-    } catch {
-      /* Remembering the selected notebook is optional. */
-    }
+    } catch {}
     setTab("sources");
     try {
       await loadList();
@@ -474,7 +556,14 @@ function App() {
             <Plus size={18} />
           </button>
         </div>
-        <nav className="notebook-list" aria-label="Notebooks">
+        <MotionNavigation
+          activeKey={n?.id || ""}
+          itemsKey={notebooks.map((book) => book.id).join(":")}
+          selector=".notebook-item.selected"
+          vertical
+          className="notebook-list"
+          aria-label="Notebooks"
+        >
           {notebooks.map((book) => (
             <button
               key={book.id}
@@ -499,7 +588,7 @@ function App() {
           {!notebooks.length && (
             <p className="rail-empty">Your courses will live here.</p>
           )}
-        </nav>
+        </MotionNavigation>
         <Button
           icon={Plus}
           variant="rail-new"
@@ -662,9 +751,7 @@ function App() {
                   setN(null);
                   try {
                     localStorage.removeItem("sennibook:last");
-                  } catch {
-                    /* The library remains usable without this preference. */
-                  }
+                  } catch {}
                   setTab("sources");
                 }
                 try {
@@ -752,7 +839,12 @@ function App() {
                 <Download size={16} /> Export notes
               </DownloadLink>
             </section>
-            <nav className="tabs" aria-label="Notebook sections">
+            <MotionNavigation
+              activeKey={`${n.id}:${tab}`}
+              selector="button.active"
+              className="tabs"
+              aria-label="Notebook sections"
+            >
               {(
                 [
                   {
@@ -778,7 +870,12 @@ function App() {
                     label: "Ask your sources",
                     icon: MessageSquare,
                   },
-                  { id: "flashcards", label: "Flashcards", icon: BookOpen, count: n.flashcards?.length || 0 },
+                  {
+                    id: "flashcards",
+                    label: "Flashcards",
+                    icon: BookOpen,
+                    count: n.flashcards?.length || 0,
+                  },
                 ] as const
               ).map((t) => (
                 <button
@@ -792,8 +889,12 @@ function App() {
                   {"count" in t && <span className="tab-count">{t.count}</span>}
                 </button>
               ))}
-            </nav>
-            <div className="page-content">
+            </MotionNavigation>
+            <MotionSurface
+              motionKey={tab}
+              direction={motionDirection}
+              className="page-content"
+            >
               {job && (
                 <div className="job-banner" role="status">
                   <LoaderCircle className="spin" size={18} />
@@ -868,8 +969,16 @@ function App() {
                   openSource={openSource}
                 />
               )}
-              {tab === "flashcards" && <Flashcards key={n.id} n={n} disabled={disabled} run={run} change={change} />}
-            </div>
+              {tab === "flashcards" && (
+                <Flashcards
+                  key={n.id}
+                  n={n}
+                  disabled={disabled}
+                  run={run}
+                  change={change}
+                />
+              )}
+            </MotionSurface>
           </>
         )}
         <footer className="page-footer">
@@ -968,16 +1077,20 @@ function Sources({
     n.sources.find((source) => source.id === reading?.sourceId) || null;
   const reader = useRef<HTMLDivElement>(null);
   const highlight = useRef<HTMLElement>(null);
-  const location =
-    selected && reading?.range
-      ? locateSourceRange(
-          selected,
-          reading.range.startOffset,
-          reading.range.endOffset,
-        )
-      : selected && reading?.quote
-        ? locateEvidence(selected, reading.quote)
-        : undefined;
+  useCitationMotion(highlight, `${reading?.sourceId}:${reading?.nonce}`);
+  const location = useMemo(
+    () =>
+      selected && reading?.range
+        ? locateSourceRange(
+            selected,
+            reading.range.startOffset,
+            reading.range.endOffset,
+          )
+        : selected && reading?.quote
+          ? locateEvidence(selected, reading.quote)
+          : undefined,
+    [selected, reading],
+  );
   useEffect(() => {
     if (request) setReading(request);
   }, [request]);
@@ -998,9 +1111,7 @@ function Sources({
     const target = highlight.current || reader.current;
     target?.scrollIntoView({
       block: "center",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
+      behavior: canAnimate() ? "smooth" : "instant",
     });
     target?.focus({ preventScroll: true });
   }, [reading]);
@@ -1219,9 +1330,16 @@ function Sources({
           Try a different term or clear the search to see all your sources.
         </Empty>
       ) : (
-        <div className="source-list">
+        <MotionList
+          itemsKey={visibleSources.map((source) => source.id).join(":")}
+          className="source-list"
+        >
           {visibleSources.map((s, i) => (
-            <div className="source-row" key={s.id}>
+            <div
+              className="source-row"
+              key={s.id}
+              data-source-open={selected?.id === s.id}
+            >
               <div className="file-symbol">
                 {s.attachment?.mediaType.startsWith("audio/") ? (
                   <Headphones size={20} />
@@ -1286,7 +1404,7 @@ function Sources({
               </button>
             </div>
           ))}
-        </div>
+        </MotionList>
       )}
       {n.sources.length > 0 && (
         <div className="next-step">
@@ -1306,9 +1424,11 @@ function Sources({
         </div>
       )}
       {selected && (
-        <div
+        <MotionSurface
+          kind="reader"
+          motionKey={`${selected.id}:${reading?.nonce}`}
           className="reader"
-          ref={reader}
+          elementRef={reader}
           tabIndex={-1}
           aria-label="Source reader"
         >
@@ -1392,7 +1512,7 @@ function Sources({
               )}
             </div>
           )}
-        </div>
+        </MotionSurface>
       )}
     </>
   );
@@ -1406,11 +1526,21 @@ function EvidenceList({
   n: Notebook;
   onOpenSource?: OpenSource;
 }) {
+  const passages = useMemo(
+    () =>
+      evidence.map((item) => {
+        const source = n.sources.find((source) => source.id === item.sourceId);
+        return {
+          evidence: item,
+          source,
+          location: source ? locateEvidence(source, item.quote) : undefined,
+        };
+      }),
+    [evidence, n.sources],
+  );
   return (
     <div className="evidence-list">
-      {evidence.map((e, i) => {
-        const source = n.sources.find((s) => s.id === e.sourceId);
-        const location = source ? locateEvidence(source, e.quote) : undefined;
+      {passages.map(({ evidence: e, source, location }, i) => {
         return (
           <blockquote key={i}>
             <p>“{e.quote}”</p>
@@ -1626,7 +1756,10 @@ function Goals({
             : "Coverage has not been assessed yet. Your goals are still in the notebook."}
         </Empty>
       ) : (
-        <div className="objective-list">
+        <MotionList
+          itemsKey={`${visibleGoals.map((goal) => goal.id).join(":")}:${expanded}`}
+          className="objective-list"
+        >
           {visibleGoals.map((o) => {
             const i = n.objectives.findIndex(
               (objective) => objective.id === o.id,
@@ -1692,11 +1825,7 @@ function Goals({
                     }
                     onClick={() => setExpanded(expanded === o.id ? null : o.id)}
                   >
-                    {expanded === o.id ? (
-                      <ChevronDown size={18} />
-                    ) : (
-                      <ChevronRight size={18} />
-                    )}
+                    <ChevronRight size={18} />
                   </button>
                   <button
                     className="icon-button delete"
@@ -1762,7 +1891,7 @@ function Goals({
               </div>
             );
           })}
-        </div>
+        </MotionList>
       )}
       <p className="fine-print">
         <Bookmark size={13} /> Marked items get extra emphasis. All objectives
@@ -1855,9 +1984,7 @@ function Studio({
         `sennibook:studio:${n.id}`,
         JSON.stringify({ episodeId: e.id, chapterId: c?.id || "" }),
       );
-    } catch {
-      // Remembering the selected chapter is optional; playback remains usable.
-    }
+    } catch {}
   }, [n.id, e?.id, c?.id]);
   const savedScript = useMemo(
     () => c?.turns.map((t) => `${t.speaker}: ${t.text}`).join("\n\n") || "",
@@ -1870,14 +1997,26 @@ function Studio({
   const { text: script, setText: setScript } = scriptDraft;
   const episodeSources = e?.sources || n.sources;
   const episodeObjectives = e?.objectives || n.objectives;
-  const totalWords =
-    e?.chapters.reduce(
-      (sum, ch) => sum + words(ch.turns.map((t) => t.text).join(" ")),
-      0,
-    ) || 0;
+  const chapterWords = useMemo(
+    () =>
+      new Map(
+        e?.chapters.map((chapter) => [
+          chapter.id,
+          words(chapter.turns.map((turn) => turn.text).join(" ")),
+        ]),
+      ),
+    [e?.chapters],
+  );
+  const totalWords = [...chapterWords.values()].reduce(
+    (sum, count) => sum + count,
+    0,
+  );
   const hasScript = !!e?.chapters.every((ch) => ch.turns.length);
   const fullAudio = !!e?.chapters.every((ch) => ch.audioFile);
-  const qualityWarnings = e ? evaluateEpisodeQuality(e) : [];
+  const qualityWarnings = useMemo(
+    () => (e ? evaluateEpisodeQuality(e) : []),
+    [e],
+  );
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setDraft({ ...draft, [key]: value });
   const ttsCost = estimateSpeech(
@@ -1889,9 +2028,14 @@ function Studio({
     (e?.settings || draft).ttsProvider === "cartesia"
       ? !!status?.cartesia
       : !!status?.googleProject;
-  const episodeCredits = cartesiaCredits(
-    e?.chapters.flatMap((ch) => ch.turns.map((turn) => turn.text)).join("") ||
-      "",
+  const episodeCredits = useMemo(
+    () =>
+      cartesiaCredits(
+        e?.chapters
+          .flatMap((ch) => ch.turns.map((turn) => turn.text))
+          .join("") || "",
+      ),
+    [e?.chapters],
   );
   const speechEstimate = episodeCartesia
     ? `~${episodeCredits.toLocaleString()} credits`
@@ -2199,7 +2343,14 @@ function Studio({
                 <span>{e.error}</span>
               </div>
             )}
-            <div className="chapter-list">
+            <MotionNavigation
+              as="div"
+              activeKey={c?.id || ""}
+              itemsKey={e.chapters.map((chapter) => chapter.id).join(":")}
+              selector="button.active"
+              vertical
+              className="chapter-list"
+            >
               {e.chapters.map((ch, i) => (
                 <button
                   key={ch.id}
@@ -2221,7 +2372,7 @@ function Studio({
                     <small>
                       {ch.objectiveIds.length} learning goals ·{" "}
                       {ch.turns.length
-                        ? `${words(ch.turns.map((t) => t.text).join(" ")).toLocaleString()} words`
+                        ? `${chapterWords.get(ch.id)?.toLocaleString()} words`
                         : "Outline ready"}
                     </small>
                   </span>
@@ -2234,7 +2385,7 @@ function Studio({
                   )}
                 </button>
               ))}
-            </div>
+            </MotionNavigation>
             {hasScript && qualityWarnings.length > 0 && (
               <details className="script-checks">
                 <summary>
@@ -2624,11 +2775,18 @@ function Chat({
   change,
   openSource,
 }: WorkProps & { openSource: OpenSource }) {
+  const initialMessageIds = useMemo(
+    () => new Set(n.messages.map((message) => message.id)),
+    [n.id],
+  );
   const questionDraft = useDraftText(`${n.id}:question`, "", 6000);
   const { text: message, setText: setMessage } = questionDraft;
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    end.current?.scrollIntoView({
+      block: "nearest",
+      behavior: canAnimate() ? "smooth" : "instant",
+    });
   }, [n.messages.length]);
   return (
     <section className="chat">
@@ -2664,8 +2822,11 @@ function Chat({
         </div>
       ) : (
         <div className="messages">
-          {n.messages.map((m) => (
-            <article key={m.id} className={`message ${m.role}`}>
+          {n.messages.map((m, index) => (
+            <article
+              key={m.id}
+              className={`message ${m.role}${index === n.messages.length - 1 && !initialMessageIds.has(m.id) ? " message-latest" : ""}`}
+            >
               <span className="message-label">
                 {m.role === "user" ? "You" : "LMBook"}
               </span>
@@ -2787,7 +2948,7 @@ function Connections({
   const [checkingCodex, setCheckingCodex] = useState(false);
   const bundleInput = useRef<HTMLInputElement>(null);
   return (
-    <div className="settings-page">
+    <MotionSurface motionKey="settings" className="settings-page">
       <div className="page-heading">
         <div>
           <h1>Connections & settings</h1>
@@ -2928,9 +3089,9 @@ function Connections({
             <summary>Connection instructions</summary>
             <p>
               <strong>Codex:</strong> install the CLI and run{" "}
-              <code>codex login</code>. LMBook connects through Codex App
-              Server using your local login. Your subscription or API billing
-              and usage limits apply.
+              <code>codex login</code>. LMBook connects through Codex App Server
+              using your local login. Your subscription or API billing and usage
+              limits apply.
             </p>
             <p>
               <strong>OpenCode Go:</strong> install OpenCode and connect your Go
@@ -3034,6 +3195,7 @@ function Connections({
         </div>
         <div className="settings-body">
           {window.sennibookDesktop && <DesktopDetails />}
+          <MotionPreferences />
           <h3>Notebook backups</h3>
           <p>
             A ZIP backup includes notes, saved source evidence, episode scripts
@@ -3165,7 +3327,7 @@ function Connections({
           </details>
         </div>
       </section>
-    </div>
+    </MotionSurface>
   );
 }
 

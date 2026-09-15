@@ -1,3 +1,4 @@
+import { canAnimate, MotionSurface, useCitationMotion } from "./Motion";
 import { useEffect, useRef } from "react";
 import { Download, X } from "lucide-react";
 import { DownloadLink } from "./Downloads";
@@ -42,6 +43,10 @@ export function SourceSnapshotReader({
     : 0;
   const endOffset = hasRange ? clampOffset(range!.endOffset, text.length) : 0;
   const validRange = endOffset > startOffset;
+  useCitationMotion(
+    highlightRef,
+    `${source.id}:${episodeId}:${startOffset}:${endOffset}`,
+  );
   const hasAudioTarget =
     source.attachment?.mediaType.startsWith("audio/") &&
     startSeconds !== undefined &&
@@ -59,9 +64,7 @@ export function SourceSnapshotReader({
       if (!target) return;
       target.scrollIntoView({
         block: "center",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
+        behavior: canAnimate() ? "smooth" : "instant",
       });
       target.focus({ preventScroll: true });
     });
@@ -80,8 +83,11 @@ export function SourceSnapshotReader({
   const downloadUrl = `/api/notebooks/${encodeURIComponent(notebookId)}/sources/${encodeURIComponent(source.id)}/original${episodeId ? `?episode=${encodeURIComponent(episodeId)}` : ""}`;
 
   return (
-    <section
-      ref={readerRef}
+    <MotionSurface
+      as="section"
+      kind="reader"
+      motionKey={`${source.id}:${episodeId}:${startOffset}:${endOffset}`}
+      elementRef={readerRef}
       tabIndex={-1}
       className="reader source-snapshot-reader"
       aria-labelledby={`source-snapshot-title-${source.id}`}
@@ -148,6 +154,6 @@ export function SourceSnapshotReader({
           )}
         </div>
       )}
-    </section>
+    </MotionSurface>
   );
 }
