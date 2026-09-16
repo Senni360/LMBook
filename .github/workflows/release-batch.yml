@@ -66,7 +66,9 @@ jobs:
         run: npx playwright install chromium
       - name: Build and run existing application checks
         working-directory: source
-        run: npm test
+        run: |
+          node ../automation/scripts/prepare-release-tests.mjs
+          npm test
       - name: Package native desktop app
         working-directory: source
         run: |

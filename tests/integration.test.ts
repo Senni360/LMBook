@@ -150,7 +150,10 @@ test(
     let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
     try {
       let ready = false;
-      for (let i = 0; i < 100; i++) {
+      // Cold hosted Windows runners can spend over ten seconds starting tsx.
+      // Keep the same readiness assertion, allowing startup within this test's
+      // existing overall timeout rather than treating slow startup as failure.
+      for (let i = 0; i < 450; i++) {
         try {
           if ((await fetch(base + "/api/notebooks")).ok) {
             ready = true;
