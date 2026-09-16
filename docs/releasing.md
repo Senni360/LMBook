@@ -2,6 +2,8 @@
 
 ## Local delivery location
 
+**Approved exception, 2026-09-17:** the owner explicitly authorized publishing versions 0.3.9 through 0.3.16 to the existing `Senni360/LMBook` GitHub repository in one batch. `release-batch.json` binds exactly those versions to their source commits. The manual **Desktop release batch** workflow builds and checks all three native platforms before publishing verified downloads. It uses a fresh trusted workflow checkout for approval and publication, and never changes the 0.4 milestone policy. Existing published releases and tags are not replaced. This supersedes the local-only restriction for these eight approved versions; normal local output remains unchanged.
+
 The owner's explicit 2026-09-16 direction is to deliver builds only to the normal `D:\Downloads\SenniBook\release\<version>` directory on this computer. Do not put releases in worktree-local folders, `ai-preview`, temporary preview destinations or upload them elsewhere. This is the current delivery rule; older preview paths are historical evidence only. `scripts/package-desktop.mjs`, used by the desktop packaging npm scripts, resolves the main checkout even when run from a worktree, chooses `release/<version>` there and forces `--publish never`. Source archives use their own `release/<version>` directory. A local version request does not authorize GitHub publication or 0.4 approval.
 
 The **Desktop release** GitHub Actions workflow builds iteration artifacts on PRs and `master`. Publication also requires explicit owner approval recorded in `release-policy.json`. The current target is 0.4.0 and approval is unset; see [the milestone agreement](0.4-plan.md). A merge or version bump alone cannot publish. To release an approved milestone:

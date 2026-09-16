@@ -1,0 +1,182 @@
+name: Desktop release batch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-master
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - name: Validate approved batch and create matrices
+        id: plan
+        run: node scripts/release-batch-plan.mjs
+
+  build:
+    needs: plan
+    if: needs.plan.result == 'success'
+    name: Build ${{ matrix.version }} ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.plan.outputs.build) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: automation
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ matrix.sha }}
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Install locked dependencies
+        working-directory: source
+        run: npm ci
+      - name: Install browser used by existing checks
+        working-directory: source
+        run: npx playwright install chromium
+      - name: Build and run existing application checks
+        working-directory: source
+        run: npm test
+      - name: Package native desktop app
+        working-directory: source
+        run: |
+          node scripts/build-desktop.mjs
+          npx electron-builder ${{ matrix.args }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_FOR_PULL_REQUEST: "true"
+      - name: Verify the Mac app signature
+        if: runner.os == 'macOS'
+        working-directory: source
+        run: codesign --verify --deep --strict "${{ github.workspace }}/source/${{ matrix.app }}"
+      - name: Check packaged app on its native architecture
+        working-directory: source
+        run: |
+          mkdir -p .work
+          cp ../automation/tests/desktop.smoke.ts .work/release-desktop.smoke.ts
+          npx tsx --test .work/release-desktop.smoke.ts
+        env:
+          SENNIBOOK_TEST_EXECUTABLE: ${{ github.workspace }}/source/${{ matrix.executable }}
+      - name: Stage checked platform downloads
+        working-directory: source
+        run: node ../automation/scripts/release.mjs stage ${{ matrix.target }}
+        env:
+          LMBOOK_RELEASE_BATCH_VERSION: ${{ matrix.version }}
+          LMBOOK_RELEASE_SOURCE_SHA: ${{ matrix.sha }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: desktop-${{ matrix.version }}-${{ matrix.target }}-${{ github.run_id }}
+          path: source/.work/release-assets/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          compression-level: 0
+
+  verify:
+    needs: [plan, build]
+    if: needs.plan.result == 'success'
+    name: Verify ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.publish) }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: automation
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ matrix.sha }}
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: desktop-${{ matrix.version }}-*-${{ github.run_id }}
+          merge-multiple: true
+          path: source/.work/release-assets
+      - name: Verify all targets for this version
+        working-directory: source
+        run: node ../automation/scripts/release.mjs collect
+        env:
+          LMBOOK_RELEASE_BATCH_VERSION: ${{ matrix.version }}
+          LMBOOK_RELEASE_SOURCE_SHA: ${{ matrix.sha }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-${{ matrix.version }}-${{ github.run_id }}
+          path: source/.work/release-assets/*.*
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          compression-level: 0
+
+  publish:
+    needs: [plan, verify]
+    if: needs.plan.result == 'success' && needs.verify.result == 'success' && github.ref == 'refs/heads/master'
+    name: Publish ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    strategy:
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.publish) }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          path: automation
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ matrix.sha }}
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: verified-${{ matrix.version }}-${{ github.run_id }}
+          path: source/.work/release-assets
+      - name: Publish verified downloads
+        working-directory: source
+        run: node ../automation/scripts/release.mjs publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LMBOOK_RELEASE_BATCH_VERSION: ${{ matrix.version }}
+          LMBOOK_RELEASE_SOURCE_SHA: ${{ matrix.sha }}

@@ -15,7 +15,17 @@ const command = process.argv[2];
 const pkg = JSON.parse(await readFile("package.json", "utf8"));
 const lock = JSON.parse(await readFile("package-lock.json", "utf8"));
 const version = pkg.version;
-const policy = JSON.parse(await readFile("release-policy.json", "utf8"));
+// Batch approval belongs to the trusted workflow checkout. Historical app
+// checkouts may predate release-policy.json and must not approve themselves.
+const batchVersion = process.env.LMBOOK_RELEASE_BATCH_VERSION;
+const policy = JSON.parse(
+  await readFile(
+    batchVersion
+      ? new URL("../release-policy.json", import.meta.url)
+      : "release-policy.json",
+    "utf8",
+  ),
+);
 const stableVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 if (
   !stableVersion.test(policy.targetVersion) ||
@@ -26,7 +36,26 @@ if (
   throw new Error(
     "Invalid release policy: approval must name the target version or be null.",
   );
-const approved = policy.approvedVersion === version;
+let approved = policy.approvedVersion === version;
+if (batchVersion) {
+  const batch = JSON.parse(
+    await readFile(new URL("../release-batch.json", import.meta.url), "utf8"),
+  );
+  const entries =
+    batch.versions?.filter((entry) => entry.version === version) || [];
+  if (
+    batch.approvedAt !== "2026-09-17" ||
+    batchVersion !== version ||
+    entries.length !== 1 ||
+    entries[0].sha !== process.env.LMBOOK_RELEASE_SOURCE_SHA ||
+    !/^0\.3\.(9|1[0-6])$/.test(version)
+  ) {
+    throw new Error(
+      "This version and source commit are not approved for the release batch.",
+    );
+  }
+  approved = true;
+}
 if (command === "publish" && !approved)
   throw new Error(
     `Publication of v${version} is not approved. Iteration builds remain unpublished until the owner approves the target release.`,
@@ -38,7 +67,9 @@ if (lock.version !== version || lock.packages[""].version !== version)
     "package.json and package-lock.json must have the same version.",
   );
 const repo = process.env.GITHUB_REPOSITORY;
-const sha = process.env.GITHUB_SHA;
+const sha = batchVersion
+  ? process.env.LMBOOK_RELEASE_SOURCE_SHA
+  : process.env.GITHUB_SHA;
 if (
   !/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(repo || "") ||
   !/^[a-f0-9]{40}$/.test(sha || "")
@@ -245,6 +276,9 @@ if (command === "plan") {
     await summary(`${tag} is already public; leaving it unchanged.`);
   } else {
     const body =
+      (batchVersion
+        ? "Published with the owner's batch approval of 17 September 2026. The historical iteration notes below describe the original scope; 0.4 remains unapproved.\n\n"
+        : "") +
       notes.replace(
         /\]\((\.\.?\/[^)]+)\)/g,
         (_, href) =>
