@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 cartesia-credentials.json*
+openrouter-credentials.json*
 data/
 test-results/
 playwright-report/

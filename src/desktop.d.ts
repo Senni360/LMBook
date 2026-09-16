@@ -28,8 +28,11 @@ declare global {
         configPath: string;
       }>;
       openDataFolder(): Promise<string>;
-      chooseVault(): Promise<import("../shared/vault").Vault | null>;
+      chooseVault(
+        reconnectId?: string,
+      ): Promise<import("../shared/vault").Vault | null>;
       openVaultInObsidian(vaultId: string, notePath: string): Promise<void>;
+      revealVaultNote(vaultId: string, notePath: string): Promise<void>;
       copyText(text: string): Promise<void>;
       download(
         id: string,

@@ -3,55 +3,73 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { executableOnPath } from "./executable-path.ts";
 
-export const codexPath =
-  process.env.CODEX_CLI_PATH ||
-  (process.platform !== "win32"
-    ? executableOnPath("codex")
-    : path.join(
-        process.env.APPDATA || "",
-        "npm",
-        "node_modules",
-        "@openai",
-        "codex",
-        "bin",
-        "codex.js",
-      ));
+function candidatePaths() {
+  const candidates = [process.env.CODEX_CLI_PATH];
+  if (process.platform === "win32") {
+    const appData = process.env.APPDATA;
+    if (appData)
+      candidates.push(
+        path.join(
+          appData,
+          "npm",
+          "node_modules",
+          "@openai",
+          "codex",
+          "bin",
+          "codex.js",
+        ),
+      );
+  }
+  const discovered = executableOnPath("codex");
+  if (
+    discovered &&
+    (process.platform !== "win32" || /\.(?:cmd|exe|[cm]?js)$/i.test(discovered))
+  )
+    candidates.push(discovered);
+  return [...new Set(candidates.filter((value): value is string => !!value))];
+}
+
+/** Retained as a compatibility export; command discovery itself is dynamic. */
+export const codexPath = candidatePaths()[0] || "";
 
 /** Launch the installed native binary ourselves: the npm wrapper opens a console on Windows. */
 export function codexCommand() {
-  if (!existsSync(codexPath)) return null;
-  if (!/\.[cm]?js$/i.test(codexPath))
-    return { file: codexPath, prefix: [] as string[] };
-  const target =
-    process.platform === "win32"
-      ? `${process.arch === "arm64" ? "aarch64" : "x86_64"}-pc-windows-msvc`
-      : "";
-  if (target) {
-    const packageName = `@openai/codex-win32-${process.arch}`;
-    const roots = [path.resolve(codexPath, "..", "..", "vendor")];
-    try {
-      const resolve = createRequire(path.resolve(codexPath));
-      roots.unshift(
-        path.join(
-          path.dirname(resolve.resolve(`${packageName}/package.json`)),
-          "vendor",
-        ),
-      );
-    } catch {
-      /* Older CLI packages keep vendor files beside their launcher. */
-    }
-    for (const root of roots) {
-      for (const folder of ["bin", "codex"]) {
-        const file = path.join(root, target, folder, "codex.exe");
-        if (existsSync(file)) return { file, prefix: [] as string[] };
+  for (const candidate of candidatePaths()) {
+    if (!existsSync(candidate)) continue;
+    if (!/\.[cm]?js$/i.test(candidate))
+      return { file: candidate, prefix: [] as string[] };
+    const target =
+      process.platform === "win32"
+        ? `${process.arch === "arm64" ? "aarch64" : "x86_64"}-pc-windows-msvc`
+        : "";
+    if (target) {
+      const packageName = `@openai/codex-win32-${process.arch}`;
+      const roots = [path.resolve(candidate, "..", "..", "vendor")];
+      try {
+        const resolve = createRequire(path.resolve(candidate));
+        roots.unshift(
+          path.join(
+            path.dirname(resolve.resolve(`${packageName}/package.json`)),
+            "vendor",
+          ),
+        );
+      } catch {
+        /* Older CLI packages keep vendor files beside their launcher. */
       }
+      for (const root of roots) {
+        for (const folder of ["bin", "codex"]) {
+          const file = path.join(root, target, folder, "codex.exe");
+          if (existsSync(file)) return { file, prefix: [] as string[] };
+        }
+      }
+      continue;
     }
-    return null;
+    return {
+      file: process.env.SENNIBOOK_NODE_EXEC || process.execPath,
+      prefix: [candidate],
+    };
   }
-  return {
-    file: process.env.SENNIBOOK_NODE_EXEC || process.execPath,
-    prefix: [codexPath],
-  };
+  return null;
 }
 
 export function codexFailure(diagnostic: string, code: number | null) {

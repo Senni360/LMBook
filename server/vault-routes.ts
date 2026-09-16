@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   connectVault,
   disconnectVault,
@@ -15,12 +15,35 @@ import {
   readGeneration,
   storeGeneration,
   vaultError,
+  createVaultFolder,
+  readVaultAsset,
 } from "./vault.ts";
-import { getNotebook, saveNotebook, originalsDir } from "./store.ts";
-import { storeOriginal } from "./source-originals.ts";
-import { withArtifactMutation } from "./artifact-lock.ts";
+import {
+  getVaultIndex,
+  searchVault,
+  vaultNoteContext,
+  invalidateVaultIndex,
+  stopVaultIndex,
+} from "./vault-index.ts";
+import {
+  previewVaultLearning,
+  importVaultLearning,
+  inspectVaultSourceChanges,
+  refreshVaultSources,
+} from "./vault-learning.ts";
+import {
+  getVaultRecoveryDraft,
+  listVaultRecoveryDrafts,
+  upsertVaultRecoveryDraft,
+  deleteVaultRecoveryDraft,
+  getVaultStorageInventory,
+  purgeVaultStorage,
+  deleteVaultGeneration,
+} from "./vault-recovery.ts";
+import { getNotebook } from "./store.ts";
 import { generate } from "./providers.ts";
 import { jobs } from "./jobs.ts";
+import { cancelVaultSemanticIndex } from "./vault-semantic.ts";
 import { parseJSON } from "./core.ts";
 import type { VaultDraft } from "../shared/vault.ts";
 
@@ -69,6 +92,171 @@ const selection = z.object({
 
 export function registerVaultRoutes(app: Express) {
   app.get(
+    "/api/vaults/:vaultId/recovery",
+    route((req, res) => res.json(listVaultRecoveryDrafts(id(req)))),
+  );
+  app.get(
+    "/api/vaults/:vaultId/recovery/note",
+    route((req, res) =>
+      res.json(getVaultRecoveryDraft(id(req), relative(req))),
+    ),
+  );
+  app.put(
+    "/api/vaults/:vaultId/recovery/note",
+    route((req, res) =>
+      res.json(
+        upsertVaultRecoveryDraft(
+          id(req),
+          req.body.editor,
+          req.body.expectedVersion,
+        ),
+      ),
+    ),
+  );
+  app.delete(
+    "/api/vaults/:vaultId/recovery/note",
+    route((req, res) =>
+      res.json(
+        deleteVaultRecoveryDraft(
+          id(req),
+          req.body.path,
+          req.body.expectedVersion,
+        ),
+      ),
+    ),
+  );
+  app.get(
+    "/api/vaults/:vaultId/storage",
+    route((req, res) => res.json(getVaultStorageInventory(id(req)))),
+  );
+  app.delete(
+    "/api/vaults/:vaultId/storage",
+    route(async (req, res) => {
+      if (req.body.category === "index") { await stopVaultIndex(id(req)); await cancelVaultSemanticIndex(id(req)); }
+      res.json(purgeVaultStorage(id(req), req.body.category));
+    }),
+  );
+  app.delete(
+    "/api/vaults/:vaultId/drafts/:draftId",
+    route((req, res) =>
+      res.json(deleteVaultGeneration(id(req), req.params.draftId)),
+    ),
+  );
+  app.get(
+    "/api/vaults/:vaultId/drafts/:draftId/changes",
+    route(async (req, res) => {
+      const vaultId = id(req),
+        draft = readGeneration(vaultId, z.uuid().parse(req.params.draftId));
+      res.json(
+        await Promise.all(
+          draft.sources.map(async (source) => {
+            try {
+              const { note } = await readVaultNote(vaultId, source.path);
+              return {
+                path: source.path,
+                status:
+                  note.revision === source.revision ? "unchanged" : "changed",
+              };
+            } catch (error) {
+              return {
+                path: source.path,
+                status: "missing",
+                issue:
+                  error instanceof Error ? error.message : "Source unavailable",
+              };
+            }
+          }),
+        ),
+      );
+    }),
+  );
+  app.get(
+    "/api/vaults/:vaultId/index",
+    route((req, res) => res.json(getVaultIndex(id(req)))),
+  );
+  app.post(
+    "/api/vaults/:vaultId/index",
+    route((req, res) => res.json(getVaultIndex(id(req), true))),
+  );
+  app.get(
+    "/api/vaults/:vaultId/search",
+    route((req, res) =>
+      res.json(searchVault(id(req), z.string().max(500).parse(req.query.q))),
+    ),
+  );
+  app.get(
+    "/api/vaults/:vaultId/context",
+    route((req, res) => res.json(vaultNoteContext(id(req), relative(req)))),
+  );
+  app.post(
+    "/api/vaults/:vaultId/folders",
+    route(async (req, res) => {
+      res.json(
+        await createVaultFolder(
+          id(req),
+          z.string().min(1).max(500).parse(req.body.path),
+        ),
+      );
+      invalidateVaultIndex(id(req));
+    }),
+  );
+  app.get(
+    "/api/vaults/:vaultId/asset",
+    route(async (req, res) => {
+      const asset = await readVaultAsset(id(req), relative(req));
+      res
+        .set({
+          "Content-Type": asset.type,
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "private, no-store",
+          "Content-Security-Policy": "default-src 'none'",
+        })
+        .send(asset.bytes);
+    }),
+  );
+  app.post(
+    "/api/vaults/:vaultId/learning/preview",
+    route(async (req, res) =>
+      res.json(
+        await previewVaultLearning(
+          id(req),
+          req.body.paths,
+          req.body.destination,
+        ),
+      ),
+    ),
+  );
+  app.post(
+    "/api/vaults/:vaultId/learning/import",
+    route(async (req, res) =>
+      res.json(await importVaultLearning(id(req), req.body)),
+    ),
+  );
+  app.get(
+    "/api/vaults/:vaultId/learning/changes",
+    route(async (req, res) =>
+      res.json(
+        await inspectVaultSourceChanges(
+          id(req),
+          z.uuid().parse(req.query.notebookId),
+        ),
+      ),
+    ),
+  );
+  app.post(
+    "/api/vaults/:vaultId/learning/refresh",
+    route(async (req, res) =>
+      res.json(
+        await refreshVaultSources(
+          id(req),
+          z.uuid().parse(req.body.notebookId),
+          req.body.sourceIds,
+          req.body.revisions,
+        ),
+      ),
+    ),
+  );
+  app.get(
     "/api/vaults/:vaultId/drafts/:draftId",
     route((req, res) =>
       res.json(readGeneration(id(req), z.uuid().parse(req.params.draftId))),
@@ -85,14 +273,24 @@ export function registerVaultRoutes(app: Express) {
       const token = process.env.SENNIBOOK_DESKTOP_TOKEN;
       if (!token || req.get("x-lmbook-vault-picker") !== token)
         throw vaultError("Choose a folder through the desktop app.", 403);
-      res.json(
-        await connectVault(z.string().min(1).max(4000).parse(req.body.folder)),
+      const reconnectId = z.uuid().optional().parse(req.body.reconnectId);
+      if (reconnectId) { await stopVaultIndex(reconnectId); await cancelVaultSemanticIndex(reconnectId); }
+      const vault = await connectVault(
+        z.string().min(1).max(4000).parse(req.body.folder),
+        reconnectId,
       );
+      if (reconnectId) {
+        await stopVaultIndex(reconnectId);
+        purgeVaultStorage(reconnectId, "index");
+      }
+      res.json(vault);
     }),
   );
   app.delete(
     "/api/vaults/:vaultId",
-    route((req, res) => {
+    route(async (req, res) => {
+      await stopVaultIndex(id(req));
+      await cancelVaultSemanticIndex(id(req));
       disconnectVault(id(req));
       res.json({ ok: true });
     }),
@@ -123,6 +321,7 @@ export function registerVaultRoutes(app: Express) {
       res.json(
         await saveVaultNote(id(req), input.path, input.text, input.revision),
       );
+      invalidateVaultIndex(id(req));
     }),
   );
   app.get(
@@ -156,71 +355,12 @@ export function registerVaultRoutes(app: Express) {
     "/api/vaults/:vaultId/sources",
     route(async (req, res) => {
       const input = selection.parse(req.body);
-      const vault = getVault(id(req));
-      const notes = await Promise.all(
-        [...new Set(input.paths)].map((p) => readVaultNote(vault.id, p)),
-      );
-      if (
-        notes.reduce((sum, item) => sum + item.bytes.length, 0) >
-        5 * 1024 * 1024
-      )
-        throw vaultError(
-          "Select fewer notes; one import can contain up to 5 MB.",
-        );
-      const result = await withArtifactMutation(async () => {
-        if (jobs.has(input.notebookId))
-          throw vaultError(
-            "Wait for this notebook's generation to finish before adding sources.",
-            409,
-          );
-        getNotebook(input.notebookId);
-        const sources = [];
-        for (const { note, bytes } of notes) {
-          if (!note.text.trim())
-            throw vaultError(
-              `${note.path} is empty. Deselect it before adding sources.`,
-            );
-          const attachment = await storeOriginal(
-            originalsDir,
-            bytes,
-            note.path,
-            "text/markdown",
-          );
-          sources.push({
-            id: randomUUID(),
-            title: note.path,
-            text: note.text,
-            filename: note.path,
-            kind: "course" as const,
-            createdAt: new Date().toISOString(),
-            attachment,
-            originalSha256: attachment.sha256,
-            extractedSha256: createHash("sha256")
-              .update(note.text)
-              .digest("hex"),
-            extraction: `Snapshot from vault ${vault.name}: ${note.path} (${note.revision})`,
-          });
-        }
-        if (jobs.has(input.notebookId))
-          throw vaultError(
-            "This notebook started generation. Wait for it to finish and retry.",
-            409,
-          );
-        const notebook = getNotebook(input.notebookId);
-        // Re-adding an identical snapshot is harmless; changed notes become new sources.
-        const fresh = sources.filter(
-          (s) =>
-            !notebook.sources.some(
-              (old) =>
-                old.title === s.title &&
-                old.originalSha256 === s.originalSha256,
-            ),
-        );
-        notebook.sources.push(...fresh);
-        if (fresh.length) notebook.coverage = [];
-        return { notebook: saveNotebook(notebook), added: fresh.length };
+      const result = await importVaultLearning(id(req), {
+        paths: input.paths,
+        destination: { kind: "existing", notebookId: input.notebookId },
+        kind: "course",
       });
-      res.json(result);
+      res.json({ ...result, notebook: getNotebook(result.notebookId) });
     }),
   );
   app.post(

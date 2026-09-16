@@ -15,6 +15,7 @@ export default defineConfig({
         ".yarnrc.yml",
         "**/.git/**",
         "**/cartesia-credentials.json*",
+        "**/openrouter-credentials.json*",
       ],
     },
   },

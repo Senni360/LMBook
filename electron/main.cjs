@@ -45,6 +45,31 @@ function isAppUrl(value) {
   }
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+function isUUID(value) {
+  return typeof value === "string" && UUID_PATTERN.test(value);
+}
+function isVaultNotePath(value) {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 500 ||
+    !/\.md$/iu.test(value)
+  )
+    return false;
+  return value
+    .split("/")
+    .every(
+      (part) =>
+        part.length > 0 &&
+        !part.startsWith(".") &&
+        !/[\\:<>"|?*\x00-\x1f]/u.test(part) &&
+        !/[. ]$/u.test(part) &&
+        !/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\.|$)/iu.test(part),
+    );
+}
+
 // Finder launches do not inherit a terminal's Homebrew/user CLI search paths.
 if (process.platform === "darwin") {
   const searchPaths = [
@@ -271,6 +296,28 @@ function verifySender(event) {
   )
     throw new Error("Untrusted desktop request.");
 }
+async function getRegisteredVault(vaultId) {
+  const response = await fetch(origin + "/api/vaults", {
+    headers: { "x-sennibook-desktop": token },
+  });
+  let value;
+  try {
+    value = await response.json();
+  } catch {
+    value = undefined;
+  }
+  if (!response.ok || !Array.isArray(value))
+    throw new Error("Could not read connected vaults.");
+  const vault = value.find(
+    (item) =>
+      item &&
+      item.id === vaultId &&
+      typeof item.root === "string" &&
+      path.isAbsolute(item.root),
+  );
+  if (!vault) throw new Error("Choose a connected vault.");
+  return vault;
+}
 async function setup() {
   origin = await startBackend();
   if (quitting || !backend) return;
@@ -445,11 +492,19 @@ async function setup() {
     verifySender(event);
     return shell.openPath(path.join(userData, "data"));
   });
-  ipcMain.handle("desktop:choose-vault", async (event) => {
+  ipcMain.handle("desktop:choose-vault", async (event, reconnectId) => {
     verifySender(event);
+    let reconnectVault;
+    if (reconnectId !== undefined) {
+      if (!isUUID(reconnectId)) throw new Error("Invalid vault.");
+      reconnectVault = await getRegisteredVault(reconnectId);
+    }
     const result = await dialog.showOpenDialog(window, {
-      title: "Connect an Obsidian vault",
-      buttonLabel: "Connect vault",
+      title: reconnectVault
+        ? `Locate ${reconnectVault.name}`
+        : "Connect an Obsidian vault",
+      buttonLabel: reconnectVault ? "Locate vault" : "Connect vault",
+      ...(reconnectVault ? { defaultPath: reconnectVault.root } : {}),
       properties: ["openDirectory"],
     });
     if (result.canceled || !result.filePaths[0]) return null;
@@ -461,7 +516,10 @@ async function setup() {
         "x-sennibook-desktop": token,
         "x-lmbook-vault-picker": token,
       },
-      body: JSON.stringify({ folder: result.filePaths[0] }),
+      body: JSON.stringify({
+        folder: result.filePaths[0],
+        reconnectId,
+      }),
     });
     const value = await response.json();
     if (!response.ok)
@@ -472,24 +530,9 @@ async function setup() {
     "desktop:open-vault-obsidian",
     async (event, vaultId, notePath) => {
       verifySender(event);
-      if (
-        typeof vaultId !== "string" ||
-        typeof notePath !== "string" ||
-        notePath.length > 500
-      )
-        throw new Error("Invalid note.");
-      const response = await fetch(origin + "/api/vaults", {
-        headers: { "x-sennibook-desktop": token },
-      });
-      const vault = (await response.json()).find((item) => item.id === vaultId);
-      if (
-        !vault ||
-        !/\.md$/i.test(notePath) ||
-        notePath
-          .split("/")
-          .some((part) => !part || part.startsWith(".") || /[\\:]/.test(part))
-      )
+      if (!isUUID(vaultId) || !isVaultNotePath(notePath))
         throw new Error("Choose a connected vault note.");
+      const vault = await getRegisteredVault(vaultId);
       const noteResponse = await fetch(
         origin +
           `/api/vaults/${vaultId}/note?path=${encodeURIComponent(notePath)}`,
@@ -501,6 +544,29 @@ async function setup() {
       await shell.openExternal(
         `obsidian://open?path=${encodeURIComponent(path.join(vault.root, ...notePath.split("/")))}`,
       );
+    },
+  );
+  ipcMain.handle(
+    "desktop:reveal-vault-note",
+    async (event, vaultId, notePath) => {
+      verifySender(event);
+      if (!isUUID(vaultId) || !isVaultNotePath(notePath))
+        throw new Error("Choose a connected vault note.");
+      const vault = await getRegisteredVault(vaultId);
+      const noteResponse = await fetch(
+        origin +
+          `/api/vaults/${vaultId}/note?path=${encodeURIComponent(notePath)}`,
+        { headers: { "x-sennibook-desktop": token } },
+      );
+      let checked;
+      try {
+        checked = await noteResponse.json();
+      } catch {
+        checked = undefined;
+      }
+      if (!noteResponse.ok)
+        throw new Error(checked?.error || "This note is unavailable.");
+      shell.showItemInFolder(path.join(vault.root, ...notePath.split("/")));
     },
   );
   ipcMain.handle("desktop:copy-text", (event, text) => {

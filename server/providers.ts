@@ -7,6 +7,7 @@ import { synthesizeCartesia } from "./cartesia.ts";
 import { codexCommand } from "./codex-command.ts";
 
 import { generateWithCodex } from "./codex-app-server.ts";
+import { generateWithOpenRouter } from "./openrouter.ts";
 
 export { codexPath } from "./codex-command.ts";
 export const codexAvailable = () => !!codexCommand();
@@ -20,6 +21,10 @@ export async function generate(
   const prompt = `${baseInstructions}\n\nSubject profile:\n${settings.harness}\nLanguage: ${settings.language === "nl" ? "Dutch" : "English"}. Depth: ${settings.depth}. Purpose: ${settings.purpose}. Assumed knowledge: ${settings.assumedKnowledge || "Not specified; do not assume mastery."}\n\n${task}`;
   if (settings.provider === "codex")
     return generateWithCodex(prompt, settings.model, signal, onProgress);
+  if (settings.provider === "openrouter") {
+    onProgress?.("Writing through OpenRouter");
+    return generateWithOpenRouter(prompt, settings.model, signal);
+  }
   const combinedSignal = signal
     ? AbortSignal.any([signal, AbortSignal.timeout(600000)])
     : AbortSignal.timeout(600000);

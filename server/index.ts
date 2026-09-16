@@ -17,6 +17,7 @@ import { createHash } from "node:crypto";
 import { extractDocument } from "./document-import.ts";
 import { registerFlashcardRoutes } from "./flashcard-routes.ts";
 import { registerVaultRoutes } from "./vault-routes.ts";
+import { registerAiRoutes, stopAiRuntime } from "./ai-routes.ts";
 import { storeOriginal, verifyOriginal } from "./source-originals.ts";
 import {
   transcriptionModelSchema,
@@ -34,7 +35,12 @@ import {
   startSourceTranscription,
   cancelTranscription,
 } from "./transcription-jobs.ts";
-import { settingsSchema, uid, type Notebook } from "../shared/model.ts";
+import {
+  settingsSchema,
+  uid,
+  type Notebook,
+  type Source,
+} from "../shared/model.ts";
 import {
   listNotebookSummaries,
   getNotebook,
@@ -133,6 +139,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: "15mb" }));
+registerAiRoutes(app);
 const route =
   (fn: (req: Request, res: Response) => unknown) =>
   async (req: Request, res: Response, next: NextFunction) => {
@@ -215,6 +222,44 @@ const evidenceSchema = z.object({
   sourceId: z.string(),
   quote: z.string().max(3000),
 });
+
+function snapshotChatSources(
+  notebook: Notebook,
+  evidence: Array<{ sourceId: string }>,
+  passages: Array<{ sourceId: string }>,
+): Source[] | undefined {
+  const used = new Set([
+    ...evidence.map((item) => item.sourceId),
+    ...passages.map((item) => item.sourceId),
+  ]);
+  const sources = notebook.sources
+    .filter((source) => used.has(source.id))
+    .map((source) => structuredClone(source));
+  return sources.length ? sources : undefined;
+}
+
+function requestedSource(
+  notebook: Notebook,
+  sourceId: string,
+  episodeId?: string,
+  messageId?: string,
+) {
+  if (episodeId && messageId)
+    throw new Error("Choose either an episode snapshot or a chat snapshot.");
+  if (messageId) {
+    const message = notebook.messages.find(
+      (candidate) => candidate.id === messageId,
+    );
+    if (!message)
+      throw new Error("That historical chat message is unavailable.");
+    return message.sources?.find((source) => source.id === sourceId);
+  }
+  const sources = episodeId
+    ? notebook.episodes.find((episode) => episode.id === episodeId)?.sources ||
+      []
+    : notebook.sources;
+  return sources.find((source) => source.id === sourceId);
+}
 registerFlashcardRoutes(app);
 registerVaultRoutes(app);
 
@@ -648,10 +693,8 @@ app.get(
     const n = getNotebook(id(req));
     const sourceId = z.string().uuid().parse(req.params.sourceId);
     const episodeId = z.string().uuid().optional().parse(req.query.episode);
-    const sources = episodeId
-      ? n.episodes.find((episode) => episode.id === episodeId)?.sources || []
-      : n.sources;
-    const source = sources.find((item) => item.id === sourceId);
+    const messageId = z.string().uuid().optional().parse(req.query.message);
+    const source = requestedSource(n, sourceId, episodeId, messageId);
     if (!source?.attachment)
       throw new Error("An original file is not saved for this source.");
     const filename = await verifyOriginal(originalsDir, source.attachment);
@@ -670,10 +713,13 @@ app.get(
     const n = getNotebook(id(req));
     const sourceId = z.string().uuid().parse(req.params.sourceId);
     const episodeId = z.string().uuid().optional().parse(req.query.episode);
-    const sources = episodeId
-      ? n.episodes.find((episode) => episode.id === episodeId)?.sources || []
-      : n.sources;
-    const attachment = sources.find((item) => item.id === sourceId)?.attachment;
+    const messageId = z.string().uuid().optional().parse(req.query.message);
+    const attachment = requestedSource(
+      n,
+      sourceId,
+      episodeId,
+      messageId,
+    )?.attachment;
     if (
       !attachment ||
       !["image/png", "image/jpeg"].includes(attachment.mediaType)
@@ -778,10 +824,13 @@ app.get(
     const n = getNotebook(id(req));
     const sid = z.string().uuid().parse(req.params.sourceId);
     const episodeId = z.string().uuid().optional().parse(req.query.episode);
-    const sources = episodeId
-      ? n.episodes.find((episode) => episode.id === episodeId)?.sources || []
-      : n.sources;
-    const attachment = sources.find((source) => source.id === sid)?.attachment;
+    const messageId = z.string().uuid().optional().parse(req.query.message);
+    const attachment = requestedSource(
+      n,
+      sid,
+      episodeId,
+      messageId,
+    )?.attachment;
     if (!attachment?.mediaType.startsWith("audio/"))
       throw new Error("An audio recording is not available for this source.");
     const controller = new AbortController();
@@ -962,6 +1011,12 @@ app.post(
           ),
         ),
       );
+    const evidence = validEvidence(result.evidence, n, context.selection);
+    const chatSources = snapshotChatSources(
+      n,
+      evidence,
+      context.summary.passages,
+    );
     const latest = getNotebook(n.id);
     latest.messages.push(
       { id: uid(), role: "user", text: message },
@@ -969,8 +1024,9 @@ app.post(
         id: uid(),
         role: "assistant",
         text: result.answer,
-        evidence: validEvidence(result.evidence, n, context.selection),
+        evidence,
         context: context.summary,
+        ...(chatSources ? { sources: chatSources } : {}),
       },
     );
     res.json(saveNotebook(latest));
@@ -1226,6 +1282,7 @@ let shuttingDown = false;
 async function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
+  stopAiRuntime();
   for (const job of jobs.values()) job.controller.abort();
   server.close();
   const deadline = Date.now() + 12000;

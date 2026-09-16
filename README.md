@@ -4,7 +4,9 @@ A local, open-source learning notebook for detailed two-person audio and source-
 
 ## Windows and macOS desktop editions
 
-Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Build artifacts go to `release/`: an installer, a portable executable, and `win-unpacked/LMBook.exe`.
+Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Packages go to the main checkout's `release/<version>/` folder, including when building from a worktree. Uploading is disabled for these commands.
+
+**Local Windows 0.3.12:** open `D:\Downloads\SenniBook\release\0.3.12\LMBook-0.3.12-portable.exe`, or run `LMBook Setup 0.3.12.exe` in the same folder. This version includes OpenRouter settings, local-model setup and cancellation fixes, and concise Luna hardware advice. [Release notes](docs/releases/0.3.12.md).
 
 Download the current published Windows installer/portable app or matching Mac DMG/ZIP from [GitHub Releases](https://github.com/Senni360/LMBook/releases/latest). Merging builds and checks iteration artifacts; publication additionally requires the owner's explicit release approval recorded in `release-policy.json`. See [the release workflow](docs/releasing.md).
 

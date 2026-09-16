@@ -27,7 +27,7 @@ function observe(element: HTMLElement, update: (size: Size) => void) {
         underline:
           !!entry.target.closest(".tabs, .flash-tabs, .filter-group") ||
           entry.target.matches(
-            ".evidence-link, .source-open, .objective-main, .rail-settings",
+            ".evidence-link, .source-open, .objective-main, .rail-settings, .vault-workspace .text-action, .vault-open-tab, .vault-view-mode button, .vault-navigator-modes button, .vault-markdown-link",
           ),
       });
     }

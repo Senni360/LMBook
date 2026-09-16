@@ -18,7 +18,7 @@ function providerError(value: unknown) {
   return new Error(`Codex: ${message}`);
 }
 
-class CodexConnection {
+export class CodexConnection {
   private pending = new Map<
     number,
     { resolve: (value: any) => void; reject: (error: Error) => void }
@@ -88,7 +88,11 @@ class CodexConnection {
     this.child.stderr.on("data", (data) => {
       this.diagnostic = (this.diagnostic + String(data)).slice(-16000);
     });
-    this.child.stdin.on("error", () => {});
+    this.child.stdin.on("error", () =>
+      this.fail(
+        new Error("Codex process input failed. Restart Codex and try again."),
+      ),
+    );
     this.child.on("error", () =>
       this.fail(
         new Error(
@@ -119,8 +123,11 @@ class CodexConnection {
     );
   }
   private send(value: unknown) {
-    if (!this.child.stdin.destroyed)
-      this.child.stdin.write(JSON.stringify(value) + "\n");
+    if (this.child.stdin.destroyed)
+      throw new Error(
+        "Codex process input is closed. Restart Codex and try again.",
+      );
+    this.child.stdin.write(JSON.stringify(value) + "\n");
   }
   private fail(error: Error, terminate = true) {
     if (!this.failure) {
@@ -137,7 +144,17 @@ class CodexConnection {
     return new Promise((resolve, reject) => {
       const id = ++this.nextId;
       this.pending.set(id, { resolve, reject });
-      this.send({ id, method, params });
+      try {
+        this.send({ id, method, params });
+      } catch (error) {
+        this.pending.delete(id);
+        const failure =
+          error instanceof Error
+            ? error
+            : new Error("Codex process input failed.");
+        this.fail(failure);
+        reject(failure);
+      }
     });
   }
   async initialize() {
@@ -191,15 +208,54 @@ export async function checkCodexConnection() {
             message:
               "Codex is installed but signed out. Run codex login, then check again.",
           };
-        const auth =
-          result.account.type === "chatgpt"
-            ? "ChatGPT subscription"
-            : result.account.type === "apiKey"
-              ? "API key"
-              : "configured account";
+        if (result.account.type !== "chatgpt")
+          return {
+            ok: false,
+            code: "chatgpt-required",
+            message:
+              "Codex is connected with an API key or another account. LMBook requires a ChatGPT subscription; choose Sign in with ChatGPT.",
+          };
+        let models: any;
+        try {
+          models = await connection.request("model/list", {
+            limit: 100,
+            includeHidden: false,
+          });
+        } catch {
+          return {
+            ok: false,
+            code: "models-unavailable",
+            message:
+              "Your ChatGPT account is signed in, but Codex could not list its available models. Check your subscription access and try again.",
+          };
+        }
+        if (!Array.isArray(models?.data) || models.data.length === 0)
+          return {
+            ok: false,
+            code: "models-unavailable",
+            message:
+              "Your ChatGPT account is signed in, but no Codex models are available for it.",
+          };
         return {
           ok: true,
-          message: `Codex is connected using your ${auth}. No lesson was generated. Provider usage limits apply.`,
+          accountType: "chatgpt",
+          planType: result.account.planType ?? null,
+          models: models.data
+            .map((model: any) => ({
+              id:
+                typeof model?.id === "string"
+                  ? model.id
+                  : typeof model?.model === "string"
+                    ? model.model
+                    : "",
+              displayName:
+                typeof model?.displayName === "string"
+                  ? model.displayName
+                  : null,
+            }))
+            .filter((model: any) => model.id),
+          message:
+            "Codex is connected with your ChatGPT subscription and models are available. No lesson was generated. Provider usage limits apply.",
         };
       },
       undefined,
@@ -229,6 +285,10 @@ export async function generateWithCodex(
     if (!account.account)
       throw new Error(
         "Codex is signed out. Run codex login and check the connection in Settings.",
+      );
+    if (account.account.type !== "chatgpt")
+      throw new Error(
+        "LMBook requires a ChatGPT subscription for Codex. Sign in with ChatGPT in Settings.",
       );
     // Disable configured integrations only for this thread; leave the user's settings and login intact.
     const effective = await connection.request("config/read", {

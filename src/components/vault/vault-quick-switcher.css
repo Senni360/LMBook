@@ -1,0 +1,240 @@
+.vault-quick-switcher {
+  width: min(620px, calc(100vw - 24px));
+  max-height: min(760px, calc(100dvh - 28px));
+  padding: 20px;
+}
+
+.vault-quick-switcher-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.vault-quick-switcher-heading h2 {
+  margin: 3px 0 0;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.vault-quick-switcher-kicker {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.vault-quick-switcher-heading .icon-button {
+  flex: 0 0 auto;
+  margin: -4px -4px 0 0;
+}
+
+.vault-quick-switcher-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 43px;
+  padding: 0 11px;
+  background: transparent;
+  border: 0;
+  border-radius: 7px 10px 8px 6px;
+}
+
+.vault-quick-switcher-search-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.vault-quick-switcher-search .ink-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.vault-quick-switcher-search input {
+  width: 100%;
+  min-height: 35px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 15px;
+}
+
+.vault-quick-switcher-search input:focus {
+  outline: 0;
+}
+
+.vault-quick-switcher-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 13px;
+  margin: 9px 1px 10px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.vault-quick-switcher-results {
+  display: grid;
+  gap: 2px;
+  max-height: min(390px, 52vh);
+  overflow: auto;
+  padding: 2px;
+  scrollbar-gutter: stable;
+}
+
+.vault-quick-switcher-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  min-height: 47px;
+  padding: 8px 9px;
+  color: var(--ink);
+  text-align: left;
+}
+
+.vault-quick-switcher-option > svg:not(.ink-contour) {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.vault-quick-switcher-option.is-active {
+  background: color-mix(in srgb, var(--pen, var(--accent)) 11%, transparent);
+  color: var(--ink);
+}
+
+.vault-quick-switcher-option.is-active > svg:not(.ink-contour) {
+  color: var(--pen, var(--accent));
+}
+
+.vault-quick-switcher-option-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.vault-quick-switcher-option-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.vault-quick-switcher-option-name > svg {
+  flex: 0 0 auto;
+  color: var(--pen, var(--accent));
+}
+
+.vault-quick-switcher-option small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-quick-switcher-empty {
+  margin: 25px 5px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.vault-quick-switcher-create {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.vault-quick-switcher-create button {
+  width: 100%;
+  min-height: 37px;
+  padding: 8px 10px;
+  color: var(--pen, var(--accent));
+  text-align: left;
+}
+
+.vault-quick-switcher-scope {
+  margin: 12px 1px 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+.vault-quick-switcher-semantic {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 0;
+  margin: 0.35rem 0 0.6rem;
+  border-block: 1px solid var(--line);
+  font-size: 0.78rem;
+}
+.vault-quick-switcher-semantic > div {
+  display: flex;
+  flex-basis: 100%;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.vault-quick-switcher-semantic small {
+  color: var(--muted);
+}
+.vault-quick-switcher-semantic label {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  color: var(--muted);
+  margin: 0;
+}
+.vault-quick-switcher-semantic .button {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+.vault-quick-switcher-semantic .vault-cloud-consent {
+  flex-basis: 100%;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+.vault-meaning-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.vault-quick-switcher-semantic-results {
+  display: grid;
+  gap: 0.25rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid
+    color-mix(in srgb, var(--ink-line, #918a7c) 35%, transparent);
+}
+
+@media (max-width: 480px) {
+  .vault-quick-switcher {
+    padding: 17px;
+  }
+
+  .vault-quick-switcher-hint {
+    gap: 5px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-quick-switcher-option {
+    transition: none;
+  }
+}

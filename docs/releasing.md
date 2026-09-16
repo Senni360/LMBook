@@ -1,5 +1,9 @@
 # Publishing a desktop release
 
+## Local delivery location
+
+The owner's explicit 2026-09-16 direction is to deliver builds only to the normal `D:\Downloads\SenniBook\release\<version>` directory on this computer. Do not put releases in worktree-local folders, `ai-preview`, temporary preview destinations or upload them elsewhere. This is the current delivery rule; older preview paths are historical evidence only. `scripts/package-desktop.mjs`, used by the desktop packaging npm scripts, resolves the main checkout even when run from a worktree, chooses `release/<version>` there and forces `--publish never`. Source archives use their own `release/<version>` directory. A local version request does not authorize GitHub publication or 0.4 approval.
+
 The **Desktop release** GitHub Actions workflow builds iteration artifacts on PRs and `master`. Publication also requires explicit owner approval recorded in `release-policy.json`. The current target is 0.4.0 and approval is unset; see [the milestone agreement](0.4-plan.md). A merge or version bump alone cannot publish. To release an approved milestone:
 
 1. Set the new version with `npm version <version> --no-git-tag-version`; commit both package files.
@@ -19,7 +23,7 @@ Inspect **Actions → Desktop release**. Failed builds or desktop checks publish
 
 **Run workflow** on `master` can publish an already merged but unreleased version only when the release policy approves that version. With approval unset, it produces checked iteration artifacts without publishing. Re-running an approved published version skips the build and leaves its downloads unchanged. Runs are serialized so releases cannot upload over each other.
 
-For local packaging, `npm run desktop:dist -- --publish never` builds the Windows artifacts. Local binaries are not uploaded by merging a PR: the workflow produces its own checked build on a clean runner. Installer filenames on GitHub use `LMBook-Setup-<version>.exe`; portable files use `LMBook-<version>-portable.exe`.
+For local packaging, `npm run desktop:dist` builds the Windows artifacts. Local binaries are not uploaded by merging a PR: the workflow produces its own checked build on a clean runner. Installer filenames on GitHub use `LMBook-Setup-<version>.exe`; portable files use `LMBook-<version>-portable.exe`.
 
 Implementation references: [GitHub token permissions](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token), [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), [release creation](https://docs.github.com/en/rest/releases/releases#create-a-release), and [electron-builder publishing controls](https://www.electron.build/v26/docs/publish/).
 
@@ -30,4 +34,4 @@ Pull requests to master run the same native Windows/Apple Silicon/Intel build ma
 
 Each runner stages its own commit/version-bound manifest. A separate verification job requires all three target manifests, verifies every hash and size, and creates the combined checksum file. The publisher rechecks that complete set before creating or repairing its unpublished draft. One failed platform prevents publication of the whole release. Build and verification jobs have only read permissions; only master publication receives contents:write.
 
-For local Mac packaging use `npm run desktop:dist:mac -- --arm64 --publish never` or `--x64` on the matching Mac. See [Mac installation and limitations](macos.md).
+For local Mac packaging use `npm run desktop:dist:mac -- --arm64` or `--x64` on the matching Mac. See [Mac installation and limitations](macos.md).

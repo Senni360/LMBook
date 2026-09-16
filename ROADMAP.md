@@ -1,5 +1,11 @@
 # LMBook roadmap
 
+- **Local Windows 0.3.12:** model-install progress, cancellation/retry recovery, concise Luna hardware advice and enforced delivery to the main checkout's normal release folder. [Release notes](docs/releases/0.3.12.md). This does not approve 0.4 publication.
+
+- **AI setup and local vault search implemented in the 0.3.11 working preview.** Required Codex/OpenAI onboarding for fresh libraries, optional OpenRouter connection/model selection, hardware-informed local model setup and per-vault meaning search. The integrated CPU path indexed all 291 PWS notes without changing them. [Delivery evidence and remaining limits](docs/research/ai-integration-delivery.md). This is the model/provider foundation; the ten background workflows and their three edit-control modes remain pending. No 0.4 release approval is implied.
+
+- **In progress: Obsidian workspace refinement.** The owner requested deeper navigation, reading/editing, direct new-notebook import, durable recovery and source review. Plugin-specific rendering is deferred. [Scope, decisions and acceptance journeys](docs/ui/obsidian-workspace.md); observations and remaining work are recorded in WORKLOG.md. This does not approve 0.4 publication.
+
 - **Active milestone: 0.4.** The first shared-vault workflow is implemented as local preview 0.3.11: browse/edit/create shared Markdown, conflict recovery, selected-note snapshots and reviewed AI summaries. [Capabilities and remaining checks](docs/obsidian-vaults.md). Owner iteration, deeper compatibility and native Mac/real-vault checks remain; [release approval is unset](docs/0.4-plan.md).
 
 - Version 0.3.10 corrects settings disclosure spacing and container styling. Obsidian support is in [feasibility discussion](docs/research/obsidian-feasibility.md), now adopted as the shared-vault direction for 0.4; implementation remains pending.

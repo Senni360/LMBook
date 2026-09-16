@@ -24,6 +24,7 @@ import { flashDeckSchema, validateFlashDeck } from "../shared/flashcards.ts";
 import {
   settingsSchema,
   sourceAttachmentSchema,
+  sourceVaultProvenanceSchema,
   type Notebook,
   type SourceAttachment,
 } from "../shared/model.ts";
@@ -107,6 +108,7 @@ const sourceSchema = z
     extraction: z.string().max(1000).optional(),
     extractionWarnings: z.array(z.string().max(2000)).max(100).optional(),
     attachment: sourceAttachmentSchema.optional(),
+    vault: sourceVaultProvenanceSchema.optional(),
     ocr: ocrResultSchema.optional(),
     ocrCandidate: z.boolean().optional(),
     transcript: transcriptSchema.optional(),
@@ -192,6 +194,7 @@ const messageSchema = z
     role: z.enum(["user", "assistant"]),
     text: z.string().max(30_000),
     evidence: z.array(evidenceSchema).max(100).optional(),
+    sources: z.array(sourceSchema).max(150).optional(),
   })
   .strict();
 const notebookSchema = z
@@ -245,11 +248,16 @@ const wireEpisodeSchema = episodeSchema
   .omit({ sources: true })
   .extend({ sourceRef: sourceSnapshotHashSchema.optional() })
   .strict();
+const wireMessageSchema = messageSchema
+  .omit({ sources: true })
+  .extend({ sourceRef: sourceSnapshotHashSchema.optional() })
+  .strict();
 const wireNotebookSchema = notebookSchema
-  .omit({ sources: true, episodes: true })
+  .omit({ sources: true, episodes: true, messages: true })
   .extend({
     sourceRef: sourceSnapshotHashSchema,
     episodes: z.array(wireEpisodeSchema).max(100),
+    messages: z.array(wireMessageSchema).max(1000),
   })
   .strict();
 const v3ManifestSchema = z
@@ -283,7 +291,8 @@ function duplicateIds<T extends { id: string }>(
 }
 
 function validateNotebookReferences(notebook: Notebook) {
-  if (duplicateIds(notebook.flashcards || [])) throw new Error("Notebook contains duplicate flashcard deck IDs.");
+  if (duplicateIds(notebook.flashcards || []))
+    throw new Error("Notebook contains duplicate flashcard deck IDs.");
   for (const deck of notebook.flashcards || []) validateFlashDeck(deck);
   const sourceIds = new Set(notebook.sources.map((source) => source.id));
   const objectiveIds = new Set(
@@ -306,6 +315,11 @@ function validateNotebookReferences(notebook: Notebook) {
           `Coverage refers to unknown source ${evidence.sourceId}.`,
         );
   }
+  for (const message of notebook.messages)
+    if (duplicateIds(message.sources || []))
+      throw new Error(
+        `Message ${message.id} contains duplicate historical source IDs.`,
+      );
   // Chat quotes are historical. Removing a current source deliberately leaves
   // those quotes visible with a "source no longer available" label.
 
@@ -360,6 +374,7 @@ function notebookAttachments(notebook: Notebook): SourceAttachment[] {
     ...notebook.sources,
     ...notebook.episodes.flatMap((episode) => episode.sources || []),
     ...(notebook.flashcards || []).flatMap((deck) => deck.sources),
+    ...notebook.messages.flatMap((message) => message.sources || []),
   ].flatMap((source) => (source.attachment ? [source.attachment] : []));
 }
 
@@ -1161,6 +1176,10 @@ function remapNotebook(
       return mapped;
     }),
   }));
+  const messages = original.messages.map((message) => ({
+    ...message,
+    sources: message.sources?.map(remapSource),
+  }));
   for (const [index, originalEpisode] of original.episodes.entries()) {
     const importedEpisode = episodes[index];
     if (originalEpisode.previewFile) {
@@ -1183,8 +1202,18 @@ function remapNotebook(
     createdAt: now,
     updatedAt: now,
     sources: original.sources.map(remapSource),
-    flashcards: original.flashcards?.map((deck) => ({ ...deck, id: randomUUID(),
-      ...(deck.status === "generating" ? { status: "error" as const, error: "Flashcard creation was interrupted during import. Generate a new draft to retry." } : {}) })),
+    messages,
+    flashcards: original.flashcards?.map((deck) => ({
+      ...deck,
+      id: randomUUID(),
+      ...(deck.status === "generating"
+        ? {
+            status: "error" as const,
+            error:
+              "Flashcard creation was interrupted during import. Generate a new draft to retry.",
+          }
+        : {}),
+    })),
     episodes,
   };
 }
@@ -1250,7 +1279,7 @@ export async function importNotebookBundle(
       );
       if (sourceEntries.length > MAX_SOURCE_SET_COUNT)
         throw new Error(
-          `Bundle contains ${sourceEntries.length} source sets; maximum is ${MAX_SOURCE_SET_COUNT}.`,
+          `Bundle contains ${sourceEntries.length} distinct source histories; maximum is ${MAX_SOURCE_SET_COUNT}.`,
         );
       let declaredSourceBytes = 0;
       for (const entry of sourceEntries) {

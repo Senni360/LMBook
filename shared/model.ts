@@ -13,6 +13,7 @@ export const subjects = [
   "Physics",
   "General",
 ] as const;
+export type Subject = (typeof subjects)[number];
 export const profiles: Record<string, string> = {
   Politics:
     "Examine institutions, incentives, evidence and competing interpretations. Preserve consequential qualifications. Distinguish empirical claims from normative judgments. Both hosts are informed; disagreement must be grounded, never invented for drama.",
@@ -45,7 +46,7 @@ export const settingsSchema = z.object({
   minutes: z.number().int().min(5).max(120).default(60),
   assumedKnowledge: z.string().max(5000).default(""),
   harness: z.string().max(12000).default(profiles.Politics),
-  provider: z.enum(["codex", "opencode", "ollama"]).default("codex"),
+  provider: z.enum(["codex", "opencode", "ollama", "openrouter"]).default("codex"),
   model: z.string().max(100).default(""),
   ttsProvider: z.enum(["google", "cartesia"]).default("google"),
   cartesiaModel: z.literal("sonic-3.6").default("sonic-3.6"),
@@ -102,6 +103,16 @@ export const sourceAttachmentSchema = z
   })
   .strict();
 export type SourceAttachment = z.infer<typeof sourceAttachmentSchema>;
+export const sourceVaultProvenanceSchema = z
+  .object({
+    vaultId: z.string().uuid(),
+    vaultName: z.string().min(1).max(500),
+    path: z.string().min(1).max(500),
+    revision: z.string().regex(/^[a-f0-9]{64}$/u),
+    importedAt: z.string().min(1).max(100),
+  })
+  .strict();
+export type SourceVaultProvenance = z.infer<typeof sourceVaultProvenanceSchema>;
 export type Source = {
   id: string;
   title: string;
@@ -113,6 +124,7 @@ export type Source = {
   extraction?: string;
   extractionWarnings?: string[];
   attachment?: SourceAttachment;
+  vault?: SourceVaultProvenance;
   ocr?: OcrResult;
   ocrCandidate?: boolean;
   transcript?: Transcript;
@@ -172,6 +184,8 @@ export type ChatMessage = {
   role: "user" | "assistant";
   text: string;
   evidence?: Evidence[];
+  /** Historical source copies used by this assistant message before refresh. */
+  sources?: Source[];
 };
 export type Notebook = {
   flashcards?: FlashDeck[];

@@ -42,6 +42,7 @@ export type SourceAudioProps = {
   disabled?: boolean;
   initialTime?: number;
   episodeId?: string;
+  messageId?: string;
   readOnly?: boolean;
   onChanged: () => Promise<void>;
   onSetup: () => void;
@@ -69,11 +70,12 @@ export function SourceAudio({
   disabled = false,
   initialTime,
   episodeId,
+  messageId,
   readOnly = false,
   onChanged,
   onSetup,
 }: SourceAudioProps) {
-  const isSnapshot = Boolean(episodeId) || readOnly;
+  const isSnapshot = Boolean(episodeId || messageId) || readOnly;
   const audioRef = useRef<HTMLAudioElement>(null);
   const referencedSegmentRef = useRef<HTMLLIElement>(null);
   const pendingSeek = useRef<{ seconds: number; autoplay: boolean } | null>(
@@ -266,7 +268,7 @@ export function SourceAudio({
       target.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [source.id, episodeId, initialTime, referencedSegmentIndex]);
+  }, [source.id, episodeId, messageId, initialTime, referencedSegmentIndex]);
 
   useEffect(() => {
     if (!transcriptSegments) {
@@ -394,7 +396,7 @@ export function SourceAudio({
     return null;
   }
 
-  const mediaUrl = `/api/notebooks/${encodeURIComponent(notebookId)}/sources/${encodeURIComponent(source.id)}/media${episodeId ? `?episode=${encodeURIComponent(episodeId)}` : ""}`;
+  const mediaUrl = `/api/notebooks/${encodeURIComponent(notebookId)}/sources/${encodeURIComponent(source.id)}/media${episodeId ? `?episode=${encodeURIComponent(episodeId)}` : messageId ? `?message=${encodeURIComponent(messageId)}` : ""}`;
 
   return (
     <section

@@ -1,0 +1,417 @@
+.vault-navigator {
+  --navigator-surface: color-mix(in srgb, var(--paper) 88%, var(--canvas));
+  --navigator-soft: color-mix(in srgb, var(--canvas) 74%, var(--paper));
+  min-width: 0;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.vault-navigator-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.vault-navigator-kicker {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.vault-navigator h2 {
+  margin: 3px 0 0;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.vault-navigator-heading-actions,
+.vault-navigator-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vault-navigator-icon-action {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 7px;
+  color: var(--muted);
+}
+
+.vault-navigator-icon-action:hover,
+.vault-navigator-icon-action:focus-visible {
+  color: var(--pen, var(--accent));
+}
+
+.vault-navigator-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  margin: 12px 0;
+  padding: 3px;
+  background: var(--navigator-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.vault-navigator-modes > button {
+  min-width: 0;
+  min-height: 34px;
+  padding: 7px 4px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.vault-navigator-modes > button.is-active {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.vault-navigator-search-label,
+.vault-navigator-filters label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vault-navigator-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.vault-navigator-search-field > svg {
+  position: absolute;
+  z-index: 1;
+  left: 11px;
+  top: 50%;
+  color: var(--muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.vault-navigator-search-field > .ink-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.vault-navigator-search-field input {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px 6px 34px;
+  font-size: 13px;
+}
+
+.vault-navigator-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(78px, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.vault-navigator-filters label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 10px;
+}
+
+.vault-navigator-filters .ink-field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.vault-navigator-filters select {
+  width: 100%;
+  max-width: none;
+  min-height: 30px;
+  padding: 4px 24px 4px 7px;
+  font-size: 11px;
+}
+
+.vault-navigator-filter-caption {
+  white-space: nowrap;
+}
+
+.vault-navigator-indexing {
+  margin: 8px 0;
+  color: var(--pen, var(--accent));
+  font-size: 11px;
+}
+
+.vault-navigator-list {
+  max-height: min(54vh, 620px);
+  overflow: auto;
+  padding: 3px 2px 9px 0;
+  scrollbar-gutter: stable;
+}
+
+.vault-navigator-empty {
+  margin: 18px 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.vault-navigator-folder-empty {
+  margin: 7px 4px 9px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.vault-navigator-folder {
+  margin: 1px 0;
+}
+
+.vault-navigator-folder summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 35px;
+  padding: 5px 5px;
+  border-radius: 7px;
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.vault-navigator-folder summary::-webkit-details-marker {
+  display: none;
+}
+
+.vault-navigator-folder summary::before {
+  width: 10px;
+  color: var(--muted);
+  content: "›";
+  font-size: 17px;
+  line-height: 1;
+  transform: translateY(-1px);
+  transition: transform 140ms ease;
+}
+
+.vault-navigator-folder[open] > summary::before {
+  transform: rotate(90deg) translateX(-1px);
+}
+
+.vault-navigator-folder summary:hover,
+.vault-navigator-folder summary:focus-visible {
+  background: var(--navigator-soft);
+}
+
+.vault-navigator-folder summary span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-navigator-folder summary small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.vault-navigator-folder-body {
+  margin-left: 13px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
+}
+
+.vault-navigator-folder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 2px 4px 4px;
+}
+
+.vault-navigator-folder-actions button {
+  min-height: 26px;
+  padding: 4px 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.vault-navigator-file {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px;
+  min-height: 38px;
+  margin: 1px 0;
+  border-radius: 8px;
+}
+
+.vault-navigator-file:has(.vault-navigator-file-open.is-active) {
+  background: color-mix(in srgb, var(--pen, var(--accent)) 10%, transparent);
+}
+
+.vault-navigator-file > input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin: 0 0 0 3px;
+  accent-color: var(--pen, var(--accent));
+}
+
+.vault-navigator-file-open {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 8px 3px;
+  color: var(--ink);
+  text-align: left;
+}
+
+.vault-navigator-file-open > svg:not(.ink-contour) {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--muted);
+}
+
+.vault-navigator-file-open.is-active > svg:not(.ink-contour),
+.vault-navigator-file-open.is-active .vault-navigator-file-title {
+  color: var(--pen, var(--accent));
+}
+
+.vault-navigator-file-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.vault-navigator-file-title,
+.vault-navigator-file-path,
+.vault-navigator-snippet,
+.vault-navigator-meta,
+.vault-navigator-issue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-navigator-file-title {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.vault-navigator-file-path,
+.vault-navigator-meta {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.vault-navigator-snippet {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.vault-navigator-issue {
+  color: #8a5a16;
+  font-size: 10px;
+}
+
+.vault-navigator-favorite {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 6px 4px;
+  color: var(--muted);
+  opacity: 0.5;
+  justify-content: flex-end;
+}
+
+.vault-navigator-favorite:hover,
+.vault-navigator-favorite:focus-visible,
+.vault-navigator-favorite.is-favorite {
+  color: var(--pen, var(--accent));
+  opacity: 1;
+}
+
+.vault-navigator-show-more {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  color: var(--pen, var(--accent));
+  font-size: 11px;
+}
+
+.vault-navigator-selection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 7px;
+  padding: 10px 9px;
+  background: var(--navigator-soft);
+  border-top: 1px solid var(--line);
+  border-radius: 8px 10px 9px 7px;
+}
+
+.vault-navigator-selection > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.vault-navigator-selection strong {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.vault-navigator-selection small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-navigator-selection-actions button {
+  min-height: 28px;
+  padding: 5px 6px;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .vault-navigator-list {
+    max-height: 42vh;
+  }
+
+  .vault-navigator-selection {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vault-navigator-selection-actions {
+    width: 100%;
+  }
+
+  .vault-navigator-selection-actions button {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-navigator-folder summary::before {
+    transition: none;
+  }
+}
