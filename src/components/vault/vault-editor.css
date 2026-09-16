@@ -1,0 +1,170 @@
+.vault-editor-shell {
+  --ink-editor-paper: var(--paper, #fff);
+  --ink-editor-line: var(--line, #dedfd9);
+  --ink-editor-muted: var(--muted, #5a5e68);
+  --ink-editor-pen: var(--pen, #2346d8);
+  width: 100%;
+  min-height: 400px;
+  height: 48vh;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--ink-editor-paper);
+}
+
+.vault-editor-shell[data-read-only="true"] {
+  background: color-mix(
+    in srgb,
+    var(--ink-editor-paper) 92%,
+    var(--canvas, #fbfbf9)
+  );
+}
+
+.vault-editor-host,
+.vault-editor-code {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+}
+
+.vault-editor-code {
+  isolation: isolate;
+}
+
+.vault-editor-code .cm-content {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.vault-editor-code .cm-line {
+  overflow-wrap: anywhere;
+}
+
+.vault-editor-code .cm-gutterElement {
+  min-width: 2.25em;
+  padding-inline: 8px 6px;
+}
+
+.vault-editor-code .cm-scroller {
+  scrollbar-color: color-mix(in srgb, var(--ink-editor-pen) 32%, transparent)
+    transparent;
+  scrollbar-width: thin;
+}
+
+.vault-editor-code .cm-scroller::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.vault-editor-code .cm-scroller::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-editor-pen) 32%, transparent);
+  background-clip: padding-box;
+}
+
+.vault-editor-search {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 8px 12px;
+  color: var(--ink, #1d1f24);
+  background: var(--ink-editor-paper);
+  border-bottom: 1px solid var(--ink-editor-line);
+  font:
+    13px/1.3 "Segoe UI Variable Text",
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+
+.vault-editor-search-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: min(100%, 220px);
+  color: var(--ink-editor-muted);
+}
+
+.vault-editor-search-input {
+  min-width: 0;
+  width: min(38vw, 300px);
+  padding: 6px 8px;
+  border: 1px solid #a0a29c;
+  border-radius: 6px 8px 5px 7px;
+  outline: none;
+  color: inherit;
+  background: var(--canvas, #fbfbf9);
+  font: inherit;
+}
+
+.vault-editor-search-input:focus-visible {
+  border-color: var(--ink-editor-pen);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--ink-editor-pen) 18%, transparent);
+}
+
+.vault-editor-search-button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid #bfc1ba;
+  border-radius: 5px 7px 6px 4px;
+  color: var(--ink, #1d1f24);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vault-editor-search-button:hover {
+  border-color: var(--ink-editor-pen);
+}
+
+.vault-editor-search-button:focus-visible {
+  outline: 2px solid var(--ink-editor-pen);
+  outline-offset: 2px;
+}
+
+.vault-editor-search-primary {
+  border-color: var(--ink-editor-pen);
+  color: var(--ink-editor-pen);
+}
+
+.vault-editor-search-close {
+  margin-left: auto;
+  color: var(--ink-editor-muted);
+}
+
+.vault-editor-code .cm-tooltip-autocomplete {
+  max-width: min(460px, calc(100vw - 32px));
+}
+
+.vault-editor-code .cm-completionLabel {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .vault-editor-shell {
+    height: 55vh;
+  }
+
+  .vault-editor-search-label {
+    flex: 1 1 100%;
+  }
+
+  .vault-editor-search-input {
+    flex: 1;
+    width: auto;
+  }
+
+  .vault-editor-search-close {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-editor-search-button,
+  .vault-editor-search-input {
+    transition: none;
+  }
+}

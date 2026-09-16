@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import type { Notebook, Source } from "../shared/model.ts";
 
 export const MAX_SOURCE_SNAPSHOT_BYTES = 32 * 1024 * 1024;
-export const MAX_SOURCE_SET_COUNT = 101;
+/** Bounded unique source arrays across current, episode, and chat history. */
+export const MAX_SOURCE_SET_COUNT = 512;
 export const MAX_EXPANDED_SOURCE_BYTES = 128 * 1024 * 1024;
 export const MAX_SOURCES_PER_SET = 150;
 
@@ -12,13 +13,18 @@ export type SourceSnapshotWireEpisode = Omit<
   Notebook["episodes"][number],
   "sources"
 > & { sourceRef?: string };
+export type SourceSnapshotWireMessage = Omit<
+  Notebook["messages"][number],
+  "sources"
+> & { sourceRef?: string };
 
 export type SourceSnapshotWireNotebook = Omit<
   Notebook,
-  "sources" | "episodes"
+  "sources" | "episodes" | "messages"
 > & {
   sourceRef: string;
   episodes: SourceSnapshotWireEpisode[];
+  messages: SourceSnapshotWireMessage[];
 };
 
 export type SourceSnapshotEntry = {
@@ -111,8 +117,9 @@ function checkExpandedSourceBytes(bytes: number) {
 }
 
 /**
- * Replace the current and explicit episode source arrays with content hashes.
- * Arrays are hashed in full, so equal IDs with changed content never collide.
+ * Replace current, explicit episode, and historical chat source arrays with
+ * content hashes. Arrays are hashed in full, so equal IDs with changed
+ * content never collide.
  */
 export function encodeSourceSnapshots(
   notebook: Notebook,
@@ -135,6 +142,8 @@ export function encodeSourceSnapshots(
   };
 
   const current = add(notebook.sources, "current sources");
+  // `records` counts unique content-addressed sets; `expandedBytes` counts
+  // every reference occurrence, including repeated chat snapshots.
   let expandedBytes = current.bytes;
   const episodes = notebook.episodes.map((episode, index) => {
     const wireEpisode = { ...episode } as SourceSnapshotWireEpisode & {
@@ -148,10 +157,22 @@ export function encodeSourceSnapshots(
     wireEpisode.sourceRef = snapshot.hash;
     return wireEpisode;
   });
+  const messages = notebook.messages.map((message, index) => {
+    const wireMessage = { ...message } as SourceSnapshotWireMessage & {
+      sources?: Source[];
+    };
+    delete wireMessage.sources;
+    if (!Array.isArray(message.sources)) return wireMessage;
+    const snapshot = add(message.sources, `chat message ${index + 1} sources`);
+    expandedBytes += snapshot.bytes;
+    checkExpandedSourceBytes(expandedBytes);
+    wireMessage.sourceRef = snapshot.hash;
+    return wireMessage;
+  });
   checkExpandedSourceBytes(expandedBytes);
   if (records.size > MAX_SOURCE_SET_COUNT)
     throw new Error(
-      `Notebook contains ${records.size} distinct source sets; maximum is ${MAX_SOURCE_SET_COUNT}.`,
+      `Notebook contains ${records.size} distinct source histories; backups support at most ${MAX_SOURCE_SET_COUNT}. Reduce historical chat/source history or export a smaller notebook.`,
     );
 
   const entries = [...records.entries()].map(([hash, record]) => ({
@@ -165,6 +186,7 @@ export function encodeSourceSnapshots(
     ...notebook,
     sourceRef: current.hash,
     episodes,
+    messages,
   } as SourceSnapshotWireNotebook;
   delete (wireNotebook as SourceSnapshotWireNotebook & { sources?: Source[] })
     .sources;
@@ -251,12 +273,20 @@ export function decodeSourceSnapshots(
     throw new Error(
       `Bundle contains ${wire.episodes.length} episodes; maximum is 100.`,
     );
+  if (!Array.isArray(wire.messages))
+    throw new Error("Bundle notebook messages must be an array.");
+  if (wire.messages.length > 1000)
+    throw new Error(
+      `Bundle contains ${wire.messages.length} messages; maximum is 1000.`,
+    );
 
   const snapshots = new Map<string, { sources: Source[]; bytes: number }>();
   if (entries.length > MAX_SOURCE_SET_COUNT)
     throw new Error(
-      `Bundle contains ${entries.length} source sets; maximum is ${MAX_SOURCE_SET_COUNT}.`,
+      `Bundle contains ${entries.length} distinct source histories; maximum is ${MAX_SOURCE_SET_COUNT}.`,
     );
+  // Archive entries are unique sets. Expanded bytes below account for every
+  // current/episode/message reference to those sets.
   let declaredBytes = 0;
   for (const entry of entries) {
     if (!Number.isSafeInteger(entry.size) || entry.size < 0)
@@ -275,7 +305,7 @@ export function decodeSourceSnapshots(
   }
   if (snapshots.size > MAX_SOURCE_SET_COUNT)
     throw new Error(
-      `Bundle contains ${snapshots.size} source sets; maximum is ${MAX_SOURCE_SET_COUNT}.`,
+      `Bundle contains ${snapshots.size} distinct source histories; maximum is ${MAX_SOURCE_SET_COUNT}.`,
     );
   if (!snapshots.has(currentRef))
     throw new Error(
@@ -300,6 +330,22 @@ export function decodeSourceSnapshots(
     used.add(ref);
     expandedBytes += snapshot.bytes;
   }
+  for (const [index, messageValue] of wire.messages.entries()) {
+    const message = objectRecord(messageValue, `Message ${index + 1}`);
+    if (Object.prototype.hasOwnProperty.call(message, "sources"))
+      throw new Error(
+        `Message ${index + 1} must use sourceRef instead of sources.`,
+      );
+    if (!Object.prototype.hasOwnProperty.call(message, "sourceRef")) continue;
+    const ref = sourceRef(message.sourceRef, `Message ${index + 1}`);
+    const snapshot = snapshots.get(ref);
+    if (!snapshot)
+      throw new Error(
+        `Message ${index + 1} references missing source snapshot: ${ref}.`,
+      );
+    used.add(ref);
+    expandedBytes += snapshot.bytes;
+  }
   for (const hash of snapshots.keys())
     if (!used.has(hash))
       throw new Error(`Bundle contains unused source snapshot: ${hash}.`);
@@ -318,7 +364,24 @@ export function decodeSourceSnapshots(
     delete restored.sourceRef;
     return restored;
   });
-  const expanded: Record<string, unknown> = { ...wire, sources, episodes };
+  const messages = wire.messages.map((messageValue, index) => {
+    const message = objectRecord(messageValue, `Message ${index + 1}`);
+    if (!Object.prototype.hasOwnProperty.call(message, "sourceRef"))
+      return { ...message };
+    const ref = sourceRef(message.sourceRef, `Message ${index + 1}`);
+    const restored: Record<string, unknown> = {
+      ...message,
+      sources: structuredClone(snapshots.get(ref)!.sources),
+    };
+    delete restored.sourceRef;
+    return restored;
+  });
+  const expanded: Record<string, unknown> = {
+    ...wire,
+    sources,
+    episodes,
+    messages,
+  };
   delete expanded.sourceRef;
   return expanded;
 }

@@ -1,0 +1,588 @@
+.vault-source-review {
+  --vault-review-paper: var(--paper, #fffefb);
+  --vault-review-canvas: var(--canvas, #fbfbf9);
+  --vault-review-ink: var(--ink, #1d1f24);
+  --vault-review-muted: var(--muted, #5a5e68);
+  --vault-review-line: var(--line, #dfe1dd);
+  --vault-review-pen: var(--pen, #2346d8);
+  --vault-review-current: #416f4e;
+  --vault-review-stale: #8d6810;
+  --vault-review-missing: #9a3930;
+  max-width: 920px;
+  margin: 14px 0 10px;
+  color: var(--vault-review-ink);
+}
+
+.vault-source-review__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid var(--vault-review-line);
+}
+
+.vault-source-review h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.vault-source-review__total {
+  color: var(--vault-review-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.vault-source-review__check {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 9px;
+  white-space: nowrap;
+}
+
+.vault-source-review__status {
+  min-height: 0;
+  padding: 5px 0 0;
+  font-size: 12px;
+}
+
+.vault-source-review__message {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.vault-source-review__message--error {
+  color: var(--vault-review-missing);
+}
+
+.vault-source-review__message--notice {
+  color: var(--vault-review-current);
+}
+
+.vault-source-review__vaults {
+  display: grid;
+  gap: 7px;
+}
+
+.vault-source-review__vault {
+  border-top: 1px solid var(--vault-review-line);
+}
+
+.vault-source-review__vault:last-child {
+  border-bottom: 1px solid var(--vault-review-line);
+}
+
+.vault-source-review__vault > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 41px;
+  padding: 4px;
+  color: var(--vault-review-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.vault-source-review__vault > summary::-webkit-details-marker {
+  display: none;
+}
+
+.vault-source-review__vault > summary:hover,
+.vault-source-review__vault > summary:focus-visible {
+  color: var(--vault-review-pen);
+}
+
+.vault-source-review__vault-name {
+  display: grid;
+  min-width: 122px;
+  gap: 3px;
+}
+
+.vault-source-review__vault-name > span {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-source-review__vault-name small,
+.vault-source-review__not-checked,
+.vault-source-review__unavailable {
+  color: var(--vault-review-muted);
+  font-size: 11px;
+}
+
+.vault-source-review__counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.vault-source-review__count {
+  padding: 4px 6px 3px;
+  border: 1px solid var(--vault-review-line);
+  border-radius: 4px 6px 4px 5px;
+  background: var(--vault-review-paper);
+  color: var(--vault-review-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.vault-source-review__count--current {
+  border-color: color-mix(
+    in srgb,
+    var(--vault-review-current) 32%,
+    var(--vault-review-line)
+  );
+  color: var(--vault-review-current);
+}
+
+.vault-source-review__count--changed {
+  border-color: color-mix(
+    in srgb,
+    var(--vault-review-stale) 34%,
+    var(--vault-review-line)
+  );
+  color: var(--vault-review-stale);
+}
+
+.vault-source-review__count--missing {
+  border-color: color-mix(
+    in srgb,
+    var(--vault-review-missing) 32%,
+    var(--vault-review-line)
+  );
+  color: var(--vault-review-missing);
+}
+
+.vault-source-review__unavailable {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: var(--vault-review-missing);
+}
+
+.vault-source-review__chevron {
+  flex: 0 0 auto;
+  color: var(--vault-review-muted);
+  transition: transform 150ms ease;
+}
+
+.vault-source-review__vault[open] > summary .vault-source-review__chevron,
+.vault-source-review__tradeoff[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.vault-source-review__list {
+  border-top: 1px solid var(--vault-review-line);
+}
+
+.vault-source-review__row {
+  display: grid;
+  grid-template-columns: 19px minmax(0, 1fr) 31px;
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 4px;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--vault-review-line) 70%, transparent);
+}
+
+.vault-source-review__row.is-selected {
+  background: color-mix(in srgb, var(--vault-review-pen) 7%, transparent);
+}
+
+.vault-source-review__row > input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  accent-color: var(--vault-review-pen);
+}
+
+.vault-source-review__row-main {
+  min-width: 0;
+}
+
+.vault-source-review__path-line,
+.vault-source-review__revision-line {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.vault-source-review__path-line {
+  gap: 8px;
+}
+
+.vault-source-review__path-line > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-source-review-status {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.vault-source-review-status--unchanged {
+  color: var(--vault-review-current);
+}
+
+.vault-source-review-status--changed {
+  color: var(--vault-review-stale);
+}
+
+.vault-source-review-status--missing {
+  color: var(--vault-review-missing);
+}
+
+.vault-source-review__revision-line {
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  margin-top: 4px;
+  color: var(--vault-review-muted);
+  font-size: 10px;
+}
+
+.vault-source-review__revision-line code,
+.vault-source-review__revisions code {
+  color: var(--vault-review-ink);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+}
+
+.vault-source-review__compare {
+  min-height: 23px;
+  margin: 5px 0 2px -5px;
+  padding: 3px 5px;
+  color: var(--vault-review-pen);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.vault-source-review__revisions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+  color: var(--vault-review-muted);
+  font-size: 10px;
+}
+
+.vault-source-review__revisions > summary {
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.vault-source-review__revisions > summary::-webkit-details-marker {
+  display: none;
+}
+
+.vault-source-review__revisions > summary::after {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 4px 2px 5px;
+  border: solid currentColor;
+  border-width: 0 1px 1px 0;
+  content: "";
+  transform: rotate(-45deg);
+}
+
+.vault-source-review__revisions[open] > summary::after {
+  transform: rotate(45deg);
+}
+
+.vault-source-review__snapshots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--vault-review-muted);
+  font-size: 10px;
+}
+
+.vault-source-review__issue {
+  margin: 4px 0 0;
+  color: var(--vault-review-missing);
+  font-size: 11px;
+}
+
+.vault-source-review__compare-error {
+  margin: 5px 0 0;
+  color: var(--vault-review-missing);
+  font-size: 11px;
+}
+
+.vault-source-review__comparison {
+  margin: 9px 0 0;
+  padding: 9px;
+  border: 1px solid var(--vault-review-line);
+  border-radius: 5px 8px 6px 7px;
+  background: color-mix(
+    in srgb,
+    var(--vault-review-canvas) 72%,
+    var(--vault-review-paper)
+  );
+}
+
+.vault-source-review__comparison-note {
+  margin: 0 0 8px;
+  color: var(--vault-review-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.vault-source-review__comparison-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.vault-source-review__comparison-columns section {
+  min-width: 0;
+}
+
+.vault-source-review__comparison-columns h4 {
+  margin: 0 0 4px;
+  color: var(--vault-review-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.vault-source-review__comparison-columns pre {
+  max-height: 220px;
+  min-height: 64px;
+  margin: 0;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--vault-review-line);
+  background: var(--vault-review-paper);
+  color: var(--vault-review-ink);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vault-source-review__open {
+  min-width: 29px;
+  min-height: 29px;
+  padding: 5px;
+  color: var(--vault-review-muted);
+}
+
+.vault-source-review__open:hover,
+.vault-source-review__open:focus-visible {
+  color: var(--vault-review-pen);
+}
+
+.vault-source-review__tradeoff {
+  margin: 8px 4px 0;
+  color: var(--vault-review-muted);
+  font-size: 11px;
+}
+
+.vault-source-review__tradeoff > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.vault-source-review__tradeoff > summary::-webkit-details-marker {
+  display: none;
+}
+
+.vault-source-review__tradeoff > summary::before {
+  width: 6px;
+  height: 6px;
+  border: solid currentColor;
+  border-width: 0 1px 1px 0;
+  content: "";
+  transform: rotate(-45deg);
+  transition: transform 150ms ease;
+}
+
+.vault-source-review__tradeoff[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.vault-source-review__tradeoff p {
+  max-width: 76ch;
+  margin: 7px 0 0 13px;
+  line-height: 1.55;
+}
+
+.vault-source-review__refresh-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 13px 4px 4px;
+  padding-top: 11px;
+  border-top: 1px solid var(--vault-review-line);
+  color: var(--vault-review-muted);
+  font-size: 11px;
+}
+
+.vault-source-review__refresh-bar .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 33px;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.vault-source-review__prompt,
+.vault-source-review__unavailable-panel {
+  margin: 0;
+  padding: 14px 4px 15px;
+  border-top: 1px solid var(--vault-review-line);
+  color: var(--vault-review-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.vault-source-review__unavailable-panel {
+  color: var(--vault-review-missing);
+}
+
+.vault-source-review__unavailable-panel > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.vault-source-review__unavailable-panel p {
+  max-width: 70ch;
+  margin: 6px 0 0 25px;
+}
+
+.vault-source-review__spin {
+  animation: vault-source-review-spin 850ms linear infinite;
+}
+
+@keyframes vault-source-review-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 700px) {
+  .vault-source-review__heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  .vault-source-review__check {
+    align-self: flex-start;
+  }
+
+  .vault-source-review__vault > summary {
+    align-items: flex-start;
+  }
+
+  .vault-source-review__counts {
+    justify-content: flex-end;
+  }
+
+  .vault-source-review__refresh-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vault-source-review__refresh-bar .button {
+    justify-content: center;
+  }
+
+  .vault-source-review__comparison-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .vault-source-review__vault > summary {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 10px 2px;
+  }
+
+  .vault-source-review__counts {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+
+  .vault-source-review__chevron {
+    margin-left: auto;
+  }
+
+  .vault-source-review__row {
+    grid-template-columns: 19px minmax(0, 1fr) 29px;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .vault-source-review__revision-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .vault-source-review__snapshots {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-source-review__chevron,
+  .vault-source-review__tradeoff > summary::before {
+    transition: none;
+  }
+
+  .vault-source-review__spin {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .vault-source-review__count {
+    border-color: CanvasText;
+  }
+
+  .vault-source-review__row.is-selected {
+    outline: 1px solid Highlight;
+  }
+}

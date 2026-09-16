@@ -1,0 +1,618 @@
+/* One paper surface and one opening gesture for application-owned controls. */
+:root {
+  --control-open: 160ms;
+  --control-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --control-shadow: 0 3px 6px #1d1f2408, 0 12px 28px #1d1f2414;
+}
+
+@supports (appearance: base-select) {
+  .ink-field select,
+  .ink-field select::picker(select) {
+    appearance: base-select;
+  }
+  .ink-field select {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .ink-field select::picker-icon {
+    content: "";
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    margin: 0 3px 4px auto;
+    border: solid currentColor;
+    border-width: 0 1.5px 1.5px 0;
+    rotate: 45deg;
+    transition: rotate var(--control-open) var(--control-ease);
+  }
+  .ink-field select:open::picker-icon {
+    rotate: 225deg;
+  }
+  .ink-field select::picker(select) {
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid #898c83;
+    border-radius: 4px 7px 5px 3px;
+    padding: 5px;
+    box-shadow: var(--control-shadow);
+    margin-block: 6px;
+    max-height: min(360px, 60dvh);
+    min-width: anchor-size(width);
+    max-width: calc(100vw - 24px);
+    overflow: auto;
+    font: inherit;
+    opacity: 0;
+    translate: 0 -4px;
+    transition:
+      opacity var(--control-open),
+      translate var(--control-open) var(--control-ease),
+      display var(--control-open) allow-discrete,
+      overlay var(--control-open) allow-discrete;
+  }
+  .ink-field select:open::picker(select) {
+    opacity: 1;
+    translate: 0 0;
+  }
+  @starting-style {
+    .ink-field select:open::picker(select) {
+      opacity: 0;
+      translate: 0 -4px;
+    }
+  }
+  .ink-field option {
+    padding: 9px 12px;
+    gap: 12px;
+    border: 0;
+    border-radius: 3px 5px 4px 3px;
+    background: transparent;
+    color: var(--ink);
+    white-space: normal;
+    cursor: pointer;
+    transition:
+      background-color 100ms,
+      color 100ms;
+  }
+  .ink-field option:checked {
+    color: var(--pen, var(--ink));
+    background: #2346d809;
+    font-weight: 600;
+  }
+  .ink-field option:is(:hover, :focus-visible) {
+    color: var(--ink);
+    background: #ffe96666;
+    outline: 1px solid transparent;
+  }
+  .ink-field option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .ink-field option::checkmark {
+    color: var(--pen, var(--ink));
+    order: 1;
+    margin-left: auto;
+  }
+  .ink-field optgroup {
+    padding: 6px;
+    font-style: normal;
+  }
+  .ink-field select:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.desktop-app {
+  padding-top: 40px;
+  --desktop-height: 40px;
+}
+.desktop-app > .sidebar {
+  top: 40px;
+}
+.desktop-app > .main {
+  min-height: calc(100dvh - 40px);
+}
+.desktop-bar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  background: var(--canvas);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.desktop-bar button,
+.desktop-bar .ink-menu {
+  -webkit-app-region: no-drag;
+}
+.desktop-menu-anchor {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+.desktop-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 650;
+}
+.desktop-menu-trigger > svg:first-child {
+  color: var(--pen, var(--ink));
+}
+.desktop-menu-trigger > svg:last-of-type {
+  transition: rotate var(--control-open);
+}
+.desktop-menu-trigger[aria-expanded="true"] > svg:last-of-type {
+  rotate: 180deg;
+}
+.desktop-bar-caption {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  max-width: 40%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.desktop-window-actions {
+  display: flex;
+  align-self: stretch;
+  margin-left: auto;
+}
+.desktop-window-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+.desktop-window-button:hover {
+  background: #2346d80b;
+}
+.desktop-window-button.desktop-close:hover {
+  background: #b6362912;
+  color: #a62920;
+  --ink-trace: #a62920;
+}
+:root[data-theme="ink"] .desktop-window-button > svg.ink-contour {
+  inset: 5px;
+  width: calc(100% - 10px);
+  height: calc(100% - 10px);
+}
+:root[data-theme="ink"] .desktop-window-button {
+  --ink-edge: transparent;
+}
+:root[data-theme="ink"] .desktop-window-button:hover {
+  background: #2346d80b;
+}
+:root[data-theme="ink"] .desktop-window-button.desktop-close:hover {
+  background: #b6362912;
+  color: #a62920;
+  --ink-trace: #a62920;
+}
+:root[data-theme="ink"] .ink-danger {
+  color: #a62920;
+  --ink-trace: #a62920;
+  --ink-edge: #be8982;
+}
+.desktop-bar[data-focused="false"] .desktop-bar-caption {
+  opacity: 0.65;
+}
+.desktop-app .topbar {
+  -webkit-app-region: no-drag;
+  padding-right: 44px;
+}
+.desktop-app .sidebar::before {
+  content: none;
+}
+.desktop-action-error {
+  position: absolute;
+  right: 8px;
+  top: 44px;
+  padding: 12px;
+  background: var(--paper);
+  box-shadow: var(--control-shadow);
+  -webkit-app-region: no-drag;
+}
+.ink-menu {
+  max-height: calc(100dvh - 56px);
+  max-width: calc(100vw - 16px);
+  overflow-y: auto;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 248px;
+  padding: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid #898c83;
+  border-radius: 4px 7px 5px 3px;
+  box-shadow: var(--control-shadow);
+  animation: ink-surface-open var(--control-open) var(--control-ease);
+}
+.ink-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 9px 12px;
+  text-align: left;
+  border-radius: 3px 5px 4px 3px;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+}
+.ink-menu button:is(:hover, :focus-visible) {
+  background: #ffe96666;
+  outline: 1px solid transparent;
+}
+.ink-menu hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 5px 9px;
+}
+.ink-menu kbd {
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+}
+.ink-tooltip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 7px 10px;
+  border: 1px solid #898c83;
+  border-radius: 3px 5px 4px 3px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--control-shadow);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ink-tooltip:popover-open {
+  animation: ink-surface-open var(--control-open) var(--control-ease);
+}
+
+.ink-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  padding: 25px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid #898c83;
+  border-radius: 5px 9px 6px 4px;
+  box-shadow: var(--control-shadow);
+}
+.ink-dialog[open] {
+  animation: ink-surface-open var(--control-open) var(--control-ease);
+}
+:root[data-theme="ink"] .create-dialog {
+  border: 1px solid #898c83;
+  border-radius: 5px 9px 6px 4px;
+  box-shadow: var(--control-shadow);
+  transform: translateY(-4px);
+  transition-duration: var(--control-open);
+  transition-timing-function: var(--control-ease);
+}
+:root[data-theme="ink"] .create-dialog[open] {
+  transform: none;
+}
+:root[data-theme="ink"] .create-dialog[open]::backdrop {
+  background: #1d1f2438;
+}
+:root[data-theme="ink"] .create-dialog[open] .section-heading {
+  animation: none;
+}
+@starting-style {
+  :root[data-theme="ink"] .create-dialog[open] {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.ink-dialog::backdrop {
+  background: #1d1f2438;
+  animation: ink-backdrop-open var(--control-open);
+}
+.ink-dialog-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.ink-dialog-heading h2 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.3;
+}
+.ink-dialog-heading button {
+  flex-shrink: 0;
+  margin: -7px -7px 0 0;
+}
+.ink-dialog > p {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 18px 0 24px;
+}
+.ink-dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.ink-danger {
+  color: #a62920;
+  --ink-trace: #a62920;
+}
+.ink-danger:hover {
+  background: #b636290c;
+}
+
+.ink-audio {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 0;
+}
+.ink-audio audio {
+  display: none;
+}
+.ink-audio .ink-audio-play {
+  width: 38px;
+  height: 38px;
+  color: var(--pen, var(--ink));
+  background: var(--paper);
+  flex-shrink: 0;
+}
+.ink-audio-time {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ink-audio .ink-audio-seek {
+  flex: 1;
+  min-width: 50px;
+  width: auto;
+  height: 24px;
+  accent-color: var(--pen, var(--ink));
+  padding: 0;
+  cursor: pointer;
+}
+.ink-audio .ink-audio-volume {
+  width: 64px;
+  height: 24px;
+  padding: 0;
+  accent-color: var(--pen, var(--ink));
+  cursor: pointer;
+}
+.ink-audio input[type="range"] {
+  appearance: none;
+  background: transparent;
+  border: 0;
+}
+.ink-audio input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.ink-audio .ink-audio-seek::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--pen, var(--ink)) var(--audio-progress),
+    var(--line) var(--audio-progress)
+  );
+}
+.ink-audio input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4.5px;
+  border: 2px solid var(--pen, var(--ink));
+  border-radius: 45% 52% 48% 55%;
+  background: var(--paper);
+}
+.ink-audio input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ink-audio-error {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: #a62920;
+}
+:root[data-theme="ink"] input[type="range"] {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+}
+:root[data-theme="ink"] input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border: 0;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--pen) var(--range-progress, 0%),
+    var(--line) var(--range-progress, 0%)
+  );
+}
+:root[data-theme="ink"] input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -5px;
+  border: 2px solid var(--pen);
+  border-radius: 45% 52% 48% 55%;
+  background: var(--paper);
+}
+:root[data-theme="ink"]
+  .ink-audio
+  input[type="range"].ink-audio-seek::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--pen) var(--audio-progress),
+    var(--line) var(--audio-progress)
+  );
+}
+:root[data-theme="ink"] .episode-player {
+  color: var(--ink);
+  border-color: var(--line);
+}
+:root[data-theme="ink"]
+  .episode-player
+  :is(
+    .episode-player-kicker,
+    .episode-player-speed span,
+    .episode-player-chapter span
+  ) {
+  color: var(--muted);
+}
+:root[data-theme="ink"] progress {
+  appearance: none;
+  height: 5px;
+  border: 0;
+  border-radius: 2px 3px 2px 4px;
+  overflow: hidden;
+  background: var(--line);
+}
+:root[data-theme="ink"] progress::-webkit-progress-bar {
+  background: var(--line);
+}
+:root[data-theme="ink"] progress::-webkit-progress-value {
+  background: var(--pen);
+  border-radius: 2px 3px 2px 4px;
+  transition: width var(--control-open);
+}
+.desktop-bar[data-platform="darwin"] .desktop-window-actions {
+  order: -1;
+  margin: 0 8px 0 0;
+}
+.desktop-bar[data-platform="darwin"] .desktop-close {
+  order: -1;
+}
+
+:root[data-theme="ink"] details > summary {
+  list-style: none;
+}
+:root[data-theme="ink"] details > summary::-webkit-details-marker {
+  display: none;
+}
+:root[data-theme="ink"] details > summary::before {
+  content: "";
+  display: inline-block;
+  vertical-align: 2px;
+  width: 6px;
+  height: 6px;
+  margin-right: 12px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  rotate: -45deg;
+  transition: rotate var(--control-open);
+}
+:root[data-theme="ink"] details[open] > summary::before {
+  rotate: 45deg;
+}
+:root[data-theme="ink"] details > summary:hover {
+  color: var(--pen);
+}
+@keyframes ink-surface-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ink-backdrop-open {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (min-width: 901px) and (min-height: 720px) {
+  :root[data-theme="ink"] .desktop-app .main:has(.chat) {
+    height: calc(100dvh - 40px);
+  }
+}
+@media (max-width: 600px) {
+  .ink-audio {
+    gap: 8px;
+  }
+  .ink-audio-volume {
+    display: none;
+  }
+  .desktop-bar-caption {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --control-open: 0ms;
+  }
+  .ink-dialog[open],
+  .ink-menu,
+  .ink-dialog::backdrop {
+    animation: none;
+  }
+}
+:root[data-motion="reduced"] {
+  --control-open: 0ms;
+}
+:root[data-motion="reduced"]
+  :is(.ink-dialog[open], .ink-menu, .ink-dialog::backdrop) {
+  animation: none;
+}
+@media (forced-colors: active) {
+  .ink-field select::picker(select),
+  .ink-menu,
+  .ink-dialog {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+  .ink-menu button:focus-visible,
+  .ink-field option:focus-visible {
+    outline: 2px solid Highlight;
+  }
+  .desktop-window-button {
+    border: 1px solid ButtonText;
+  }
+  .ink-audio input[type="range"] {
+    appearance: auto;
+  }
+  :root[data-theme="ink"] input[type="range"],
+  :root[data-theme="ink"] progress {
+    appearance: auto;
+  }
+}

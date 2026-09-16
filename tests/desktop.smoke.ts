@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { _electron as electron } from "@playwright/test";
-import { mkdtempSync, rmSync, mkdirSync, readFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -10,6 +16,19 @@ test(
   { timeout: 120000 },
   async () => {
     const data = mkdtempSync(path.join(tmpdir(), "sennibook-desktop-"));
+    // This existing smoke exercises an already-onboarded library. Account login
+    // must not depend on a developer's credentials or spend allowance in CI.
+    mkdirSync(path.join(data, "data"), { recursive: true });
+    writeFileSync(
+      path.join(data, "data", "codex-onboarding.json"),
+      JSON.stringify({
+        completedAt: "2026-01-01T00:00:00.000Z",
+        checkedAt: "2026-01-01T00:00:00.000Z",
+        planType: null,
+        models: [{ id: "gpt-5.6-luna", displayName: "Luna" }],
+        lunaAvailable: true,
+      }),
+    );
     const env: Record<string, string> = {
       ...Object.fromEntries(
         Object.entries(process.env).filter(
@@ -44,7 +63,10 @@ test(
         node: typeof (window as any).process,
       }));
       assert.deepEqual(sandbox, { require: "undefined", node: "undefined" });
-      const backendOrigin = readFileSync(path.join(data, "desktop.log"), "utf8").match(/ready at (http:\/\/127\.0\.0\.1:\d+)/)?.[1];
+      const backendOrigin = readFileSync(
+        path.join(data, "desktop.log"),
+        "utf8",
+      ).match(/ready at (http:\/\/127\.0\.0\.1:\d+)/)?.[1];
       assert.ok(backendOrigin);
       assert.equal((await fetch(backendOrigin + "/api/notebooks")).status, 403);
       await page

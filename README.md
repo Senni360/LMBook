@@ -4,15 +4,21 @@ A local, open-source learning notebook for detailed two-person audio and source-
 
 ## Windows and macOS desktop editions
 
-Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Build artifacts go to `release/`: an installer, a portable executable, and `win-unpacked/LMBook.exe`.
+Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Packages go to the main checkout's `release/<version>/` folder, including when building from a worktree. Uploading is disabled for these commands.
 
-Download the current Windows installer/portable app or matching Mac DMG/ZIP from [GitHub Releases](https://github.com/Senni360/LMBook/releases/latest). Merging a new version into `master` automatically builds, checks and publishes its Windows, Apple Silicon and Intel Mac downloads. See [the release workflow](docs/releasing.md) for version bumps, required release notes and retry behavior.
+**Local Windows 0.3.12:** open `D:\Downloads\SenniBook\release\0.3.12\LMBook-0.3.12-portable.exe`, or run `LMBook Setup 0.3.12.exe` in the same folder. This version includes OpenRouter settings, local-model setup and cancellation fixes, and concise Luna hardware advice. [Release notes](docs/releases/0.3.12.md).
+
+Download the current published Windows installer/portable app or matching Mac DMG/ZIP from [GitHub Releases](https://github.com/Senni360/LMBook/releases/latest). Merging builds and checks iteration artifacts; publication additionally requires the owner's explicit release approval recorded in `release-policy.json`. See [the release workflow](docs/releasing.md).
+
+**0.4 work in progress:** local preview 0.3.11 connects shared Obsidian vault folders, edits their Markdown files, imports selected notes as immutable learning snapshots, and creates reviewable AI summary drafts. Open **Obsidian vaults** in the sidebar. [Workflow, compatibility and evaluation](docs/obsidian-vaults.md). Plugins continue running in Obsidian; 0.4 remains unpublished pending owner approval.
+
+**0.3.9 unifies Ink controls:** custom desktop chrome and menus, dropdowns, confirmations, audio transport, tooltips and sliders now share the same paper and pen states. See [0.3.9 notes](docs/releases/0.3.9.md).
 
 **0.3.8 adds macOS:** choose arm64 for Apple Silicon or x64 for Intel. Drag LMBook from the DMG into Applications. These first Mac builds are not Apple-notarized and may require per-app approval in Privacy & Security. See [Mac setup](docs/macos.md) and [0.3.8 release notes](docs/releases/0.3.8.md). Ink retains its coordinated contours, focus and heading highlights; reduced motion follows your device or the preference in Settings.
 
 0.2.8 adds recoverable notebook Trash in Settings → Your library. Restore keeps the original notebook; explicit permanent deletion removes its unshared files and activity history, preserving files referenced by other notebooks or episode snapshots. Downloads now use a native save dialog with progress, cancellation and readable errors. Cached library summaries avoid reparsing every notebook for the sidebar, and empty-file/partial-import handling is clearer.
 
-It also includes the hidden native menu bar (Alt reveals it), settings sidebar back button, preparation/voice draft recovery, listening position/selection/speed, and fixes for numeric goals, short imports, background-import navigation, source integrity and malformed restores. 0.2.9 adds compact backups for large notebooks with repeated episode source snapshots, correct keyboard focus, and upload size checks before transfer. See the [no-generation reliability sweep](docs/audits/2026-09-14-no-generation.md) for evidence and remaining work.
+It also includes the Ink app menu (also available with F10), settings sidebar back button, preparation/voice draft recovery, listening position/selection/speed, and fixes for numeric goals, short imports, background-import navigation, source integrity and malformed restores. 0.2.9 adds compact backups for large notebooks with repeated episode source snapshots, correct keyboard focus, and upload size checks before transfer. See the [no-generation reliability sweep](docs/audits/2026-09-14-no-generation.md) for evidence and remaining work.
 
 The installed app includes its runtime and starts the learning engine automatically. New installations store notebooks under `%APPDATA%/LMBook/data` on Windows or `~/Library/Application Support/LMBook/data` on Mac. If an existing `%APPDATA%/SenniBook` profile is present, LMBook reuses it, including its saved notebooks, provider configuration and browser storage. The exact folder appears in Connections & settings. See [upgrade compatibility](docs/rebranding.md). The original browser edition's `data/` folder stays untouched. Provider accounts and optional external CLIs still need to be configured separately.
 

@@ -52,6 +52,8 @@ function addNotebookRefs(notebook: Notebook, refs: ArtifactRefs) {
   };
   notebook.sources.forEach(addSource);
   for (const deck of notebook.flashcards || []) deck.sources.forEach(addSource);
+  for (const message of notebook.messages)
+    (message.sources || []).forEach(addSource);
   for (const episode of notebook.episodes) {
     (episode.sources || notebook.sources).forEach(addSource);
     for (const chapter of episode.chapters) {

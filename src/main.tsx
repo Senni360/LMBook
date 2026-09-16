@@ -1,3 +1,8 @@
+import { DesktopBar } from "./components/DesktopBar";
+import { WorkspaceBoundary } from "./components/WorkspaceBoundary";
+import { InkTooltip } from "./components/InkTooltip";
+import { InkDialogHost, confirmInk } from "./components/InkDialog";
+import { InkAudio } from "./components/InkAudio";
 import {
   InkInput,
   InkTextarea,
@@ -50,6 +55,7 @@ import {
   Square,
   Bookmark,
   Volume2,
+  FolderOpen,
 } from "lucide-react";
 import {
   type Notebook,
@@ -80,7 +86,16 @@ import { ActivityHistory } from "./components/ActivityHistory";
 import { NotebookTrash } from "./components/NotebookTrash";
 import { DownloadLink, DownloadProvider } from "./components/Downloads";
 import { SourceAudio } from "./components/SourceAudio";
-import { LocalTranscriptionSetup } from "./components/LocalTranscriptionSetup";
+import {
+  OpenRouterSetup,
+  OpenRouterModelPicker,
+} from "./components/OpenRouterSetup";
+import {
+  CodexSetup,
+  FirstRunSetup,
+  type OnboardingStatus,
+} from "./components/CodexSetup";
+import { LocalModelsSetup } from "./components/LocalModelsSetup";
 import { locateEvidence, locateSourceRange } from "../shared/evidence-location";
 import { ContextSummary } from "./components/ContextSummary";
 import { SourceSnapshotReader } from "./components/SourceSnapshotReader";
@@ -103,6 +118,7 @@ import {
 } from "./components/Motion";
 import "./motion.css";
 import "./themes/ink.css";
+import "./themes/ink-controls.css";
 
 type Summary = {
   id: string;
@@ -111,12 +127,25 @@ type Summary = {
   sourceCount: number;
   example: boolean;
 };
+const VaultWorkspace = React.lazy(() =>
+  import("./components/VaultWorkspace").then((module) => ({
+    default: module.VaultWorkspace,
+  })),
+);
+const VaultSourceReview = React.lazy(() =>
+  import("./components/vault/VaultSourceReview").then((module) => ({
+    default: module.VaultSourceReview,
+  })),
+);
 const priceLabel = (amount: number) =>
   amount > 0 && amount < 0.01 ? "<$0.01" : `$${amount.toFixed(2)}`;
 const durationLabel = (wordCount: number) =>
   wordCount < 145 ? "<1 min" : `~${Math.round(wordCount / 145)} min`;
-type Tab = "sources" | "goals" | "studio" | "flashcards" | "chat" | "settings";
+type Tab =
+  "sources" | "goals" | "studio" | "flashcards" | "chat" | "settings" | "vault";
 type SourceRequest = {
+  snapshot?: Source;
+  snapshotMessageId?: string;
   sourceId: string;
   quote?: string;
   startSeconds?: number;
@@ -128,6 +157,8 @@ type OpenSource = (
   quote?: string,
   startSeconds?: number,
   range?: { startOffset: number; endOffset: number },
+  snapshot?: Source,
+  snapshotMessageId?: string,
 ) => void;
 async function api<T>(
   url: string,
@@ -256,6 +287,10 @@ function App() {
   const [notebooks, setNotebooks] = useState<Summary[]>([]);
   const [n, setN] = useState<Notebook | null>(null);
   const [tab, setTab] = useState<Tab>("sources");
+  const [vaultOpened, setVaultOpened] = useState(false);
+  useEffect(() => {
+    if (tab === "vault") setVaultOpened(true);
+  }, [tab]);
   const motionTab = useRef(tab);
   const motionDirection = useMemo(() => {
     const order: Tab[] = [
@@ -265,6 +300,7 @@ function App() {
       "chat",
       "flashcards",
       "settings",
+      "vault",
     ];
     const direction =
       order.indexOf(tab) < order.indexOf(motionTab.current) ? -1 : 1;
@@ -286,10 +322,34 @@ function App() {
   const [sourceRequest, setSourceRequest] = useState<SourceRequest | null>(
     null,
   );
-  const openSource: OpenSource = (sourceId, quote, startSeconds, range) => {
+  const [vaultNoteRequest, setVaultNoteRequest] = useState<{
+    vaultId: string;
+    path: string;
+    nonce: number;
+  } | null>(null);
+  const openVaultNote = (vaultId: string, path: string) => {
+    setVaultNoteRequest({ vaultId, path, nonce: Date.now() });
+    setTab("vault");
+  };
+  const openSource: OpenSource = (
+    sourceId,
+    quote,
+    startSeconds,
+    range,
+    snapshot,
+    snapshotMessageId,
+  ) => {
     setSourceRequest(
       sourceId
-        ? { sourceId, quote, startSeconds, range, nonce: Date.now() }
+        ? {
+            sourceId,
+            quote,
+            startSeconds,
+            range,
+            snapshot,
+            snapshotMessageId,
+            nonce: Date.now(),
+          }
         : null,
     );
     setTab("sources");
@@ -301,6 +361,8 @@ function App() {
   const [activityRevision, setActivityRevision] = useState(0);
   const [openingNotebook, setOpeningNotebook] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+  const [setupError, setSetupError] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [notice, setNotice] = useState("");
@@ -359,6 +421,11 @@ function App() {
   useEffect(() => {
     void (async () => {
       try {
+        try {
+          setOnboarding(await api<OnboardingStatus>("/onboarding"));
+        } catch (e) {
+          setSetupError((e as Error).message);
+        }
         const [list, st] = await Promise.all([
           loadList(),
           api<Capabilities>("/status"),
@@ -531,8 +598,66 @@ function App() {
       );
     if (n) await change(`/notebooks/${n.id}`, "PATCH", { settings });
   };
+  if (!onboarding)
+    return (
+      <div className={window.sennibookDesktop ? "desktop-app" : ""}>
+        <DesktopBar
+          title="Getting started"
+          onNew={() => {}}
+          onSettings={() => {}}
+        />
+        <main id="main" className="ai-setup-page">
+          <div className="ai-setup-sheet">
+            <h1>Opening LMBook</h1>
+            {setupError ? (
+              <>
+                <p role="alert" className="inline-error">
+                  {setupError}
+                </p>
+                <InkButton
+                  className="button"
+                  onClick={() => {
+                    setSetupError("");
+                    void api<OnboardingStatus>("/onboarding")
+                      .then(setOnboarding)
+                      .catch((e) => setSetupError(e.message));
+                  }}
+                >
+                  Try again
+                </InkButton>
+              </>
+            ) : (
+              <p role="status">Checking your setup…</p>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  if (onboarding.required)
+    return (
+      <div className={window.sennibookDesktop ? "desktop-app" : ""}>
+        <DesktopBar
+          title="Connect Codex"
+          onNew={() => {}}
+          onSettings={() => {}}
+        />
+        <FirstRunSetup
+          initial={onboarding.connection}
+          onComplete={() => setOnboarding({ ...onboarding, required: false })}
+        />
+      </div>
+    );
   return (
-    <div className="app">
+    <div className={`app ${window.sennibookDesktop ? "desktop-app" : ""}`}>
+      <DesktopBar
+        title={
+          tab === "vault"
+            ? "Obsidian vaults"
+            : n?.title || "Your learning library"
+        }
+        onNew={() => setCreateOpen(true)}
+        onSettings={openSettings}
+      />
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -568,7 +693,7 @@ function App() {
           </InkButton>
         </div>
         <MotionNavigation
-          activeKey={n?.id || ""}
+          activeKey={tab === "vault" ? "vault" : n?.id || ""}
           itemsKey={notebooks.map((book) => book.id).join(":")}
           selector=".notebook-item.selected"
           vertical
@@ -578,12 +703,15 @@ function App() {
           {notebooks.map((book) => (
             <InkButton
               key={book.id}
-              className={`notebook-item ${n?.id === book.id ? "selected" : ""}`}
-              aria-current={n?.id === book.id ? "page" : undefined}
+              className={`notebook-item ${n?.id === book.id && tab !== "vault" ? "selected" : ""}`}
+              aria-current={
+                n?.id === book.id && tab !== "vault" ? "page" : undefined
+              }
               onClick={() =>
-                void choose(book.id).catch((error: Error) =>
-                  setError(error.message),
-                )
+                void (async () => {
+                  await choose(book.id);
+                  if (tab === "vault") setTab("sources");
+                })().catch((error: Error) => setError(error.message))
               }
             >
               <BookOpen size={17} />
@@ -608,6 +736,14 @@ function App() {
           New notebook
         </Button>
         <div className="sidebar-bottom">
+          <InkButton
+            className={`rail-settings ${tab === "vault" ? "active" : ""}`}
+            title="Obsidian vaults"
+            aria-current={tab === "vault" ? "page" : undefined}
+            onClick={() => setTab("vault")}
+          >
+            <FolderOpen size={18} /> Obsidian vaults
+          </InkButton>
           <div className="local-note">
             <span className="status-dot" /> Saved on this computer
           </div>
@@ -639,7 +775,7 @@ function App() {
         <header className="topbar">
           <span>
             <Library size={15} /> Your learning library{" "}
-            {n && (
+            {n && tab !== "vault" && (
               <>
                 <ChevronRight size={14} />
                 <strong>{n.settings.subject}</strong>
@@ -678,11 +814,40 @@ function App() {
             {notice}
           </div>
         )}
+        {loaded && (vaultOpened || tab === "vault") && (
+          <WorkspaceBoundary
+            name="The vault workspace"
+            active={tab === "vault"}
+          >
+            <React.Suspense
+              fallback={
+                <p className="page-content" role="status">
+                  Opening vault workspace…
+                </p>
+              }
+            >
+              <VaultWorkspace
+                active={tab === "vault"}
+                openRequest={vaultNoteRequest}
+                notebooks={notebooks}
+                currentNotebook={n?.id || null}
+                onOpenNotebook={async (id, section = "sources") => {
+                  await choose(id);
+                  if (selected.current === id) setTab(section);
+                }}
+                onSourcesAdded={async (id) => {
+                  await loadList();
+                  if (selected.current === id) await refresh();
+                }}
+              />
+            </React.Suspense>
+          </WorkspaceBoundary>
+        )}
         {!loaded ? (
           <Empty icon={LoaderCircle} title="Opening your library…">
             Loading saved notebooks.
           </Empty>
-        ) : tab === "settings" ? (
+        ) : tab === "vault" ? null : tab === "settings" ? (
           <Connections
             refreshStatus={async () => {
               setStatus(await api<Capabilities>("/status"));
@@ -936,6 +1101,7 @@ function App() {
                   settings={openSettings}
                   request={sourceRequest}
                   onCloseReader={() => setSourceRequest(null)}
+                  onOpenVaultNote={openVaultNote}
                 />
               )}
               {tab === "goals" && (
@@ -1060,12 +1226,14 @@ function Sources({
   settings,
   request,
   onCloseReader,
+  onOpenVaultNote,
 }: WorkProps & {
   next: () => void;
   refresh: () => Promise<void>;
   settings: () => void;
   request: SourceRequest | null;
   onCloseReader: () => void;
+  onOpenVaultNote: (vaultId: string, path: string) => void;
 }) {
   const sourceTitleDraft = useDraftText(`${n.id}:source-title`, "", 200);
   const sourceTextDraft = useDraftText(`${n.id}:source-text`, "", 1_000_000);
@@ -1077,7 +1245,9 @@ function Sources({
   const setKind = sourceKindDraft.setText;
   const [reading, setReading] = useState<SourceRequest | null>(request);
   const selected =
-    n.sources.find((source) => source.id === reading?.sourceId) || null;
+    reading?.snapshot ||
+    n.sources.find((source) => source.id === reading?.sourceId) ||
+    null;
   const reader = useRef<HTMLDivElement>(null);
   const highlight = useRef<HTMLElement>(null);
   useCitationMotion(highlight, `${reading?.sourceId}:${reading?.nonce}`);
@@ -1198,6 +1368,19 @@ function Sources({
           {adding ? "Close editor" : "Paste a source"}
         </Button>
       </div>
+      {n.sources.some((source) => source.vault) && (
+        <WorkspaceBoundary name="Vault source review">
+          <React.Suspense
+            fallback={<p role="status">Opening vault source review…</p>}
+          >
+            <VaultSourceReview
+              notebook={n}
+              onUpdated={refresh}
+              onOpenVaultNote={onOpenVaultNote}
+            />
+          </React.Suspense>
+        </WorkspaceBoundary>
+      )}
       <div
         className={`dropzone ${drag ? "drag" : ""}`}
         onDragOver={(e) => {
@@ -1393,10 +1576,12 @@ function Sources({
                 disabled={disabled}
                 className="icon-button delete"
                 aria-label={`Remove ${s.title}`}
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    confirm(
+                    await confirmInk(
                       `Remove “${s.title}” from this notebook? Existing episodes retain their saved source snapshots. The current coverage map will be cleared.`,
+                      "Remove source?",
+                      "Remove source",
                     )
                   )
                     void run("Removing source", () =>
@@ -1438,7 +1623,11 @@ function Sources({
         >
           <div className="section-heading">
             <div>
-              <span className="kicker">Source text</span>
+              <span className="kicker">
+                {reading?.snapshot
+                  ? "Source text saved with this answer"
+                  : "Source text"}
+              </span>
               <InkHeading>{selected.title}</InkHeading>
             </div>
             <Button
@@ -1454,14 +1643,15 @@ function Sources({
           {selected.attachment && (
             <DownloadLink
               className="button quiet"
-              href={`/api/notebooks/${n.id}/sources/${selected.id}/original`}
+              href={`/api/notebooks/${n.id}/sources/${selected.id}/original${reading?.snapshotMessageId ? `?message=${encodeURIComponent(reading.snapshotMessageId)}` : ""}`}
               filename={selected.attachment.filename}
               download
             >
               <Download size={16} /> Download original
             </DownloadLink>
           )}
-          {selected.attachment &&
+          {!reading?.snapshot &&
+            selected.attachment &&
             ["application/pdf", "image/png", "image/jpeg"].includes(
               selected.attachment.mediaType,
             ) && (
@@ -1474,7 +1664,12 @@ function Sources({
                 onChanged={refresh}
               />
             )}
-          <SourceImage key={selected.id} source={selected} notebookId={n.id} />
+          <SourceImage
+            key={`${selected.id}:${reading?.snapshotMessageId || "current"}`}
+            source={selected}
+            notebookId={n.id}
+            messageId={reading?.snapshotMessageId}
+          />
           {!!selected.extractionWarnings?.length &&
             !(selected.processing?.task === "ocr" && !selected.text.trim()) &&
             !selected.attachment?.mediaType.startsWith("audio/") && (
@@ -1489,6 +1684,8 @@ function Sources({
               source={selected}
               notebookId={n.id}
               disabled={disabled}
+              messageId={reading?.snapshotMessageId}
+              readOnly={!!reading?.snapshot}
               onChanged={refresh}
               onSetup={settings}
               initialTime={reading?.startSeconds}
@@ -1525,22 +1722,26 @@ function EvidenceList({
   evidence,
   n,
   onOpenSource,
+  snapshots,
 }: {
   evidence: Evidence[];
   n: Notebook;
   onOpenSource?: OpenSource;
+  snapshots?: Source[];
 }) {
   const passages = useMemo(
     () =>
       evidence.map((item) => {
-        const source = n.sources.find((source) => source.id === item.sourceId);
+        const source =
+          snapshots?.find((source) => source.id === item.sourceId) ||
+          n.sources.find((source) => source.id === item.sourceId);
         return {
           evidence: item,
           source,
           location: source ? locateEvidence(source, item.quote) : undefined,
         };
       }),
-    [evidence, n.sources],
+    [evidence, n.sources, snapshots],
   );
   return (
     <div className="evidence-list">
@@ -1553,7 +1754,13 @@ function EvidenceList({
                 <InkButton
                   className="evidence-link"
                   onClick={() =>
-                    onOpenSource(source.id, e.quote, location?.startSeconds)
+                    onOpenSource(
+                      source.id,
+                      e.quote,
+                      location?.startSeconds,
+                      undefined,
+                      snapshots?.find((item) => item.id === source.id),
+                    )
                   }
                 >
                   <FileText size={13} /> {source.title}
@@ -2254,9 +2461,11 @@ function Studio({
           Uses{" "}
           {draft.provider === "codex"
             ? "your Codex login"
-            : draft.provider === "opencode"
-              ? "OpenCode Go"
-              : "local Ollama"}{" "}
+            : draft.provider === "openrouter"
+              ? "OpenRouter API credits"
+              : draft.provider === "opencode"
+                ? "OpenCode Go"
+                : "local Ollama"}{" "}
           to plan. No audio is charged yet.
         </p>
       </aside>
@@ -2563,7 +2772,7 @@ function Studio({
             {e.previewFile && (
               <div className="audio-player">
                 <span>Voice preview · AI-generated speech</span>
-                <audio controls src={`/api/audio/${e.previewFile}`} />
+                <InkAudio controls src={`/api/audio/${e.previewFile}`} />
               </div>
             )}
             {c && (
@@ -2678,10 +2887,12 @@ function Studio({
                       </Button>
                       {script !== savedScript && (
                         <Button
-                          onClick={() => {
+                          onClick={async () => {
                             if (
-                              confirm(
-                                "Discard these unsaved transcript edits? Your saved transcript stays unchanged.",
+                              await confirmInk(
+                                "Your saved transcript stays unchanged. These unsaved edits will be removed.",
+                                "Discard transcript edits?",
+                                "Discard edits",
                               )
                             ) {
                               scriptDraft.discard();
@@ -2843,14 +3054,48 @@ function Chat({
                 <EvidenceList
                   evidence={m.evidence}
                   n={n}
-                  onOpenSource={openSource}
+                  snapshots={m.sources}
+                  onOpenSource={(
+                    sourceId,
+                    quote,
+                    startSeconds,
+                    range,
+                    snapshot,
+                  ) =>
+                    openSource(
+                      sourceId,
+                      quote,
+                      startSeconds,
+                      range,
+                      snapshot,
+                      snapshot ? m.id : undefined,
+                    )
+                  }
                 />
               )}
               {m.context && (
                 <ContextSummary
                   summary={m.context}
-                  sources={n.sources}
-                  onOpenSource={openSource}
+                  sources={[
+                    ...(m.sources || []),
+                    ...n.sources.filter(
+                      (source) =>
+                        !m.sources?.some((saved) => saved.id === source.id),
+                    ),
+                  ]}
+                  onOpenSource={(sourceId, quote, startSeconds, range) => {
+                    const snapshot = m.sources?.find(
+                      (source) => source.id === sourceId,
+                    );
+                    openSource(
+                      sourceId,
+                      quote,
+                      startSeconds,
+                      range,
+                      snapshot,
+                      snapshot ? m.id : undefined,
+                    );
+                  }}
                 />
               )}
             </article>
@@ -2945,11 +3190,6 @@ function Connections({
     detailsDraft.setValue({ title, description });
   const setDescription = (description: string) =>
     detailsDraft.setValue({ title, description });
-  const [codexCheck, setCodexCheck] = useState<{
-    ok: boolean;
-    message: string;
-  } | null>(null);
-  const [checkingCodex, setCheckingCodex] = useState(false);
   const bundleInput = useRef<HTMLInputElement>(null);
   return (
     <MotionSurface motionKey="settings" className="settings-page">
@@ -2988,31 +3228,7 @@ function Connections({
               </div>
             ))}
           </div>
-          <Button
-            disabled={checkingCodex || disabled || !status?.codex}
-            onClick={() => {
-              setCheckingCodex(true);
-              void api<{ ok: boolean; message: string }>(
-                "/connections/codex/check",
-                "POST",
-              )
-                .then(setCodexCheck)
-                .catch((error) =>
-                  setCodexCheck({ ok: false, message: error.message }),
-                )
-                .finally(() => setCheckingCodex(false));
-            }}
-          >
-            {checkingCodex ? "Checking Codex…" : "Check Codex connection"}
-          </Button>
-          {codexCheck && (
-            <p
-              className={codexCheck.ok ? "fine-print" : "inline-error"}
-              role="status"
-            >
-              {codexCheck.message}
-            </p>
-          )}
+          <CodexSetup />
           {n ? (
             <>
               <DraftNotice
@@ -3031,6 +3247,7 @@ function Connections({
                   }
                 >
                   <option value="codex">Codex CLI · existing login</option>
+                  <option value="openrouter">OpenRouter · API credits</option>
                   <option value="opencode">
                     OpenCode Go · existing login or key
                   </option>
@@ -3042,11 +3259,13 @@ function Connections({
                 hint={
                   draft.provider === "codex"
                     ? "Leave blank for the Codex default."
-                    : draft.provider === "opencode"
-                      ? status?.opencodeCli
-                        ? "Leave blank for Muse Spark 1.3 Contributor, or enter a Go model ID."
-                        : "Enter a Go model with a chat/completions endpoint."
-                      : "Leave blank for qwen3:8b, or enter an installed Ollama model."
+                    : draft.provider === "openrouter"
+                      ? "Choose an OpenRouter writing model below, or enter its exact ID. Luna uses Codex."
+                      : draft.provider === "opencode"
+                        ? status?.opencodeCli
+                          ? "Leave blank for Muse Spark 1.3 Contributor, or enter a Go model ID."
+                          : "Enter a Go model with a chat/completions endpoint."
+                        : "Leave blank for qwen3:8b, or enter an installed Ollama model."
                 }
               >
                 <InkInput
@@ -3058,12 +3277,21 @@ function Connections({
                   placeholder={
                     draft.provider === "codex"
                       ? "Codex default"
-                      : draft.provider === "opencode"
-                        ? "muse-spark-1.3-contributor"
-                        : "qwen3:8b"
+                      : draft.provider === "openrouter"
+                        ? "provider/model"
+                        : draft.provider === "opencode"
+                          ? "muse-spark-1.3-contributor"
+                          : "qwen3:8b"
                   }
                 />
               </Field>
+              {draft.provider === "openrouter" && (
+                <OpenRouterModelPicker
+                  value={draft.model}
+                  onChange={(model) => setDraft({ ...draft, model })}
+                  disabled={disabled}
+                />
+              )}
               <Button
                 variant="primary"
                 icon={Check}
@@ -3112,6 +3340,18 @@ function Connections({
               models may struggle with lengthy sources or structured output.
             </p>
           </details>
+        </div>
+      </section>
+      <section className="settings-section">
+        <div>
+          <h2>Hosted models</h2>
+          <p>
+            Use OpenRouter for optional models. Your Luna subscription
+            connection stays separate.
+          </p>
+        </div>
+        <div className="settings-body">
+          <OpenRouterSetup />
         </div>
       </section>
       <section className="settings-section">
@@ -3180,11 +3420,14 @@ function Connections({
       </section>
       <section className="settings-section" id="local-transcription">
         <div>
-          <h2>Local transcription</h2>
-          <p>Turn lecture recordings into sources with timestamps.</p>
+          <h2>Local AI models</h2>
+          <p>
+            Choose what runs on your computer, with recommendations for your
+            hardware.
+          </p>
         </div>
         <div className="settings-body">
-          <LocalTranscriptionSetup />
+          <LocalModelsSetup />
         </div>
       </section>
       <section className="settings-section">
@@ -3391,6 +3634,8 @@ createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <DownloadProvider>
       <App />
+      <InkDialogHost />
+      <InkTooltip />
     </DownloadProvider>
   </React.StrictMode>,
 );

@@ -26,3 +26,7 @@ Hover, editing focus, selection and section arrival have distinct jobs in one pe
 
 ## Do's and Don'ts
 Keep examples explicitly illustrative. Never fake audio or source verification. Distinguish provider configuration from tested authentication. Maintain desktop and phone readability, reduced motion support, and keyboard access.
+
+## Application controls
+
+Menus, desktop chrome, confirmations, audio controls, tooltips, sliders and progress indicators follow [the Ink controls specification](docs/ui/ink-desktop-controls.md). Native semantic elements remain the substrate; platform appearance is retained only for the documented OS integration and fallback cases.

@@ -6,10 +6,12 @@ export function SourceImage({
   source,
   notebookId,
   episodeId,
+  messageId,
 }: {
   source: Source;
   notebookId: string;
   episodeId?: string;
+  messageId?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -18,7 +20,7 @@ export function SourceImage({
     !["image/png", "image/jpeg"].includes(source.attachment.mediaType)
   )
     return null;
-  const url = `/api/notebooks/${encodeURIComponent(notebookId)}/sources/${encodeURIComponent(source.id)}/image${episodeId ? `?episode=${encodeURIComponent(episodeId)}` : ""}`;
+  const url = `/api/notebooks/${encodeURIComponent(notebookId)}/sources/${encodeURIComponent(source.id)}/image${episodeId ? `?episode=${encodeURIComponent(episodeId)}` : messageId ? `?message=${encodeURIComponent(messageId)}` : ""}`;
   return (
     <details
       className="source-image"

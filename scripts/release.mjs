@@ -15,6 +15,22 @@ const command = process.argv[2];
 const pkg = JSON.parse(await readFile("package.json", "utf8"));
 const lock = JSON.parse(await readFile("package-lock.json", "utf8"));
 const version = pkg.version;
+const policy = JSON.parse(await readFile("release-policy.json", "utf8"));
+const stableVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+if (
+  !stableVersion.test(policy.targetVersion) ||
+  (policy.approvedVersion !== null &&
+    (!stableVersion.test(policy.approvedVersion) ||
+      policy.approvedVersion !== policy.targetVersion))
+)
+  throw new Error(
+    "Invalid release policy: approval must name the target version or be null.",
+  );
+const approved = policy.approvedVersion === version;
+if (command === "publish" && !approved)
+  throw new Error(
+    `Publication of v${version} is not approved. Iteration builds remain unpublished until the owner approves the target release.`,
+  );
 if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version))
   throw new Error("Release versions must be stable MAJOR.MINOR.PATCH numbers.");
 if (lock.version !== version || lock.packages[""].version !== version)
@@ -115,15 +131,25 @@ async function digest(file) {
 
 if (command === "plan") {
   const { published } =
-    process.env.GITHUB_EVENT_NAME === "pull_request"
+    process.env.GITHUB_EVENT_NAME === "pull_request" || !approved
       ? { published: false }
       : await releaseState();
-  await output("publish", String(!published));
+  await output("build", String(!published));
+  await output(
+    "publish",
+    String(
+      approved &&
+        !published &&
+        process.env.GITHUB_EVENT_NAME !== "pull_request",
+    ),
+  );
   await output("version", version);
   await summary(
     published
       ? `${tag} is already published; no downloads will be replaced.`
-      : `Build and verify ${tag} from ${sha} before publication.`,
+      : approved
+        ? `Build and verify ${tag} from ${sha} before publication.`
+        : `Build and verify ${tag} as an unpublished iteration toward v${policy.targetVersion}. Owner release approval is pending.`,
   );
 } else if (command === "stage") {
   const target = process.argv[3];

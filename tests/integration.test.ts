@@ -2,7 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, readFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "@playwright/test";
@@ -13,6 +19,17 @@ test(
   { timeout: 120000 },
   async () => {
     const dataDir = mkdtempSync(path.join(tmpdir(), "sennibook-test-"));
+    // This existing suite exercises an onboarded library without a CI account or paid calls.
+    writeFileSync(
+      path.join(dataDir, "codex-onboarding.json"),
+      JSON.stringify({
+        completedAt: "2026-01-01T00:00:00.000Z",
+        checkedAt: "2026-01-01T00:00:00.000Z",
+        planType: null,
+        models: [{ id: "gpt-5.6-luna", displayName: "Luna" }],
+        lunaAvailable: true,
+      }),
+    );
     let notebook: Notebook;
     // Deterministic local provider double. No paid model or speech calls in this suite.
     const mock = createServer(async (req, res) => {

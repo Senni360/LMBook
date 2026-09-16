@@ -1,0 +1,257 @@
+.vault-markdown {
+  color: var(--ink, #223b34);
+  min-width: 0;
+}
+.vault-markdown-body {
+  max-width: none;
+  margin: 0;
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.8;
+}
+.vault-markdown-body :is(h1, h2, h3, h4, h5, h6) {
+  position: relative;
+  scroll-margin-top: 80px;
+  margin: 1.7em 0 0.55em;
+  color: var(--ink, #223b34);
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  line-height: 1.3;
+}
+.vault-markdown-body h1 {
+  font-size: 28px;
+}
+.vault-markdown-body h2 {
+  font-size: 22px;
+}
+.vault-markdown-body h3 {
+  font-size: 18px;
+}
+.vault-markdown-body :is(h4, h5, h6) {
+  font-size: 16px;
+}
+.vault-markdown-body :is(p, ul, ol, blockquote, pre, table, figure) {
+  margin: 1em 0;
+}
+.vault-markdown-body p:first-child {
+  margin-top: 0;
+}
+.vault-markdown-body > :first-child {
+  margin-top: 0;
+}
+.vault-workspace .vault-markdown-body h1 {
+  font-size: 28px;
+}
+.vault-markdown-body :is(ul, ol) {
+  padding-left: 1.45em;
+}
+.vault-markdown-body li + li {
+  margin-top: 0.35em;
+}
+.vault-markdown-body a {
+  color: var(--pen, #2346d8);
+  text-underline-offset: 3px;
+}
+.vault-markdown-link {
+  display: inline-flex;
+  align-items: baseline;
+  min-height: 0;
+  padding: 0 2px;
+  border: 0;
+  color: var(--pen, #2346d8);
+  font: inherit;
+  line-height: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  vertical-align: baseline;
+  white-space: normal;
+}
+.vault-markdown-link > .ink-contour {
+  display: none;
+}
+.vault-markdown-missing {
+  color: #8a422a;
+}
+.vault-markdown-blocked-link {
+  color: var(--muted, #5d6962);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.vault-markdown-blocked-link small {
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-size: 11px;
+  text-decoration: none;
+}
+.vault-markdown-ambiguous {
+  position: relative;
+  display: inline;
+}
+.vault-markdown-match-list {
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  max-width: min(360px, 90vw);
+  padding: 7px;
+  border: 1px solid var(--line, #dce2da);
+  border-radius: 7px;
+  background: var(--paper, #fff);
+  box-shadow: 0 8px 22px #223b3422;
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  position: absolute;
+  z-index: 3;
+  inset: calc(100% + 4px) auto auto 0;
+}
+.vault-markdown-match-list .button {
+  justify-content: flex-start;
+  min-height: 32px;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: left;
+}
+.vault-markdown-body blockquote {
+  margin-inline: 0;
+  padding: 12px 18px;
+  border-left: 3px solid #bdc6bc;
+  color: var(--muted, #5d6962);
+  font-size: 0.95em;
+}
+.vault-markdown-body .vault-callout {
+  padding: 14px 18px;
+  border: 1px solid #d5d9cc;
+  border-left: 4px solid var(--pen, #2346d8);
+  border-radius: 6px 9px 7px 5px;
+  background: #f5f7f0;
+}
+.vault-callout-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--pen, #2346d8);
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.vault-markdown-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line, #dce2da);
+  border-radius: 6px;
+}
+.vault-markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.vault-markdown-body :is(th, td) {
+  min-width: 9ch;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--line, #dce2da);
+  text-align: left;
+  vertical-align: top;
+}
+.vault-markdown-body th {
+  background: #f5f7f0;
+  font-weight: 700;
+}
+.vault-markdown-body tr:last-child td {
+  border-bottom: 0;
+}
+.vault-markdown-body img {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  height: auto;
+  margin-inline: auto;
+  object-fit: contain;
+}
+.vault-markdown-embed {
+  margin: 1.4em 0;
+  padding: 10px;
+  border: 1px solid var(--line, #dce2da);
+  border-radius: 7px;
+  background: #fbfbf8;
+  text-align: center;
+}
+.vault-markdown-embed figcaption {
+  margin-top: 8px;
+  color: var(--muted, #5d6962);
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.vault-markdown-note-embed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: left;
+}
+.vault-markdown-note-embed figcaption {
+  margin: 0;
+}
+.vault-markdown-embed-state {
+  padding: 12px 14px;
+  border: 1px dashed #c2c8bd;
+  border-radius: 7px;
+  color: var(--muted, #5d6962);
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-size: 13px;
+}
+.vault-markdown-embed-state .vault-markdown-match-list {
+  position: static;
+  display: grid;
+  margin-top: 8px;
+  box-shadow: none;
+}
+.vault-markdown-code-block {
+  position: relative;
+  overflow-x: auto;
+  padding: 31px 16px 16px;
+  border: 1px solid #d7d8d2;
+  border-radius: 6px 8px 7px 5px;
+  background: #f2f3ef;
+  color: #2e332e;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre;
+}
+.vault-markdown-code-label {
+  position: absolute;
+  inset: 8px 11px auto;
+  color: #687267;
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.vault-markdown-body :not(pre) > code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #eff1ea;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 0.85em;
+}
+.vault-markdown-body hr {
+  margin: 2em 0;
+  border: 0;
+  border-top: 1px solid var(--line, #dce2da);
+}
+@media (max-width: 700px) {
+  .vault-markdown-body {
+    font-size: 16px;
+    line-height: 1.72;
+  }
+  .vault-markdown-note-embed {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .vault-markdown-note-embed .button {
+    align-self: flex-start;
+  }
+}
