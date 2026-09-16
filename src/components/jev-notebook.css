@@ -1,0 +1,240 @@
+.jev-checks {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  container-type: inline-size;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.jev-checks-heading,
+.jev-item-title,
+.jev-report header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+.jev-collapse {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.jev-collapse-mark {
+  width: 16px;
+  color: var(--pen);
+  font-size: 20px;
+  line-height: 1;
+}
+.jev-source-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.jev-source-tools button {
+  border: 0;
+  background: transparent;
+  color: var(--pen);
+  cursor: pointer;
+  font: inherit;
+  padding: 3px 5px;
+}
+.jev-source-tools button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+.jev-checks-body {
+  min-width: 0;
+}
+.jev-checks p {
+  margin: 5px 0;
+  color: var(--muted);
+}
+.jev-ready {
+  color: var(--pen);
+  font-weight: 700;
+}
+.jev-muted {
+  color: var(--muted);
+}
+.jev-label {
+  font-weight: 700;
+  margin: 12px 0 6px;
+}
+.jev-source-list {
+  max-height: 260px;
+  overflow: auto;
+}
+.jev-source {
+  display: flex;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+.jev-source span {
+  min-width: 0;
+}
+.jev-source b,
+.jev-source small {
+  display: block;
+}
+.jev-source small {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jev-check-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.jev-check-options label {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.jev-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.jev-fields label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+}
+.jev-fields select {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.jev-actions {
+  margin: 12px 0;
+}
+.jev-error {
+  color: #b34b4b !important;
+}
+.jev-report {
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+.jev-reports {
+  overscroll-behavior: contain;
+}
+.jev-checks-body {
+  padding: 8px;
+}
+.jev-resize-card {
+  margin-top: 10px;
+  border: 0;
+}
+.jev-result-label {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.jev-item-title,
+.jev-report header {
+  flex-wrap: wrap;
+}
+.jev-item-title strong {
+  min-width: 0;
+}
+.jev-item blockquote {
+  white-space: pre-wrap;
+}
+.jev-checks .jev-muted {
+  font-size: 11px;
+}
+@container (max-width: 360px) {
+  .jev-checks-heading {
+    flex-wrap: wrap;
+  }
+  .jev-source-tools {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+.jev-report header {
+  color: var(--muted);
+  font-size: 11px;
+}
+.jev-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.jev-item-title span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.jev-item p {
+  margin: 5px 0;
+}
+.jev-item details {
+  margin-top: 6px;
+}
+.jev-item blockquote {
+  margin: 7px 0;
+  padding: 7px 9px;
+  border-left: 3px solid var(--pen);
+  color: var(--muted);
+  font-size: 11px;
+}
+.jev-feedback {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+}
+.jev-feedback button {
+  font: inherit;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.jev-feedback button[aria-pressed="true"] {
+  border-color: var(--pen);
+  color: var(--pen);
+}
+.jev-feedback button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+@media (max-width: 620px) {
+  .jev-fields {
+    grid-template-columns: 1fr;
+  }
+  .jev-check-options {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .jev-source-tools {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .jev-checks-heading {
+    align-items: flex-start;
+  }
+  .jev-checks-heading > .jev-muted {
+    max-width: 150px;
+    text-align: right;
+  }
+}

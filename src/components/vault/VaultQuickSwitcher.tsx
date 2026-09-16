@@ -29,6 +29,7 @@ export type VaultQuickSwitcherProps = {
   ) => Promise<{
     results: VaultSemanticSearchResult[];
     status: VaultSemanticStatus;
+    rankingNotice?: string;
   }>;
   semanticStatus?: VaultSemanticStatus | null;
   onBuildSemanticIndex?: (allowCloud: boolean) => void;
@@ -143,6 +144,7 @@ export function VaultQuickSwitcher({
     VaultSemanticSearchResult[]
   >([]);
   const [semanticBusy, setSemanticBusy] = useState(false);
+  const [rankingNotice, setRankingNotice] = useState<string | null>(null);
   const [allowCloud, setAllowCloud] = useState(false);
   const semanticAbort = useRef<AbortController | null>(null);
   const titleId = useId();
@@ -225,6 +227,7 @@ export function VaultQuickSwitcher({
   function runSemanticSearch() {
     semanticAbort.current?.abort();
     setSemanticResults([]);
+    setRankingNotice(null);
     if (
       !semanticSearch ||
       semanticMode === "lexical" ||
@@ -236,7 +239,10 @@ export function VaultQuickSwitcher({
     setSemanticBusy(true);
     void semanticSearch(query.trim(), controller.signal)
       .then((response) => {
-        if (!controller.signal.aborted) setSemanticResults(response.results);
+        if (!controller.signal.aborted) {
+          setSemanticResults(response.results);
+          setRankingNotice(response.rankingNotice || null);
+        }
       })
       .catch(() => {
         if (!controller.signal.aborted) setSemanticBusy(false);
@@ -249,6 +255,7 @@ export function VaultQuickSwitcher({
   useEffect(() => {
     semanticAbort.current?.abort();
     setSemanticResults([]);
+    setRankingNotice(null);
     setSemanticBusy(false);
     return () => semanticAbort.current?.abort();
   }, [query, open, vaultId, semanticMode]);
@@ -468,6 +475,11 @@ export function VaultQuickSwitcher({
             {query.trim()
               ? "No matching note names."
               : "No notes in this vault yet."}
+          </p>
+        )}
+        {rankingNotice && (
+          <p className="vault-quick-switcher-scope" role="status">
+            {rankingNotice}
           </p>
         )}
         {semanticResults.length > 0 && (

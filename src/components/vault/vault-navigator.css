@@ -1,9 +1,52 @@
 .vault-navigator {
+  container: note-navigation / inline-size;
   --navigator-surface: color-mix(in srgb, var(--paper) 88%, var(--canvas));
   --navigator-soft: color-mix(in srgb, var(--canvas) 74%, var(--paper));
   min-width: 0;
   color: var(--ink);
   font-size: 13px;
+}
+
+@container note-navigation (max-width: 220px) {
+  .vault-navigator .vault-navigator-modes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vault-navigator .vault-navigator-modes > button {
+    justify-content: flex-start;
+    padding-inline: 8px;
+  }
+  .vault-navigator .vault-navigator-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vault-navigator .vault-navigator-folder-body {
+    margin-left: 4px;
+    padding-left: 4px;
+  }
+  .vault-navigator .vault-navigator-file-open > svg:not(.ink-contour) {
+    display: none;
+  }
+  .vault-navigator .vault-navigator-file-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .vault-navigator .vault-navigator-file-open {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    padding-inline: 7px;
+  }
+  .vault-navigator .vault-navigator-file > input[type="checkbox"] {
+    grid-column: 1;
+    grid-row: 2;
+    margin-left: 7px;
+  }
+  .vault-navigator .vault-navigator-favorite {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .vault-navigator .vault-navigator-selection,
+  .vault-navigator .vault-navigator-selection-actions {
+    flex-wrap: wrap;
+  }
 }
 
 .vault-navigator-heading {

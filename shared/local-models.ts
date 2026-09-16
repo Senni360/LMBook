@@ -20,6 +20,11 @@ export type LocalModelStatus = {
   model: typeof LOCAL_EMBEDDING_MODEL;
   revision: typeof LOCAL_EMBEDDING_REVISION;
   ready: boolean;
+  downloaded: boolean;
+  runtimeChecked: boolean;
+  runtimeReady: boolean;
+  probeError: string | null;
+  lastCheckedAt: string | null;
   runtime: boolean;
   python: boolean;
   worker: boolean;
@@ -37,6 +42,14 @@ export type LocalModelStatus = {
     message: string;
     error: string | null;
   };
+};
+
+export type LocalModelCheckResult = {
+  ok: boolean;
+  status: "ready" | "downloaded" | "missing" | "error";
+  elapsedMs: number;
+  dimensions: number | null;
+  error: string | null;
 };
 
 export type LocalModelProgress = {

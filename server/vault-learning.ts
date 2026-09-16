@@ -1,3 +1,4 @@
+import { MAX_NOTEBOOK_SOURCES } from "../shared/notebook-limits.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
@@ -233,10 +234,10 @@ export async function previewVaultLearning(
     notebook &&
     notebook.sources.length +
       notes.filter((note) => note.ready && !note.existing).length >
-      MAX_PATHS
+      MAX_NOTEBOOK_SOURCES
   )
     issue =
-      "This notebook can contain at most 150 current sources. Choose fewer notes or create a new notebook.";
+      "This notebook can contain at most 2,000 current sources. Choose fewer notes or create a new notebook.";
   return {
     vaultId: vault.id,
     ...(destination ? { destination } : {}),
@@ -321,9 +322,9 @@ export async function importVaultLearning(
     const initialFresh = loaded.filter(
       (note) => !existingDuplicate(notebook, vault.id, note.path, note.hash),
     );
-    if (notebook.sources.length + initialFresh.length > MAX_PATHS)
+    if (notebook.sources.length + initialFresh.length > MAX_NOTEBOOK_SOURCES)
       throw vaultError(
-        "This notebook can contain at most 150 current sources. Choose fewer notes or create a new notebook.",
+        "This notebook can contain at most 2,000 current sources. Choose fewer notes or create a new notebook.",
       );
     const built: Source[] = [];
     for (const note of initialFresh) {
@@ -350,9 +351,9 @@ export async function importVaultLearning(
           sourceHash(source),
         ),
     );
-    if (notebook.sources.length + fresh.length > MAX_PATHS)
+    if (notebook.sources.length + fresh.length > MAX_NOTEBOOK_SOURCES)
       throw vaultError(
-        "This notebook can contain at most 150 current sources. Choose fewer notes or create a new notebook.",
+        "This notebook can contain at most 2,000 current sources. Choose fewer notes or create a new notebook.",
       );
     if (fresh.length) {
       for (const note of loaded) {

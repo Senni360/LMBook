@@ -105,6 +105,7 @@ export function useVaultSemantic(vaultId: string) {
       query: string,
       signal: AbortSignal,
     ): Promise<{
+      rankingNotice?: string;
       results: VaultSemanticSearchResult[];
       status: VaultSemanticStatus;
     }> => {
@@ -114,6 +115,7 @@ export function useVaultSemantic(vaultId: string) {
       queryAbort.current = new AbortController();
       try {
         const value = await request<{
+          rankingNotice?: string;
           results: VaultSemanticSearchResult[];
           status: VaultSemanticStatus;
         }>(`/api/vaults/${v}/semantic/search?q=${encodeURIComponent(query)}`, {
@@ -169,6 +171,7 @@ export function useVaultSemantic(vaultId: string) {
         }
       };
       modeQueue.current = modeQueue.current.then(operation, operation);
+      return modeQueue.current;
     },
     [current, refresh, status?.running, vaultId],
   );

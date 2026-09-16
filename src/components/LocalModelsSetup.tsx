@@ -3,6 +3,7 @@ import { Check, Download, LoaderCircle, RefreshCw, Square } from "lucide-react";
 import type {
   LocalModelStatus,
   LocalModelProgress,
+  LocalModelCheckResult,
 } from "../../shared/local-models";
 import { aiApi } from "../ai-api";
 import { InkButton } from "./InkControl";
@@ -23,6 +24,9 @@ export function LocalModelsSetup() {
   const [error, setError] = useState("");
   const [advice, setAdvice] = useState("");
   const [notice, setNotice] = useState("");
+  const [checkResult, setCheckResult] = useState<LocalModelCheckResult | null>(
+    null,
+  );
   const mounted = useRef(true);
   const controller = useRef<AbortController | null>(null);
   const load = useCallback(async () => {
@@ -95,11 +99,19 @@ export function LocalModelsSetup() {
     };
   }, [status?.activity.running, load]);
   async function act(
-    action: "prepare" | "cancel" | "enable" | "disable" | "refresh" | "advice",
+    action:
+      | "prepare"
+      | "cancel"
+      | "check"
+      | "enable"
+      | "disable"
+      | "refresh"
+      | "advice",
   ) {
     setBusy(action);
     setError("");
     setNotice("");
+    if (action === "check") setCheckResult(null);
     controller.current?.abort();
     if (action === "cancel")
       setStatus(
@@ -120,6 +132,12 @@ export function LocalModelsSetup() {
           "POST",
         );
         if (mounted.current) setAdvice(result.advice);
+      } else if (action === "check") {
+        const result = await aiApi<LocalModelCheckResult>(
+          "/local-models/check",
+          "POST",
+        );
+        if (mounted.current) setCheckResult(result);
       } else if (action !== "refresh") {
         await aiApi(
           `/local-models/${action === "enable" || action === "disable" ? "enabled" : action}`,
@@ -248,6 +266,42 @@ export function LocalModelsSetup() {
           </p>
         )}
         <div className="ai-actions">
+          {status && !running && (
+            <p className="local-model-readiness" role="status">
+              <strong>
+                {status.downloaded
+                  ? "Model files downloaded"
+                  : "Model files not installed"}
+              </strong>
+              {status.downloaded && (
+                <>
+                  {" "}
+                  ·{" "}
+                  {status.runtimeReady
+                    ? "Runtime available"
+                    : "Runtime needs a check"}{" "}
+                  ·{" "}
+                  {status.enabled
+                    ? "Local search enabled"
+                    : "Local search disabled"}
+                </>
+              )}
+            </p>
+          )}
+          {!running && status?.downloaded && (
+            <InkButton
+              className="button"
+              disabled={!!busy}
+              onClick={() => void act("check")}
+            >
+              {busy === "check" ? (
+                <LoaderCircle size={16} className="spin" />
+              ) : (
+                <Check size={16} />
+              )}
+              {busy === "check" ? "Checking model…" : "Check model"}
+            </InkButton>
+          )}
           {status?.ready && !running ? (
             <InkButton
               className={`button ${status.enabled ? "" : "primary"}`}
@@ -258,7 +312,8 @@ export function LocalModelsSetup() {
               {status.enabled ? "Disable local search" : "Enable local search"}
             </InkButton>
           ) : (
-            !running && (
+            !running &&
+            !status?.downloaded && (
               <InkButton
                 className="button primary"
                 disabled={!!busy || !status?.python}
@@ -268,6 +323,16 @@ export function LocalModelsSetup() {
                 Download & set up
               </InkButton>
             )
+          )}
+          {!running && status?.downloaded && !status.ready && (
+            <InkButton
+              className="button primary"
+              disabled={!!busy || !status.python}
+              onClick={() => void act("prepare")}
+            >
+              <RefreshCw size={16} />
+              Repair setup
+            </InkButton>
           )}
           {running && (
             <InkButton
@@ -309,6 +374,27 @@ export function LocalModelsSetup() {
         {!running && notice && (
           <p role="status" className="fine-print">
             {notice}
+          </p>
+        )}
+        {!running && checkResult?.ok && (
+          <p role="status" className="fine-print">
+            The model answered locally in{" "}
+            {(checkResult.elapsedMs / 1000).toFixed(1)} seconds. Open a notebook
+            → Search by meaning → Enable local search & index to use it on your
+            notes.
+          </p>
+        )}
+        {!running && checkResult && !checkResult.ok && (
+          <p role="alert" className="inline-error">
+            Model check failed
+            {checkResult.error ? `: ${checkResult.error}` : "."} You can retry
+            the check or use Repair setup.
+          </p>
+        )}
+        {!running && status?.probeError && !checkResult?.ok && (
+          <p role="status" className="fine-print">
+            Runtime check: {status.probeError} Downloaded model files are still
+            present.
           </p>
         )}
       </section>

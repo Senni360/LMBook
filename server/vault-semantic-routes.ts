@@ -1,5 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { rankSearch } from "./jev-assistance.ts";
+import { readVaultNote } from "./vault.ts";
 import {
   buildVaultSemanticIndex,
   cancelVaultSemanticIndex,
@@ -102,7 +104,9 @@ export function registerVaultSemanticRoutes(
       };
       res.on("close", abort);
       try {
-        res.json(
+        const query = z.string().trim().max(500).parse(req.query.q);
+        const response = await rankSearch(
+          query,
           await searchVaultSemantic(
             vaultId,
             z.string().trim().max(500).parse(req.query.q),
@@ -116,7 +120,30 @@ export function registerVaultSemanticRoutes(
               .parse(req.query.limit),
             controller.signal,
           ),
+          controller.signal,
         );
+        // Ranking is a network hop: a shared note may change while it runs.
+        if (response.rankingNotice) {
+          const revisions = new Map<string, string | null>();
+          for (const result of response.results) {
+            controller.signal.throwIfAborted();
+            if (!revisions.has(result.path)) {
+              try {
+                revisions.set(
+                  result.path,
+                  (await readVaultNote(vaultId, result.path)).note.revision,
+                );
+              } catch {
+                revisions.set(result.path, null);
+              }
+            }
+          }
+          response.results = response.results.filter(
+            (result) => revisions.get(result.path) === result.revision,
+          );
+        }
+        controller.signal.throwIfAborted();
+        res.json(response);
       } finally {
         res.off("close", abort);
         active.delete(controller);

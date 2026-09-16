@@ -1,13 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { _electron as electron } from "@playwright/test";
-import {
-  mkdtempSync,
-  rmSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -99,7 +94,12 @@ test(
         path.resolve(data).startsWith(path.resolve(tmpdir()) + path.sep) &&
         path.basename(data).startsWith("sennibook-desktop-")
       )
-        rmSync(data, { recursive: true, force: true });
+        await rm(data, {
+          recursive: true,
+          force: true,
+          maxRetries: 10,
+          retryDelay: 100,
+        });
     }
   },
 );

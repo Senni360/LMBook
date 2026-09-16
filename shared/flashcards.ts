@@ -1,3 +1,4 @@
+import { MAX_NOTEBOOK_SOURCES } from "./notebook-limits.ts";
 import { z } from "zod";
 import { sourceAttachmentSchema, type Source } from "./model.ts";
 
@@ -56,7 +57,7 @@ export const flashDeckSchema = z
     model: z.string().max(100),
     frontLabel: z.string().min(1).max(60),
     backLabel: z.string().min(1).max(60),
-    sources: z.array(flashSourceSchema).min(1).max(150),
+    sources: z.array(flashSourceSchema).min(1).max(MAX_NOTEBOOK_SOURCES),
     cards: z.array(flashcardSchema).max(2000),
     reviewedIds: z.array(z.string().uuid()).max(2000),
     coverageConfirmed: z.boolean(),

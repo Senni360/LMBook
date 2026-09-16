@@ -26,6 +26,7 @@ import {
   detectLocalModelHardware,
   createLocalEmbeddingProvider,
   unloadLocalModel,
+  checkLocalModel,
 } from "./local-models.ts";
 import { registerVaultSemanticRoutes } from "./vault-semantic-routes.ts";
 import {
@@ -75,6 +76,10 @@ export function registerAiRoutes(app: Express) {
       });
       res.status(202).json({ ok: true });
     }),
+  );
+  app.post(
+    "/api/local-models/check",
+    route(async (_req, res) => res.json(await checkLocalModel())),
   );
   app.get(
     "/api/local-models/activity",

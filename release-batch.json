@@ -1,0 +1,13 @@
+{
+  "approvedAt": "2026-09-17",
+  "versions": [
+    { "version": "0.3.9", "sha": "f54e34489a22ff323241024c2029d3fa774c929b" },
+    { "version": "0.3.10", "sha": "e367c9437b02fa925788af9c270a7aec0d82eb07" },
+    { "version": "0.3.11", "sha": "abc6e87e5072e2397259c0e6e1f7f6d2371c41de" },
+    { "version": "0.3.12", "sha": "c233815158d777af39feafea2302c6c07a6c0e9d" },
+    { "version": "0.3.13", "sha": "bd38b819fe8491b7c2bfe0ff5a1e577c4283e240" },
+    { "version": "0.3.14", "sha": "3ab7df4cca20ee63d6b7317f619dbea943759175" },
+    { "version": "0.3.15", "sha": "f1d98224026e9f08b67bed25b234738685f1365b" },
+    { "version": "0.3.16", "sha": "e28e53e7acc0611ffe3bb4eb52fc3a2ad0653bd4" }
+  ]
+}

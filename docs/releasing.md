@@ -2,6 +2,8 @@
 
 ## Local delivery location
 
+**Approved exception, 2026-09-17:** the owner explicitly authorized publishing versions 0.3.9 through 0.3.16 to the existing `Senni360/LMBook` GitHub repository in one batch. `release-batch.json` binds exactly those versions to their source commits. The manual **Desktop release batch** workflow builds and checks all three native platforms before publishing verified downloads. It uses a fresh trusted workflow checkout for approval and publication, and never changes the 0.4 milestone policy. Existing published releases and tags are not replaced. This supersedes the local-only restriction for these eight approved versions; normal local output remains unchanged.
+
 The owner's explicit 2026-09-16 direction is to deliver builds only to the normal `D:\Downloads\SenniBook\release\<version>` directory on this computer. Do not put releases in worktree-local folders, `ai-preview`, temporary preview destinations or upload them elsewhere. This is the current delivery rule; older preview paths are historical evidence only. `scripts/package-desktop.mjs`, used by the desktop packaging npm scripts, resolves the main checkout even when run from a worktree, chooses `release/<version>` there and forces `--publish never`. Source archives use their own `release/<version>` directory. A local version request does not authorize GitHub publication or 0.4 approval.
 
 The **Desktop release** GitHub Actions workflow builds iteration artifacts on PRs and `master`. Publication also requires explicit owner approval recorded in `release-policy.json`. The current target is 0.4.0 and approval is unset; see [the milestone agreement](0.4-plan.md). A merge or version bump alone cannot publish. To release an approved milestone:
@@ -21,7 +23,7 @@ A merge without a version bump does not produce another release for an already p
 
 Inspect **Actions → Desktop release**. Failed builds or desktop checks publish nothing. Failed uploads leave an unpublished draft; rerunning the failed jobs can complete that same release. The workflow never replaces published downloads or moves an existing version tag. If a tag or draft belongs to a different commit, it stops for inspection; use a new version for changed application code.
 
-**Run workflow** on `master` can publish an already merged but unreleased version only when the release policy approves that version. With approval unset, it produces checked iteration artifacts without publishing. Re-running an approved published version skips the build and leaves its downloads unchanged. Runs are serialized so releases cannot upload over each other.
+**Run workflow** on `master` can publish an already merged but unreleased version only when the release policy approves that version. With approval unset, it checks the build without uploading iteration artifacts. Re-running an approved published version skips the build and leaves its downloads unchanged. Runs are serialized so releases cannot upload over each other.
 
 For local packaging, `npm run desktop:dist` builds the Windows artifacts. Local binaries are not uploaded by merging a PR: the workflow produces its own checked build on a clean runner. Installer filenames on GitHub use `LMBook-Setup-<version>.exe`; portable files use `LMBook-<version>-portable.exe`.
 
@@ -30,7 +32,7 @@ Implementation references: [GitHub token permissions](https://docs.github.com/en
 
 ## macOS and PR checks
 
-Pull requests to master run the same native Windows/Apple Silicon/Intel build matrix, even for an already released version. They upload checked downloads as Actions artifacts and never run the publishing job. The two Mac runners produce architecture-labelled DMG and ZIP files; Windows names remain compatible with earlier releases.
+Pull requests to master run the same native Windows/Apple Silicon/Intel build matrix, even for an already released version. They build and check locally on each runner. They do not upload downloads as Actions artifacts and never run the publishing job. Artifact transfer is enabled only for an approved publication. The two Mac runners produce architecture-labelled DMG and ZIP files; Windows names remain compatible with earlier releases.
 
 Each runner stages its own commit/version-bound manifest. A separate verification job requires all three target manifests, verifies every hash and size, and creates the combined checksum file. The publisher rechecks that complete set before creating or repairing its unpublished draft. One failed platform prevents publication of the whole release. Build and verification jobs have only read permissions; only master publication receives contents:write.
 

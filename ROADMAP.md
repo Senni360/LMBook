@@ -1,5 +1,13 @@
 # LMBook roadmap
 
+- Local 0.3.16 verifies Jev with the owner-provided key and separates flashcard evidence from recall quality. Low-confidence or inconsistent decisions need review; source verification is unchanged. [Live findings and remaining limits](docs/research/jev-live-evaluation.md). No 0.4 approval.
+
+- **Local Windows 0.3.15:** opt-in Luna note connections with three control modes, notifications and undo; TypeSafe Jev settings, selected notebook checks and optional search ranking; persisted vertical card resizing. [Behavior and evidence](docs/ui/background-assistant.md). Actual Jev quality requires the owner's key and evaluation; all ten broader workflows are not complete. This is not 0.4 approval.
+
+- **Local Windows 0.3.14:** pre-0.4 audit fixes Trash/workspace identity, source-import capacity, omitted sync warnings and narrow-pane controls. [Release notes](docs/releases/0.3.14.md) and [tested workflows / remaining checks](docs/audits/0.4-release-readiness.md). Owner approval for 0.4 remains pending.
+
+- **Local Windows 0.3.13:** unified notebook/Markdown-vault workspaces, three resizable panes, vault export, light/dark/system appearance and clearer local-model checks/indexing. [Release notes](docs/releases/0.3.13.md) and [behavior/evidence](docs/ui/unified-notebook-workspace.md). The 0.3.12 PR #9 is merged; these changes are a separate follow-up. Owner review and 0.4 approval remain pending.
+
 - **Local Windows 0.3.12:** model-install progress, cancellation/retry recovery, concise Luna hardware advice and enforced delivery to the main checkout's normal release folder. [Release notes](docs/releases/0.3.12.md). This does not approve 0.4 publication.
 
 - **AI setup and local vault search implemented in the 0.3.11 working preview.** Required Codex/OpenAI onboarding for fresh libraries, optional OpenRouter connection/model selection, hardware-informed local model setup and per-vault meaning search. The integrated CPU path indexed all 291 PWS notes without changing them. [Delivery evidence and remaining limits](docs/research/ai-integration-delivery.md). This is the model/provider foundation; the ten background workflows and their three edit-control modes remain pending. No 0.4 release approval is implied.

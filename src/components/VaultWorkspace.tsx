@@ -1,4 +1,12 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   FolderOpen,
   FileText,
@@ -37,7 +45,7 @@ import {
   inspectVaultMarkdown,
   createVaultLinkResolver,
 } from "../../shared/vault-markdown";
-import { InkButton, InkInput, InkSelect } from "./InkControl";
+import { InkButton, InkInput, InkSelect, InkStroke } from "./InkControl";
 import { confirmInk } from "./InkDialog";
 import type { VaultEditorHandle } from "./vault/VaultEditor";
 const VaultEditor = lazy(() =>
@@ -56,6 +64,9 @@ import {
   type RecoveryMetadata,
 } from "./vault/vault-drafts";
 import "./vault-workspace.css";
+import { useWorkspacePanes } from "./WorkspaceResizer";
+import { VaultIndexPanel } from "./vault/VaultIndexPanel";
+import { ResizableCard } from "./ResizableCard";
 
 async function request<T>(
   url: string,
@@ -171,7 +182,19 @@ export function VaultWorkspace({
   onSourcesAdded,
   onOpenNotebook,
   openRequest,
+  forcedVault,
+  inventoryRevision,
+  workspaceTitle,
+  learningContent,
+  onNoteSaved,
+  assistantReviewRequest,
 }: {
+  forcedVault?: Vault;
+  inventoryRevision?: number;
+  workspaceTitle?: string;
+  learningContent?: ReactNode;
+  onNoteSaved?: () => Promise<void>;
+  assistantReviewRequest?: number;
   active: boolean;
   openRequest?: { vaultId: string; path: string; nonce: number } | null;
   notebooks: {
@@ -187,6 +210,8 @@ export function VaultWorkspace({
     section?: "sources" | "chat" | "flashcards" | "studio",
   ) => Promise<void>;
 }) {
+  const deskRef = useRef<HTMLDivElement>(null);
+  const panes = useWorkspacePanes(forcedVault?.id || "vault", deskRef);
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [vaultId, setVaultId] = useState("");
   const semantic = useVaultSemantic(vaultId || "");
@@ -201,6 +226,13 @@ export function VaultWorkspace({
   const [searchMore, setSearchMore] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(true);
+  const [selectionTools, setSelectionTools] = useState(false);
+  useEffect(() => {
+    if (assistantReviewRequest) {
+      setPrefs((previous) => ({ ...previous, pane: "learning" }));
+      setSelectionTools(false);
+    }
+  }, [assistantReviewRequest]);
   const [view, setView] = useState<"notes" | "drafts" | "recovery">("notes");
   const [drafts, setDrafts] = useState<VaultDraft[]>([]);
   const [moreDrafts, setMoreDrafts] = useState(false);
@@ -219,6 +251,7 @@ export function VaultWorkspace({
   const [ready, setReady] = useState(false);
   const [loadedVault, setLoadedVault] = useState("");
   const handledOpenRequest = useRef<number | null>(null);
+  const initialNoteAttempt = useRef("");
   const requestedNote = useRef(openRequest);
   requestedNote.current = openRequest;
   const [generating, setGenerating] = useState<{
@@ -371,6 +404,7 @@ export function VaultWorkspace({
       refresh ? "POST" : "GET",
     );
     if (latest.current.vaultId === id) setIndex(result);
+    return result;
   }
   async function loadRecovery(id: string) {
     const rows = await repository.list(id);
@@ -421,7 +455,10 @@ export function VaultWorkspace({
         try {
           last = localStorage.getItem("lmbook:last-vault") || "";
         } catch {}
-        setVaultId(rows.some((v) => v.id === last) ? last : rows[0]?.id || "");
+        setVaultId(
+          forcedVault?.id ||
+            (rows.some((v) => v.id === last) ? last : rows[0]?.id || ""),
+        );
         setReady(true);
       })
       .catch((error) => {
@@ -455,6 +492,7 @@ export function VaultWorkspace({
     setView("notes");
     navigation.current = { entries: [], position: -1 };
     const saved = readPreferences(vaultId);
+    if (learningContent && !saved.pane) saved.pane = "learning";
     setPrefs(saved);
     if (!vaultId) return;
     try {
@@ -465,11 +503,18 @@ export function VaultWorkspace({
       loadRecovery(vaultId),
       loadDrafts(vaultId),
     ])
-      .then(() => {
+      .then(([loadedIndex]) => {
         if (!cancelled) {
           setLoadedVault(vaultId);
           if (saved.activePath && requestedNote.current?.vaultId !== vaultId)
             void openNote(saved.activePath, undefined, true);
+          else if (
+            forcedVault &&
+            !saved.activePath &&
+            loadedIndex.files.length &&
+            requestedNote.current?.vaultId !== vaultId
+          )
+            void openNote(loadedIndex.files[0].path, undefined, true);
         }
       })
       .catch((error) => {
@@ -479,6 +524,42 @@ export function VaultWorkspace({
       cancelled = true;
     };
   }, [vaultId]);
+  useEffect(() => {
+    if (!vaultId || !inventoryRevision) return;
+    void loadIndex(vaultId, true).catch((reason) =>
+      setError((reason as Error).message),
+    );
+  }, [vaultId, inventoryRevision]);
+  useEffect(() => {
+    // The initial inventory can arrive empty while its background scan runs.
+    // Open the first note when that scan finishes, as well as for cached lists.
+    if (
+      !forcedVault ||
+      !active ||
+      loadedVault !== vaultId ||
+      editor ||
+      index.status.running ||
+      !index.files.length ||
+      busy ||
+      navigationPending ||
+      prefs.activePath ||
+      requestedNote.current?.vaultId === vaultId ||
+      initialNoteAttempt.current === vaultId
+    )
+      return;
+    initialNoteAttempt.current = vaultId;
+    void openNote(index.files[0].path, undefined, true);
+  }, [
+    forcedVault,
+    active,
+    loadedVault,
+    vaultId,
+    editor,
+    index,
+    busy,
+    navigationPending,
+    prefs.activePath,
+  ]);
   useEffect(() => {
     if (
       !active ||
@@ -503,7 +584,7 @@ export function VaultWorkspace({
     if (loadedVault !== vaultId) return;
     handledOpenRequest.current = openRequest.nonce;
     setView("notes");
-    changePrefs({ pane: null });
+    if (!learningContent) changePrefs({ pane: null });
     void openNote(openRequest.path);
   }, [
     active,
@@ -751,8 +832,10 @@ export function VaultWorkspace({
         ),
         mode: targetAnchor ? "read" : previous.mode,
       }));
-      if (window.matchMedia("(max-width: 1000px)").matches)
+      if (window.matchMedia("(max-width: 760px)").matches) {
         setNavigatorOpen(false);
+        changePrefs({ pane: null });
+      }
       setNotice(
         draft
           ? readIssue
@@ -879,8 +962,10 @@ export function VaultWorkspace({
         tabs: [...new Set([...previous.tabs, path])].slice(-12),
         mode: draft ? "read" : "edit",
       }));
-      if (window.matchMedia("(max-width: 1000px)").matches)
+      if (window.matchMedia("(max-width: 760px)").matches) {
         setNavigatorOpen(false);
+        changePrefs({ pane: null });
+      }
       setNotice(
         draft
           ? "Review this draft and its sources before saving a new note."
@@ -1004,6 +1089,7 @@ export function VaultWorkspace({
           });
         }
         await Promise.all([loadIndex(id, true), loadRecovery(id)]);
+        await onNoteSaved?.();
       } catch (error) {
         if ((error as { status?: number }).status === 409 && submitted.base)
           setConflict(
@@ -1286,10 +1372,10 @@ export function VaultWorkspace({
         <div className="vault-identity">
           <FolderOpen size={22} />
           <div>
-            <h1>{vault ? "Your vault" : "Obsidian"}</h1>
+            <h1>{workspaceTitle || (vault ? "Your vault" : "Obsidian")}</h1>
             {!vault && <p>Read, write and learn from the same notes.</p>}
           </div>
-          {vault && (
+          {vault && !forcedVault && (
             <InkSelect
               aria-label="Connected vault"
               value={vaultId}
@@ -1319,7 +1405,10 @@ export function VaultWorkspace({
                 aria-label="Refresh vault"
                 disabled={!!busy || index.status.running}
                 onClick={() =>
-                  void run("Refreshing vault", () => loadIndex(vaultId, true))
+                  void run("Refreshing vault", async () => {
+                    await loadIndex(vaultId, true);
+                    await onNoteSaved?.();
+                  })
                 }
               >
                 <RefreshCw
@@ -1347,16 +1436,25 @@ export function VaultWorkspace({
               </InkButton>
             </>
           )}
-          <InkButton
-            className="button"
-            onClick={() => void connect()}
-            disabled={!!busy || !window.sennibookDesktop}
-          >
-            <Plus size={16} />
-            {vault ? "Connect another" : "Connect a vault"}
-          </InkButton>
+          {!forcedVault && (
+            <InkButton
+              className="button"
+              onClick={() => void connect()}
+              disabled={!!busy || !window.sennibookDesktop}
+            >
+              <Plus size={16} />
+              {vault ? "Connect another" : "Connect a vault"}
+            </InkButton>
+          )}
         </div>
       </header>
+      {vault && (
+        <VaultIndexPanel
+          vaultId={vaultId}
+          semantic={semantic}
+          onFind={() => setQuickOpen(true)}
+        />
+      )}
       {error && (
         <div role="alert" className="alert error vault-message">
           <span>{error}</span>
@@ -1378,7 +1476,7 @@ export function VaultWorkspace({
         ) : (
           notice ||
           (vault
-            ? "Changes are saved to the vault only when you choose Save."
+            ? "Choose Save to write your edits to the vault. Assistant additions follow your chosen control mode."
             : "Connecting a folder does not send its contents to AI.")
         )}
       </div>
@@ -1491,9 +1589,11 @@ export function VaultWorkspace({
                   </div>
                 </div>
               )}
-              <InkButton className="button" onClick={() => void disconnect()}>
-                Disconnect folder
-              </InkButton>
+              {!forcedVault && (
+                <InkButton className="button" onClick={() => void disconnect()}>
+                  Disconnect folder
+                </InkButton>
+              )}
               <InkButton
                 className="button"
                 disabled={!!busy}
@@ -1522,7 +1622,7 @@ export function VaultWorkspace({
                 onClick={() => {
                   if (
                     prefs.pane &&
-                    window.matchMedia("(max-width:1250px)").matches
+                    window.matchMedia("(max-width:760px)").matches
                   ) {
                     changePrefs({ pane: null });
                     setNavigatorOpen(true);
@@ -1531,6 +1631,17 @@ export function VaultWorkspace({
               >
                 <PanelLeft size={16} /> Notes
               </InkButton>
+              {learningContent && (
+                <InkButton
+                  className="button small"
+                  onClick={() => {
+                    setSelectionTools(true);
+                    changePrefs({ pane: "learning" });
+                  }}
+                >
+                  <Pencil size={14} /> Summarize
+                </InkButton>
+              )}
               <InkButton
                 className={`button small ${view === "drafts" ? "active" : ""}`}
                 onClick={() => {
@@ -1588,896 +1699,991 @@ export function VaultWorkspace({
             </div>
           </div>
           <div
-            className={`vault-desk ${navigatorOpen ? "has-navigator" : ""} ${prefs.pane ? "has-pane" : ""}`}
+            ref={deskRef}
+            style={panes.style}
+            className={`vault-desk resizable-desk ${navigatorOpen ? "has-navigator" : ""} ${prefs.pane ? "has-pane" : ""}`}
           >
+            <span
+              className="workspace-frame frame-center ink-writing-surface"
+              aria-hidden="true"
+            >
+              <InkStroke />
+            </span>
             {navigatorOpen && (
-              <aside
-                className="vault-navigator-region"
-                aria-label={
-                  view === "notes"
-                    ? "Vault files"
-                    : view === "drafts"
-                      ? "AI drafts"
-                      : "Unfinished edits"
-                }
+              <span
+                className="workspace-frame frame-left ink-writing-surface"
+                aria-hidden="true"
               >
-                {view === "notes" ? (
-                  <>
-                    <VaultNavigator
-                      vaultId={vaultId}
-                      activePath={editor?.path || null}
-                      files={files}
-                      folders={index.folders}
-                      selectedPaths={selected}
-                      favoritePaths={prefs.favorites}
-                      recentPaths={prefs.recent}
-                      query={search}
-                      onQueryChange={setSearch}
-                      searchResults={results}
-                      indexing={index.status}
-                      onOpen={(path) => void openNote(path)}
-                      onToggleSelected={toggleSelected}
-                      onSelectPaths={selectPaths}
-                      onToggleFavorite={(path) =>
-                        changePrefs((previous) => ({
-                          ...previous,
-                          favorites: previous.favorites.includes(path)
-                            ? previous.favorites.filter((p) => p !== path)
-                            : [...previous.favorites, path],
-                        }))
-                      }
-                      onNewNote={(folder) => void newNote(folder)}
-                      onNewFolder={(folder) =>
-                        setFolderName(folder ? folder + "/" : "")
-                      }
-                      onClearSelection={() => changePrefs({ selected: [] })}
-                    />
-                    {searchMore && (
-                      <p className="vault-nav-hint">
-                        Showing the first 100 matches. Refine your search to
-                        find more.
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <div className="vault-draft-list">
-                    <h2>
-                      {view === "drafts" ? "AI drafts" : "Unfinished edits"}
-                    </h2>
-                    <p>
-                      {view === "drafts"
-                        ? "Review the writing and its sources before adding a note to your vault."
-                        : "These edits are kept in LMBook. The vault files change only when you save."}
-                    </p>
-                    <InkButton
-                      className="button small"
-                      onClick={() => setView("notes")}
-                    >
-                      <ArrowLeft size={14} /> Back to notes
-                    </InkButton>
-                    {view === "drafts" ? (
-                      <>
-                        {generating?.vaultId === vaultId && (
-                          <p role="status">
-                            <LoaderCircle size={14} className="spin" /> Writing
-                            a draft. You can keep working.
-                          </p>
-                        )}
-                        {!drafts.length && !generating && (
-                          <p>
-                            Select notes, open Learn and choose Draft summary to
-                            begin.
-                          </p>
-                        )}
-                        {drafts.map((draft) => (
-                          <InkButton
-                            key={draft.id}
-                            className={`vault-draft-row ${editor?.generated === draft.id ? "active" : ""}`}
-                            onClick={() => void openGenerated(draft)}
-                          >
-                            <strong>{draft.title}</strong>
-                            <small>
-                              {dateLabel(draft.createdAt)} ·{" "}
-                              {draft.sources.length} sources
-                            </small>
-                          </InkButton>
-                        ))}
-                        {moreDrafts && (
-                          <InkButton
-                            className="button small"
-                            onClick={() =>
-                              void run("Loading drafts", () =>
-                                loadDrafts(vaultId, drafts.length),
-                              )
-                            }
-                          >
-                            Show more drafts
-                          </InkButton>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {!recovery.length && (
-                          <p>
-                            No unfinished edits. Your saved notes are in the
-                            file list.
-                          </p>
-                        )}
-                        {recovery.map((draft) => (
-                          <InkButton
-                            key={draft.path}
-                            className={`vault-draft-row ${editor?.path === draft.path ? "active" : ""}`}
-                            onClick={() => void openNote(draft.path)}
-                          >
-                            <strong>{basename(draft.path)}</strong>
-                            <span>{draft.path}</span>
-                            <small>{dateLabel(draft.updatedAt)}</small>
-                          </InkButton>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
-              </aside>
+                <InkStroke />
+              </span>
             )}
-            <div className="vault-note-region">
-              {prefs.tabs.length > 0 && (
-                <div className="vault-open-tabs" aria-label="Open notes">
-                  {prefs.tabs.map((path) => (
-                    <div
-                      key={path}
-                      className={editor?.path === path ? "active" : ""}
-                    >
-                      <InkButton
-                        className="vault-open-tab"
-                        aria-current={
-                          editor?.path === path ? "page" : undefined
-                        }
-                        title={path}
-                        onClick={() => void openNote(path)}
-                      >
-                        {pendingPaths.includes(path) && (
-                          <span
-                            aria-label="Unfinished edit"
-                            className="vault-dirty-dot"
-                          />
-                        )}
-                        {basename(path)}
-                      </InkButton>
-                      <InkButton
-                        className="icon-button"
-                        aria-label={`Close ${basename(path)}`}
-                        onClick={() => void closeTab(path)}
-                      >
-                        <X size={12} />
-                      </InkButton>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!editor ? (
-                <div className="vault-note-empty">
-                  <BookOpen size={36} />
-                  <h2>
-                    {files.length
-                      ? "Open a note. Keep its context."
-                      : index.status.running
-                        ? "Finding your notes…"
-                        : "Start with a note."}
-                  </h2>
-                  <p>
-                    {files.length
-                      ? "Read a note from the left, follow its links, or choose notes for a learning notebook."
-                      : "Create a Markdown note here, or add files to this folder in Obsidian."}
-                  </p>
-                  <div>
-                    <InkButton
-                      className="button"
-                      onClick={() => setQuickOpen(true)}
-                    >
-                      <Search size={16} /> Find a note
-                    </InkButton>
-                    <InkButton
-                      className="button"
-                      onClick={() => void newNote()}
-                    >
-                      <Plus size={16} /> New note
-                    </InkButton>
-                  </div>
-                  {prefs.recent.length > 0 && (
-                    <div className="vault-recent-start">
-                      <h3>Pick up where you left off</h3>
-                      {prefs.recent.slice(0, 5).map((path) => (
-                        <InkButton
-                          key={path}
-                          className="text-action"
-                          onClick={() => void openNote(path)}
-                        >
-                          <FileText size={14} />
-                          {path}
-                        </InkButton>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="vault-note-toolbar">
-                    <div className="vault-note-location">
-                      <div className="vault-history-buttons">
-                        <InkButton
-                          className="icon-button"
-                          aria-label="Previous note"
-                          disabled={navigation.current.position < 1}
-                          onClick={() => void goBack(-1)}
-                        >
-                          <ArrowLeft size={15} />
-                        </InkButton>
-                        <InkButton
-                          className="icon-button"
-                          aria-label="Next note"
-                          disabled={
-                            navigation.current.position >=
-                            navigation.current.entries.length - 1
-                          }
-                          onClick={() => void goBack(1)}
-                        >
-                          <ArrowRight size={15} />
-                        </InkButton>
-                      </div>
-                      <span title={editor.path}>
-                        {dirname(editor.path) && (
-                          <small>{dirname(editor.path)} /</small>
-                        )}
-                        <strong>{basename(editor.path)}</strong>
-                      </span>
-                    </div>
-                    <div className="vault-note-controls">
-                      <div className="vault-view-mode" aria-label="Note view">
-                        <InkButton
-                          className={prefs.mode === "read" ? "active" : ""}
-                          aria-pressed={prefs.mode === "read"}
-                          onClick={() => changePrefs({ mode: "read" })}
-                        >
-                          <BookOpen size={15} /> Read
-                        </InkButton>
-                        <InkButton
-                          className={prefs.mode === "edit" ? "active" : ""}
-                          aria-pressed={prefs.mode === "edit"}
-                          onClick={() => changePrefs({ mode: "edit" })}
-                        >
-                          <Pencil size={15} /> Edit
-                        </InkButton>
-                      </div>
-                      <InkButton
-                        className="button primary small"
-                        disabled={!!busy || !dirty || !!conflict}
-                        onClick={() => void save()}
-                      >
-                        <Save size={15} />
-                        {editor.base ? "Save" : "Save new note"}
-                      </InkButton>
-                    </div>
-                  </div>
-                  {!editor.base && (
-                    <label className="vault-save-location">
-                      Save as
-                      <InkInput
-                        value={fileName}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          setFileName(value);
+            {prefs.pane && (
+              <span
+                className="workspace-frame frame-right ink-writing-surface"
+                aria-hidden="true"
+              >
+                <InkStroke />
+              </span>
+            )}
+            {navigatorOpen && (
+              <ResizableCard
+                storageKey={`lmbook:card-height:${vaultId}:navigator`}
+                label="vault files"
+                className="workspace-card-navigator"
+                contentClassName="vault-navigator-region"
+                defaultHeight={520}
+                minHeight={220}
+              >
+                <aside
+                  aria-label={
+                    view === "notes"
+                      ? "Vault files"
+                      : view === "drafts"
+                        ? "AI drafts"
+                        : "Unfinished edits"
+                  }
+                >
+                  {view === "notes" ? (
+                    <>
+                      <VaultNavigator
+                        vaultId={vaultId}
+                        activePath={editor?.path || null}
+                        files={files}
+                        folders={index.folders}
+                        selectedPaths={selected}
+                        favoritePaths={prefs.favorites}
+                        recentPaths={prefs.recent}
+                        query={search}
+                        onQueryChange={setSearch}
+                        searchResults={results}
+                        indexing={index.status}
+                        onOpen={(path) => void openNote(path)}
+                        onToggleSelected={toggleSelected}
+                        onSelectPaths={selectPaths}
+                        onToggleFavorite={(path) =>
                           changePrefs((previous) => ({
                             ...previous,
-                            savePaths: {
-                              ...previous.savePaths,
-                              [editor.path]: value,
-                            },
-                          }));
-                        }}
-                        maxLength={500}
-                        placeholder="Folder/Note.md"
-                        aria-label="New note path"
+                            favorites: previous.favorites.includes(path)
+                              ? previous.favorites.filter((p) => p !== path)
+                              : [...previous.favorites, path],
+                          }))
+                        }
+                        onNewNote={(folder) => void newNote(folder)}
+                        onNewFolder={(folder) =>
+                          setFolderName(folder ? folder + "/" : "")
+                        }
+                        onClearSelection={() => changePrefs({ selected: [] })}
                       />
-                      <small>
-                        Use an existing folder. This creates a new file.
-                      </small>
-                    </label>
-                  )}
-                  {missing && (
-                    <div className="vault-inline-warning">
-                      <strong>This file cannot currently be read.</strong>
+                      {searchMore && (
+                        <p className="vault-nav-hint">
+                          Showing the first 100 matches. Refine your search to
+                          find more.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="vault-draft-list">
+                      <h2>
+                        {view === "drafts" ? "AI drafts" : "Unfinished edits"}
+                      </h2>
                       <p>
-                        Your open text is still here. Save a separate copy or
-                        reconnect the folder.
+                        {view === "drafts"
+                          ? "Review the writing and its sources before adding a note to your vault."
+                          : "These edits are kept in LMBook. The vault files change only when you save."}
                       </p>
                       <InkButton
                         className="button small"
-                        onClick={() => void copyCurrent()}
+                        onClick={() => setView("notes")}
                       >
-                        Keep as a new note
+                        <ArrowLeft size={14} /> Back to notes
                       </InkButton>
+                      {view === "drafts" ? (
+                        <>
+                          {generating?.vaultId === vaultId && (
+                            <p role="status">
+                              <LoaderCircle size={14} className="spin" />{" "}
+                              Writing a draft. You can keep working.
+                            </p>
+                          )}
+                          {!drafts.length && !generating && (
+                            <p>
+                              Select notes, open Learn and choose Draft summary
+                              to begin.
+                            </p>
+                          )}
+                          {drafts.map((draft) => (
+                            <InkButton
+                              key={draft.id}
+                              className={`vault-draft-row ${editor?.generated === draft.id ? "active" : ""}`}
+                              onClick={() => void openGenerated(draft)}
+                            >
+                              <strong>{draft.title}</strong>
+                              <small>
+                                {dateLabel(draft.createdAt)} ·{" "}
+                                {draft.sources.length} sources
+                              </small>
+                            </InkButton>
+                          ))}
+                          {moreDrafts && (
+                            <InkButton
+                              className="button small"
+                              onClick={() =>
+                                void run("Loading drafts", () =>
+                                  loadDrafts(vaultId, drafts.length),
+                                )
+                              }
+                            >
+                              Show more drafts
+                            </InkButton>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {!recovery.length && (
+                            <p>
+                              No unfinished edits. Your saved notes are in the
+                              file list.
+                            </p>
+                          )}
+                          {recovery.map((draft) => (
+                            <InkButton
+                              key={draft.path}
+                              className={`vault-draft-row ${editor?.path === draft.path ? "active" : ""}`}
+                              onClick={() => void openNote(draft.path)}
+                            >
+                              <strong>{basename(draft.path)}</strong>
+                              <span>{draft.path}</span>
+                              <small>{dateLabel(draft.updatedAt)}</small>
+                            </InkButton>
+                          ))}
+                        </>
+                      )}
                     </div>
                   )}
-                  {conflict && (
-                    <div className="vault-conflict">
-                      <h3>The vault changed while you were editing.</h3>
-                      <p>
-                        Your draft has been kept. Compare the latest text before
-                        deciding what to save.
-                      </p>
-                      <div>
+                </aside>
+              </ResizableCard>
+            )}
+            {navigatorOpen && panes.handle("left")}
+            <ResizableCard
+              storageKey={`lmbook:card-height:${vaultId}:note`}
+              label="note"
+              className="workspace-card-note"
+              contentClassName="vault-note-region"
+              defaultHeight={620}
+              minHeight={260}
+            >
+              <div>
+                {prefs.tabs.length > 0 && (
+                  <div className="vault-open-tabs" aria-label="Open notes">
+                    {prefs.tabs.map((path) => (
+                      <div
+                        key={path}
+                        className={editor?.path === path ? "active" : ""}
+                      >
+                        <InkButton
+                          className="vault-open-tab"
+                          aria-current={
+                            editor?.path === path ? "page" : undefined
+                          }
+                          title={path}
+                          onClick={() => void openNote(path)}
+                        >
+                          {pendingPaths.includes(path) && (
+                            <span
+                              aria-label="Unfinished edit"
+                              className="vault-dirty-dot"
+                            />
+                          )}
+                          {basename(path)}
+                        </InkButton>
+                        <InkButton
+                          className="icon-button"
+                          aria-label={`Close ${basename(path)}`}
+                          onClick={() => void closeTab(path)}
+                        >
+                          <X size={12} />
+                        </InkButton>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!editor ? (
+                  <div className="vault-note-empty">
+                    <BookOpen size={36} />
+                    <h2>
+                      {files.length
+                        ? "Open a note. Keep its context."
+                        : index.status.running
+                          ? "Finding your notes…"
+                          : "Start with a note."}
+                    </h2>
+                    <p>
+                      {files.length
+                        ? "Open a note from the left. Read and edit here, with learning tools beside you."
+                        : "Create a Markdown note here, or add files to this folder in Obsidian."}
+                    </p>
+                    <div>
+                      <InkButton
+                        className="button"
+                        onClick={() => setQuickOpen(true)}
+                      >
+                        <Search size={16} /> Find a note
+                      </InkButton>
+                      <InkButton
+                        className="button"
+                        onClick={() => void newNote()}
+                      >
+                        <Plus size={16} /> New note
+                      </InkButton>
+                    </div>
+                    {prefs.recent.length > 0 && (
+                      <div className="vault-recent-start">
+                        <h3>Pick up where you left off</h3>
+                        {prefs.recent.slice(0, 5).map((path) => (
+                          <InkButton
+                            key={path}
+                            className="text-action"
+                            onClick={() => void openNote(path)}
+                          >
+                            <FileText size={14} />
+                            {path}
+                          </InkButton>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="vault-note-toolbar">
+                      <div className="vault-note-location">
+                        <div className="vault-history-buttons">
+                          <InkButton
+                            className="icon-button"
+                            aria-label="Previous note"
+                            disabled={navigation.current.position < 1}
+                            onClick={() => void goBack(-1)}
+                          >
+                            <ArrowLeft size={15} />
+                          </InkButton>
+                          <InkButton
+                            className="icon-button"
+                            aria-label="Next note"
+                            disabled={
+                              navigation.current.position >=
+                              navigation.current.entries.length - 1
+                            }
+                            onClick={() => void goBack(1)}
+                          >
+                            <ArrowRight size={15} />
+                          </InkButton>
+                        </div>
+                        <span title={editor.path}>
+                          {dirname(editor.path) && (
+                            <small>{dirname(editor.path)} /</small>
+                          )}
+                          <strong>{basename(editor.path)}</strong>
+                        </span>
+                      </div>
+                      <div className="vault-note-controls">
+                        <div className="vault-view-mode" aria-label="Note view">
+                          <InkButton
+                            className={prefs.mode === "read" ? "active" : ""}
+                            aria-pressed={prefs.mode === "read"}
+                            onClick={() => changePrefs({ mode: "read" })}
+                          >
+                            <BookOpen size={15} /> Read
+                          </InkButton>
+                          <InkButton
+                            className={prefs.mode === "edit" ? "active" : ""}
+                            aria-pressed={prefs.mode === "edit"}
+                            onClick={() => changePrefs({ mode: "edit" })}
+                          >
+                            <Pencil size={15} /> Edit
+                          </InkButton>
+                        </div>
+                        <InkButton
+                          className="button primary small"
+                          disabled={!!busy || !dirty || !!conflict}
+                          onClick={() => void save()}
+                        >
+                          <Save size={15} />
+                          {editor.base ? "Save" : "Save new note"}
+                        </InkButton>
+                      </div>
+                    </div>
+                    {!editor.base && (
+                      <label className="vault-save-location">
+                        Save as
+                        <InkInput
+                          value={fileName}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setFileName(value);
+                            changePrefs((previous) => ({
+                              ...previous,
+                              savePaths: {
+                                ...previous.savePaths,
+                                [editor.path]: value,
+                              },
+                            }));
+                          }}
+                          maxLength={500}
+                          placeholder="Folder/Note.md"
+                          aria-label="New note path"
+                        />
+                        <small>
+                          Use an existing folder. This creates a new file.
+                        </small>
+                      </label>
+                    )}
+                    {missing && (
+                      <div className="vault-inline-warning">
+                        <strong>This file cannot currently be read.</strong>
+                        <p>
+                          Your open text is still here. Save a separate copy or
+                          reconnect the folder.
+                        </p>
                         <InkButton
                           className="button small"
                           onClick={() => void copyCurrent()}
                         >
-                          Save my draft separately
-                        </InkButton>
-                        <InkButton
-                          className="button small"
-                          onClick={() => void mergeWithCurrent()}
-                        >
-                          Review and merge
-                        </InkButton>
-                        <InkButton
-                          className="button small"
-                          onClick={() => void discard()}
-                        >
-                          Use the vault version
+                          Keep as a new note
                         </InkButton>
                       </div>
-                      <details>
-                        <summary>Latest vault version</summary>
-                        <pre>{conflict.text}</pre>
-                      </details>
-                    </div>
-                  )}
-                  {generated && (
-                    <section className="vault-generated-review">
-                      <div>
-                        <strong>AI draft · review before saving</strong>
-                        <span>
-                          {generated.sources.length} original source snapshots
-                        </span>
-                        <InkButton
-                          className="button small"
-                          onClick={() =>
-                            setReviewSource(reviewSource === null ? 0 : null)
-                          }
-                        >
-                          {reviewSource === null
-                            ? "Review sources"
-                            : "Hide sources"}
-                        </InkButton>
-                        <InkButton
-                          className="button small"
-                          disabled={!!busy}
-                          onClick={() => void inspectDrift()}
-                        >
-                          Check source changes
-                        </InkButton>
-                      </div>
-                      {drift.length > 0 && (
+                    )}
+                    {conflict && (
+                      <div className="vault-conflict">
+                        <h3>The vault changed while you were editing.</h3>
                         <p>
-                          {drift.filter((item) => item.status !== "unchanged")
-                            .length
-                            ? `${drift.filter((item) => item.status !== "unchanged").length} source notes have changed or become unavailable since generation. The original snapshots are retained below.`
-                            : "All source notes still match the versions used for this draft."}
+                          Your draft has been kept. Compare the latest text
+                          before deciding what to save.
                         </p>
-                      )}
-                      {reviewSource !== null && (
-                        <div className="vault-source-review">
-                          <div>
-                            {generated.sources.map((source, i) => (
-                              <InkButton
-                                key={source.path}
-                                className={`button small ${reviewSource === i ? "active" : ""}`}
-                                onClick={() => setReviewSource(i)}
-                              >
-                                [{i + 1}] {basename(source.path)}
-                              </InkButton>
-                            ))}
-                          </div>
-                          <p>
-                            {generated.sources[reviewSource]?.path}
-                            <small>
-                              Original snapshot ·{" "}
-                              {generated.sources[reviewSource]?.revision.slice(
-                                0,
-                                12,
-                              )}
-                            </small>
-                          </p>
-                          <pre>{generated.sources[reviewSource]?.text}</pre>
-                          <InkButton
-                            className="text-action"
-                            onClick={() =>
-                              void openNote(
-                                generated.sources[reviewSource].path,
-                              )
-                            }
-                          >
-                            Open current vault note <ArrowRight size={14} />
-                          </InkButton>
-                        </div>
-                      )}
-                    </section>
-                  )}
-                  <div
-                    className="vault-writing-surface"
-                    ref={readingRef}
-                    tabIndex={-1}
-                    aria-label={
-                      prefs.mode === "read"
-                        ? "Note reading view"
-                        : "Note editing view"
-                    }
-                  >
-                    {prefs.mode === "read" && (
-                      <VaultMarkdown
-                        text={editor.text}
-                        notePath={editor.path}
-                        vaultId={vaultId}
-                        files={allFiles}
-                        anchor={anchor}
-                        onOpenNote={(path, anchor) =>
-                          void openNote(path, anchor)
-                        }
-                        onMissingNote={(path) =>
-                          void newNote(
-                            dirname(path),
-                            path.split("/").at(-1) || "Untitled.md",
-                          )
-                        }
-                      />
-                    )}
-                    {(editorLoaded || prefs.mode === "edit") && (
-                      <div hidden={prefs.mode !== "edit"}>
-                        <Suspense
-                          fallback={
-                            <p className="vault-loading" role="status">
-                              Opening the editor…
-                            </p>
-                          }
-                        >
-                          <VaultEditor
-                            ref={editorRef}
-                            documentKey={`${vaultId}:${editor.path}`}
-                            value={editor.text}
-                            onChange={(text) => {
-                              // CodeMirror may deliver its final transaction after
-                              // a parent render. Read the current editor from the
-                              // ref so that transaction is retained while Save is
-                              // in flight, but ignore a callback belonging to a
-                              // document that has already been replaced.
-                              const current = latest.current.editor;
-                              if (
-                                latest.current.vaultId === vaultId &&
-                                current?.path === editor.path
-                              )
-                                remember({ ...current, text });
-                            }}
-                            onSave={() => void save()}
-                            files={files}
-                            readOnly={!!busy || navigationPending}
-                            autofocus
-                          />
-                        </Suspense>
-                      </div>
-                    )}
-                  </div>
-                  <footer className="vault-note-footer">
-                    <span>
-                      {editor.text.trim()
-                        ? editor.text.trim().split(/\s+/).length
-                        : 0}{" "}
-                      words ·{" "}
-                      {dirty
-                        ? repository.status(vaultId, editor.path) === "saved"
-                          ? "Draft kept in LMBook"
-                          : "Keeping draft…"
-                        : "Saved in vault"}
-                    </span>
-                    <div>
-                      <InkButton
-                        className="text-action"
-                        aria-pressed={selected.includes(editor.path)}
-                        onClick={() => toggleSelected(editor.path)}
-                        disabled={!editor.base}
-                      >
-                        {selected.includes(editor.path) ? (
-                          <Check size={14} />
-                        ) : (
-                          <Plus size={14} />
-                        )}{" "}
-                        {selected.includes(editor.path)
-                          ? "Selected for learning"
-                          : "Select for learning"}
-                      </InkButton>
-                      <details className="vault-note-more">
-                        <summary>More actions</summary>
                         <div>
                           <InkButton
-                            className="text-action"
+                            className="button small"
                             onClick={() => void copyCurrent()}
                           >
-                            <Copy size={14} /> Duplicate as a draft
+                            Save my draft separately
                           </InkButton>
                           <InkButton
-                            className="text-action"
-                            onClick={() => void copyNoteText()}
+                            className="button small"
+                            onClick={() => void mergeWithCurrent()}
                           >
-                            <Copy size={14} /> Copy note text
+                            Review and merge
                           </InkButton>
                           <InkButton
-                            className="text-action"
-                            disabled={!editor.base}
-                            onClick={() =>
-                              void run("Opening Obsidian", async () => {
-                                await window.sennibookDesktop?.openVaultInObsidian(
-                                  vaultId,
-                                  editor.path,
-                                );
-                              })
-                            }
-                          >
-                            <ExternalLink size={14} /> Open in Obsidian
-                          </InkButton>
-                          <InkButton
-                            className="text-action"
-                            disabled={!editor.base}
-                            onClick={() =>
-                              void run("Showing file", async () => {
-                                await window.sennibookDesktop?.revealVaultNote(
-                                  vaultId,
-                                  editor.path,
-                                );
-                              })
-                            }
-                          >
-                            <FolderOpen size={14} /> Show in folder
-                          </InkButton>
-                          <InkButton
-                            className="text-action"
-                            onClick={() =>
-                              void run("Copying path", async () => {
-                                await navigator.clipboard.writeText(
-                                  vault!.root + "/" + editor.path,
-                                );
-                                setNotice("File path copied.");
-                              })
-                            }
-                          >
-                            Copy file path
-                          </InkButton>
-                          <InkButton
-                            className="text-action"
-                            disabled={!editor.base}
-                            onClick={() =>
-                              void run("Reading save history", async () =>
-                                setHistory(
-                                  await request<Recovery[]>(
-                                    `/vaults/${vaultId}/history?path=${encodeURIComponent(editor.path)}`,
-                                  ),
-                                ),
-                              )
-                            }
-                          >
-                            <History size={14} /> Save history
-                          </InkButton>
-                          <InkButton
-                            className="text-action"
-                            disabled={!dirty}
+                            className="button small"
                             onClick={() => void discard()}
                           >
-                            Discard unfinished edit
+                            Use the vault version
                           </InkButton>
                         </div>
-                      </details>
-                    </div>
-                  </footer>
-                  {history && (
-                    <section className="vault-history">
-                      <div>
-                        <h3>Save history</h3>
-                        <InkButton
-                          className="icon-button"
-                          aria-label="Close save history"
-                          onClick={() => {
-                            setHistory(null);
-                            setHistoryText(null);
-                          }}
-                        >
-                          <X size={16} />
-                        </InkButton>
+                        <details>
+                          <summary>Latest vault version</summary>
+                          <pre>{conflict.text}</pre>
+                        </details>
                       </div>
-                      {!history.length ? (
-                        <p>
-                          No earlier versions have been kept for this note yet.
-                        </p>
-                      ) : (
-                        history.map((item) => (
+                    )}
+                    {generated && (
+                      <section className="vault-generated-review">
+                        <div>
+                          <strong>AI draft · review before saving</strong>
+                          <span>
+                            {generated.sources.length} original source snapshots
+                          </span>
                           <InkButton
-                            key={item.id}
                             className="button small"
                             onClick={() =>
-                              void run("Reading earlier version", async () => {
-                                const row = await request<{ text: string }>(
-                                  `/vaults/${vaultId}/history/${item.id}`,
-                                );
-                                setHistoryText(row.text);
-                              })
+                              setReviewSource(reviewSource === null ? 0 : null)
                             }
                           >
-                            {dateLabel(item.createdAt)} · {item.reason}
+                            {reviewSource === null
+                              ? "Review sources"
+                              : "Hide sources"}
                           </InkButton>
-                        ))
-                      )}
-                    </section>
-                  )}
-                  {historyText !== null && (
-                    <section className="vault-history-preview">
-                      <div>
-                        <h3>Comparison copy</h3>
-                        <InkButton
-                          className="button small"
-                          onClick={() => void copyCurrent(historyText)}
-                        >
-                          Restore as a new draft
-                        </InkButton>
-                        <InkButton
-                          className="icon-button"
-                          aria-label="Close comparison copy"
-                          onClick={() => setHistoryText(null)}
-                        >
-                          <X size={16} />
-                        </InkButton>
-                      </div>
-                      <pre>{historyText}</pre>
-                    </section>
-                  )}
-                </>
-              )}
-            </div>
-            <>
-              <aside
-                className="vault-side-pane"
-                hidden={!prefs.pane}
-                aria-label={
-                  prefs.pane === "learning"
-                    ? "Learning selection"
-                    : "Note details"
-                }
-              >
-                <div className="vault-pane-title">
-                  <h2>
-                    {prefs.pane === "learning"
-                      ? "Learn from your notes"
-                      : "Note details"}
-                  </h2>
-                  <InkButton
-                    className="icon-button"
-                    aria-label="Close side panel"
-                    onClick={() => changePrefs({ pane: null })}
-                  >
-                    <X size={16} />
-                  </InkButton>
-                </div>
-                <div hidden={prefs.pane !== "learning"}>
-                  <VaultLearningPanel
-                    key={vaultId}
-                    vaultId={vaultId}
-                    selectedPaths={selected}
-                    notebooks={notebooks}
-                    currentNotebook={destination || currentNotebook}
-                    pendingPaths={pendingPaths}
-                    onRemove={(path) =>
-                      changePrefs((previous) => ({
-                        ...previous,
-                        selected: previous.selected.filter((p) => p !== path),
-                      }))
-                    }
-                    onClear={() => changePrefs({ selected: [] })}
-                    onImported={imported}
-                    onDraftSummary={summarize}
-                    generating={!!generating}
-                  />
-                  {generating?.vaultId === vaultId && (
-                    <InkButton
-                      className="button small"
-                      onClick={() =>
-                        void run("Cancelling generation", async () => {
-                          await request(
-                            `/notebooks/${generating.notebookId}/cancel`,
-                            "POST",
-                          );
-                        })
-                      }
-                    >
-                      Cancel draft generation
-                    </InkButton>
-                  )}
-                  {lastImport && (
-                    <div className="vault-next-learning">
-                      <h3>{lastImport.title}</h3>
-                      <p>Your selected notes are saved as learning sources.</p>
-                      <InkButton
-                        className="button primary"
-                        onClick={() =>
-                          void onOpenNotebook(lastImport.notebookId, "sources")
-                        }
-                      >
-                        Open notebook <ArrowRight size={15} />
-                      </InkButton>
-                      <div>
-                        <InkButton
-                          className="text-action"
-                          onClick={() =>
-                            void onOpenNotebook(lastImport.notebookId, "chat")
-                          }
-                        >
-                          Ask your sources
-                        </InkButton>
-                        <InkButton
-                          className="text-action"
-                          onClick={() =>
-                            void onOpenNotebook(
-                              lastImport.notebookId,
-                              "flashcards",
-                            )
-                          }
-                        >
-                          Flashcards
-                        </InkButton>
-                        <InkButton
-                          className="text-action"
-                          onClick={() =>
-                            void onOpenNotebook(lastImport.notebookId, "studio")
-                          }
-                        >
-                          Audio overview
-                        </InkButton>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {prefs.pane === "context" &&
-                  (!editor ? (
-                    <p className="muted">
-                      Open a note to see its outline, properties and
-                      connections.
-                    </p>
-                  ) : (
-                    <div className="vault-note-details">
-                      <section>
-                        <h3>Outline</h3>
-                        {!inspection?.headings.length ? (
-                          <p>No headings in this note.</p>
-                        ) : (
-                          inspection.headings.map((heading, i) => (
+                          <InkButton
+                            className="button small"
+                            disabled={!!busy}
+                            onClick={() => void inspectDrift()}
+                          >
+                            Check source changes
+                          </InkButton>
+                        </div>
+                        {drift.length > 0 && (
+                          <p>
+                            {drift.filter((item) => item.status !== "unchanged")
+                              .length
+                              ? `${drift.filter((item) => item.status !== "unchanged").length} source notes have changed or become unavailable since generation. The original snapshots are retained below.`
+                              : "All source notes still match the versions used for this draft."}
+                          </p>
+                        )}
+                        {reviewSource !== null && (
+                          <div className="vault-source-review">
+                            <div>
+                              {generated.sources.map((source, i) => (
+                                <InkButton
+                                  key={source.path}
+                                  className={`button small ${reviewSource === i ? "active" : ""}`}
+                                  onClick={() => setReviewSource(i)}
+                                >
+                                  [{i + 1}] {basename(source.path)}
+                                </InkButton>
+                              ))}
+                            </div>
+                            <p>
+                              {generated.sources[reviewSource]?.path}
+                              <small>
+                                Original snapshot ·{" "}
+                                {generated.sources[
+                                  reviewSource
+                                ]?.revision.slice(0, 12)}
+                              </small>
+                            </p>
+                            <pre>{generated.sources[reviewSource]?.text}</pre>
                             <InkButton
                               className="text-action"
-                              key={`${heading.id}-${i}`}
-                              style={{
-                                paddingInlineStart:
-                                  Math.min(heading.level - 1, 3) * 10 + 6,
-                              }}
-                              onClick={() => {
-                                if (prefs.mode === "edit")
-                                  editorRef.current?.goToLine(heading.line);
-                                else setAnchor(heading.id);
-                              }}
+                              onClick={() =>
+                                void openNote(
+                                  generated.sources[reviewSource].path,
+                                )
+                              }
                             >
-                              {heading.text}
+                              Open current vault note <ArrowRight size={14} />
                             </InkButton>
-                          ))
-                        )}
-                      </section>
-                      <section>
-                        <h3>Properties</h3>
-                        {!Object.keys(inspection?.properties || {}).length ? (
-                          <p>No frontmatter properties.</p>
-                        ) : (
-                          <dl>
-                            {Object.entries(inspection!.properties).map(
-                              ([key, value]) => (
-                                <div key={key}>
-                                  <dt>{key}</dt>
-                                  <dd>
-                                    {typeof value === "string"
-                                      ? value
-                                      : JSON.stringify(value)}
-                                  </dd>
-                                </div>
-                              ),
-                            )}
-                          </dl>
-                        )}
-                        {!!inspection?.tags.length && (
-                          <div className="vault-note-tags">
-                            {inspection.tags.map((tag) => (
-                              <InkButton
-                                key={tag}
-                                className="text-action"
-                                onClick={() => {
-                                  setSearch(tag);
-                                  setView("notes");
-                                  setNavigatorOpen(true);
-                                }}
-                              >
-                                #{tag}
-                              </InkButton>
-                            ))}
                           </div>
                         )}
                       </section>
-                      <section>
-                        <h3>Links in this note</h3>
-                        {!inspection?.links.length ? (
-                          <p>No note links.</p>
-                        ) : (
-                          inspection.links.slice(0, 80).map((link, i) => {
-                            const resolved = resolveLink(
-                              link.target,
-                              editor.path,
-                              link.format,
-                            );
-                            return (
-                              <div className="vault-detail-link" key={i}>
-                                {resolved.kind === "note" ? (
-                                  <InkButton
-                                    className="text-action"
-                                    onClick={() =>
-                                      void openNote(
-                                        resolved.path,
-                                        resolved.anchor,
-                                      )
-                                    }
-                                  >
-                                    {link.label || link.target}
-                                    <ArrowRight size={13} />
-                                  </InkButton>
-                                ) : (
-                                  <span>
-                                    {link.label || link.target}
-                                    <small>
-                                      {resolved.kind === "missing"
-                                        ? "Note not found"
-                                        : resolved.kind === "ambiguous"
-                                          ? "Multiple matching notes"
-                                          : resolved.kind === "asset"
-                                            ? "Attachment"
-                                            : "External link"}
-                                    </small>
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                      </section>
-                      <section>
-                        <h3>Backlinks</h3>
-                        {!context.backlinks.length ? (
-                          <p>No indexed notes link here.</p>
-                        ) : (
-                          context.backlinks.map((link, i) => (
+                    )}
+                    <div
+                      className="vault-writing-surface"
+                      ref={readingRef}
+                      tabIndex={-1}
+                      aria-label={
+                        prefs.mode === "read"
+                          ? "Note reading view"
+                          : "Note editing view"
+                      }
+                    >
+                      {prefs.mode === "read" && (
+                        <VaultMarkdown
+                          text={editor.text}
+                          notePath={editor.path}
+                          vaultId={vaultId}
+                          files={allFiles}
+                          anchor={anchor}
+                          onOpenNote={(path, anchor) =>
+                            void openNote(path, anchor)
+                          }
+                          onMissingNote={(path) =>
+                            void newNote(
+                              dirname(path),
+                              path.split("/").at(-1) || "Untitled.md",
+                            )
+                          }
+                        />
+                      )}
+                      {(editorLoaded || prefs.mode === "edit") && (
+                        <div hidden={prefs.mode !== "edit"}>
+                          <Suspense
+                            fallback={
+                              <p className="vault-loading" role="status">
+                                Opening the editor…
+                              </p>
+                            }
+                          >
+                            <VaultEditor
+                              ref={editorRef}
+                              documentKey={`${vaultId}:${editor.path}`}
+                              value={editor.text}
+                              onChange={(text) => {
+                                // CodeMirror may deliver its final transaction after
+                                // a parent render. Read the current editor from the
+                                // ref so that transaction is retained while Save is
+                                // in flight, but ignore a callback belonging to a
+                                // document that has already been replaced.
+                                const current = latest.current.editor;
+                                if (
+                                  latest.current.vaultId === vaultId &&
+                                  current?.path === editor.path
+                                )
+                                  remember({ ...current, text });
+                              }}
+                              onSave={() => void save()}
+                              files={files}
+                              readOnly={!!busy || navigationPending}
+                              autofocus
+                            />
+                          </Suspense>
+                        </div>
+                      )}
+                    </div>
+                    <footer className="vault-note-footer">
+                      <span>
+                        {editor.text.trim()
+                          ? editor.text.trim().split(/\s+/).length
+                          : 0}{" "}
+                        words ·{" "}
+                        {dirty
+                          ? repository.status(vaultId, editor.path) === "saved"
+                            ? "Draft kept in LMBook"
+                            : "Keeping draft…"
+                          : "Saved in vault"}
+                      </span>
+                      <div>
+                        <InkButton
+                          className="text-action"
+                          aria-pressed={selected.includes(editor.path)}
+                          onClick={() => toggleSelected(editor.path)}
+                          disabled={!editor.base}
+                        >
+                          {selected.includes(editor.path) ? (
+                            <Check size={14} />
+                          ) : (
+                            <Plus size={14} />
+                          )}{" "}
+                          {selected.includes(editor.path)
+                            ? "Selected for learning"
+                            : "Select for learning"}
+                        </InkButton>
+                        <details className="vault-note-more">
+                          <summary>More actions</summary>
+                          <div>
                             <InkButton
-                              key={`${link.path}-${i}`}
                               className="text-action"
-                              onClick={() => void openNote(link.path)}
+                              onClick={() => void copyCurrent()}
                             >
-                              {basename(link.path)}
-                              <small>
-                                {dirname(link.path) || "Vault root"}
-                              </small>
+                              <Copy size={14} /> Duplicate as a draft
+                            </InkButton>
+                            <InkButton
+                              className="text-action"
+                              onClick={() => void copyNoteText()}
+                            >
+                              <Copy size={14} /> Copy note text
+                            </InkButton>
+                            <InkButton
+                              className="text-action"
+                              disabled={!editor.base}
+                              onClick={() =>
+                                void run("Opening Obsidian", async () => {
+                                  await window.sennibookDesktop?.openVaultInObsidian(
+                                    vaultId,
+                                    editor.path,
+                                  );
+                                })
+                              }
+                            >
+                              <ExternalLink size={14} /> Open in Obsidian
+                            </InkButton>
+                            <InkButton
+                              className="text-action"
+                              disabled={!editor.base}
+                              onClick={() =>
+                                void run("Showing file", async () => {
+                                  await window.sennibookDesktop?.revealVaultNote(
+                                    vaultId,
+                                    editor.path,
+                                  );
+                                })
+                              }
+                            >
+                              <FolderOpen size={14} /> Show in folder
+                            </InkButton>
+                            <InkButton
+                              className="text-action"
+                              onClick={() =>
+                                void run("Copying path", async () => {
+                                  await navigator.clipboard.writeText(
+                                    vault!.root + "/" + editor.path,
+                                  );
+                                  setNotice("File path copied.");
+                                })
+                              }
+                            >
+                              Copy file path
+                            </InkButton>
+                            <InkButton
+                              className="text-action"
+                              disabled={!editor.base}
+                              onClick={() =>
+                                void run("Reading save history", async () =>
+                                  setHistory(
+                                    await request<Recovery[]>(
+                                      `/vaults/${vaultId}/history?path=${encodeURIComponent(editor.path)}`,
+                                    ),
+                                  ),
+                                )
+                              }
+                            >
+                              <History size={14} /> Save history
+                            </InkButton>
+                            <InkButton
+                              className="text-action"
+                              disabled={!dirty}
+                              onClick={() => void discard()}
+                            >
+                              Discard unfinished edit
+                            </InkButton>
+                          </div>
+                        </details>
+                      </div>
+                    </footer>
+                    {history && (
+                      <section className="vault-history">
+                        <div>
+                          <h3>Save history</h3>
+                          <InkButton
+                            className="icon-button"
+                            aria-label="Close save history"
+                            onClick={() => {
+                              setHistory(null);
+                              setHistoryText(null);
+                            }}
+                          >
+                            <X size={16} />
+                          </InkButton>
+                        </div>
+                        {!history.length ? (
+                          <p>
+                            No earlier versions have been kept for this note
+                            yet.
+                          </p>
+                        ) : (
+                          history.map((item) => (
+                            <InkButton
+                              key={item.id}
+                              className="button small"
+                              onClick={() =>
+                                void run(
+                                  "Reading earlier version",
+                                  async () => {
+                                    const row = await request<{ text: string }>(
+                                      `/vaults/${vaultId}/history/${item.id}`,
+                                    );
+                                    setHistoryText(row.text);
+                                  },
+                                )
+                              }
+                            >
+                              {dateLabel(item.createdAt)} · {item.reason}
                             </InkButton>
                           ))
                         )}
                       </section>
-                    </div>
-                  ))}
-              </aside>
+                    )}
+                    {historyText !== null && (
+                      <section className="vault-history-preview">
+                        <div>
+                          <h3>Comparison copy</h3>
+                          <InkButton
+                            className="button small"
+                            onClick={() => void copyCurrent(historyText)}
+                          >
+                            Restore as a new draft
+                          </InkButton>
+                          <InkButton
+                            className="icon-button"
+                            aria-label="Close comparison copy"
+                            onClick={() => setHistoryText(null)}
+                          >
+                            <X size={16} />
+                          </InkButton>
+                        </div>
+                        <pre>{historyText}</pre>
+                      </section>
+                    )}
+                  </>
+                )}
+              </div>
+            </ResizableCard>
+            <>
+              {prefs.pane && panes.handle("right")}
+              {learningContent && (
+                <ResizableCard
+                  hidden={prefs.pane !== "learning" || selectionTools}
+                  storageKey={`lmbook:card-height:${vaultId}:learning`}
+                  label="learning tools"
+                  className="workspace-card-learning"
+                  contentClassName="vault-side-pane notebook-learning-pane"
+                  defaultHeight={620}
+                  minHeight={260}
+                >
+                  <aside aria-label="Learning tools">{learningContent}</aside>
+                </ResizableCard>
+              )}
+              {prefs.pane &&
+                (!learningContent ||
+                  prefs.pane !== "learning" ||
+                  selectionTools) && (
+                  <ResizableCard
+                    storageKey={`lmbook:card-height:${vaultId}:details`}
+                    label="note details"
+                    className="workspace-card-details"
+                    contentClassName="vault-side-pane"
+                    defaultHeight={520}
+                    minHeight={220}
+                  >
+                    <aside
+                      aria-label={
+                        prefs.pane === "learning"
+                          ? "Learning selection"
+                          : "Note details"
+                      }
+                    >
+                      {learningContent && selectionTools && (
+                        <InkButton
+                          className="button small quiet"
+                          onClick={() => setSelectionTools(false)}
+                        >
+                          <ArrowLeft size={14} /> Back to learning tools
+                        </InkButton>
+                      )}
+                      <div className="vault-pane-title">
+                        <h2>
+                          {prefs.pane === "learning"
+                            ? "Learn from your notes"
+                            : "Note details"}
+                        </h2>
+                        <InkButton
+                          className="icon-button"
+                          aria-label="Close side panel"
+                          onClick={() => changePrefs({ pane: null })}
+                        >
+                          <X size={16} />
+                        </InkButton>
+                      </div>
+                      <div hidden={prefs.pane !== "learning"}>
+                        <VaultLearningPanel
+                          key={vaultId}
+                          vaultId={vaultId}
+                          selectedPaths={selected}
+                          notebooks={notebooks}
+                          currentNotebook={destination || currentNotebook}
+                          pendingPaths={pendingPaths}
+                          onRemove={(path) =>
+                            changePrefs((previous) => ({
+                              ...previous,
+                              selected: previous.selected.filter(
+                                (p) => p !== path,
+                              ),
+                            }))
+                          }
+                          onClear={() => changePrefs({ selected: [] })}
+                          onImported={imported}
+                          onDraftSummary={summarize}
+                          generating={!!generating}
+                        />
+                        {generating?.vaultId === vaultId && (
+                          <InkButton
+                            className="button small"
+                            onClick={() =>
+                              void run("Cancelling generation", async () => {
+                                await request(
+                                  `/notebooks/${generating.notebookId}/cancel`,
+                                  "POST",
+                                );
+                              })
+                            }
+                          >
+                            Cancel draft generation
+                          </InkButton>
+                        )}
+                        {lastImport && (
+                          <div className="vault-next-learning">
+                            <h3>{lastImport.title}</h3>
+                            <p>
+                              Your selected notes are saved as learning sources.
+                            </p>
+                            <InkButton
+                              className="button primary"
+                              onClick={() =>
+                                void onOpenNotebook(
+                                  lastImport.notebookId,
+                                  "sources",
+                                )
+                              }
+                            >
+                              Open notebook <ArrowRight size={15} />
+                            </InkButton>
+                            <div>
+                              <InkButton
+                                className="text-action"
+                                onClick={() =>
+                                  void onOpenNotebook(
+                                    lastImport.notebookId,
+                                    "chat",
+                                  )
+                                }
+                              >
+                                Ask your sources
+                              </InkButton>
+                              <InkButton
+                                className="text-action"
+                                onClick={() =>
+                                  void onOpenNotebook(
+                                    lastImport.notebookId,
+                                    "flashcards",
+                                  )
+                                }
+                              >
+                                Flashcards
+                              </InkButton>
+                              <InkButton
+                                className="text-action"
+                                onClick={() =>
+                                  void onOpenNotebook(
+                                    lastImport.notebookId,
+                                    "studio",
+                                  )
+                                }
+                              >
+                                Audio overview
+                              </InkButton>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {prefs.pane === "context" &&
+                        (!editor ? (
+                          <p className="muted">
+                            Open a note to see its outline, properties and
+                            connections.
+                          </p>
+                        ) : (
+                          <div className="vault-note-details">
+                            <section>
+                              <h3>Outline</h3>
+                              {!inspection?.headings.length ? (
+                                <p>No headings in this note.</p>
+                              ) : (
+                                inspection.headings.map((heading, i) => (
+                                  <InkButton
+                                    className="text-action"
+                                    key={`${heading.id}-${i}`}
+                                    style={{
+                                      paddingInlineStart:
+                                        Math.min(heading.level - 1, 3) * 10 + 6,
+                                    }}
+                                    onClick={() => {
+                                      if (prefs.mode === "edit")
+                                        editorRef.current?.goToLine(
+                                          heading.line,
+                                        );
+                                      else setAnchor(heading.id);
+                                    }}
+                                  >
+                                    {heading.text}
+                                  </InkButton>
+                                ))
+                              )}
+                            </section>
+                            <section>
+                              <h3>Properties</h3>
+                              {!Object.keys(inspection?.properties || {})
+                                .length ? (
+                                <p>No frontmatter properties.</p>
+                              ) : (
+                                <dl>
+                                  {Object.entries(inspection!.properties).map(
+                                    ([key, value]) => (
+                                      <div key={key}>
+                                        <dt>{key}</dt>
+                                        <dd>
+                                          {typeof value === "string"
+                                            ? value
+                                            : JSON.stringify(value)}
+                                        </dd>
+                                      </div>
+                                    ),
+                                  )}
+                                </dl>
+                              )}
+                              {!!inspection?.tags.length && (
+                                <div className="vault-note-tags">
+                                  {inspection.tags.map((tag) => (
+                                    <InkButton
+                                      key={tag}
+                                      className="text-action"
+                                      onClick={() => {
+                                        setSearch(tag);
+                                        setView("notes");
+                                        setNavigatorOpen(true);
+                                      }}
+                                    >
+                                      #{tag}
+                                    </InkButton>
+                                  ))}
+                                </div>
+                              )}
+                            </section>
+                            <section>
+                              <h3>Links in this note</h3>
+                              {!inspection?.links.length ? (
+                                <p>No note links.</p>
+                              ) : (
+                                inspection.links.slice(0, 80).map((link, i) => {
+                                  const resolved = resolveLink(
+                                    link.target,
+                                    editor.path,
+                                    link.format,
+                                  );
+                                  return (
+                                    <div className="vault-detail-link" key={i}>
+                                      {resolved.kind === "note" ? (
+                                        <InkButton
+                                          className="text-action"
+                                          onClick={() =>
+                                            void openNote(
+                                              resolved.path,
+                                              resolved.anchor,
+                                            )
+                                          }
+                                        >
+                                          {link.label || link.target}
+                                          <ArrowRight size={13} />
+                                        </InkButton>
+                                      ) : (
+                                        <span>
+                                          {link.label || link.target}
+                                          <small>
+                                            {resolved.kind === "missing"
+                                              ? "Note not found"
+                                              : resolved.kind === "ambiguous"
+                                                ? "Multiple matching notes"
+                                                : resolved.kind === "asset"
+                                                  ? "Attachment"
+                                                  : "External link"}
+                                          </small>
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </section>
+                            <section>
+                              <h3>Backlinks</h3>
+                              {!context.backlinks.length ? (
+                                <p>No indexed notes link here.</p>
+                              ) : (
+                                context.backlinks.map((link, i) => (
+                                  <InkButton
+                                    key={`${link.path}-${i}`}
+                                    className="text-action"
+                                    onClick={() => void openNote(link.path)}
+                                  >
+                                    {basename(link.path)}
+                                    <small>
+                                      {dirname(link.path) || "Vault root"}
+                                    </small>
+                                  </InkButton>
+                                ))
+                              )}
+                            </section>
+                          </div>
+                        ))}
+                    </aside>
+                  </ResizableCard>
+                )}
             </>
           </div>
           <VaultQuickSwitcher

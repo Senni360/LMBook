@@ -1,3 +1,4 @@
+import { MAX_NOTEBOOK_SOURCES } from "../shared/notebook-limits.ts";
 import { ZipArchive } from "archiver";
 import yauzl, { type Entry, type ZipFile } from "yauzl";
 import { randomUUID } from "node:crypto";
@@ -109,6 +110,7 @@ const sourceSchema = z
     extractionWarnings: z.array(z.string().max(2000)).max(100).optional(),
     attachment: sourceAttachmentSchema.optional(),
     vault: sourceVaultProvenanceSchema.optional(),
+    vaultOrigin: sourceVaultProvenanceSchema.optional(),
     ocr: ocrResultSchema.optional(),
     ocrCandidate: z.boolean().optional(),
     transcript: transcriptSchema.optional(),
@@ -178,7 +180,7 @@ const episodeSchema = z
     title: z.string().min(1).max(180),
     createdAt: z.string().max(100),
     settings: savedEpisodeSettingsSchema,
-    sources: z.array(sourceSchema).max(150).optional(),
+    sources: z.array(sourceSchema).max(MAX_NOTEBOOK_SOURCES).optional(),
     objectives: z.array(objectiveSchema).max(150).optional(),
     previewFile: z.string().max(300).optional(),
     chapters: z.array(chapterSchema).max(100),
@@ -194,7 +196,7 @@ const messageSchema = z
     role: z.enum(["user", "assistant"]),
     text: z.string().max(30_000),
     evidence: z.array(evidenceSchema).max(100).optional(),
-    sources: z.array(sourceSchema).max(150).optional(),
+    sources: z.array(sourceSchema).max(MAX_NOTEBOOK_SOURCES).optional(),
   })
   .strict();
 const notebookSchema = z
@@ -206,7 +208,7 @@ const notebookSchema = z
     createdAt: z.string().max(100),
     updatedAt: z.string().max(100),
     settings: settingsSchema,
-    sources: z.array(sourceSchema).max(150),
+    sources: z.array(sourceSchema).max(MAX_NOTEBOOK_SOURCES),
     objectives: z.array(objectiveSchema).max(150),
     coverage: z.array(coverageSchema).max(300),
     episodes: z.array(episodeSchema).max(100),
@@ -620,7 +622,7 @@ export function createNotebookBundle(
         manifestText = v2Text;
       else {
         const snapshots = encodeSourceSnapshots(validated, {
-          validateSources: (raw) => z.array(sourceSchema).max(150).parse(raw),
+          validateSources: (raw) => z.array(sourceSchema).max(MAX_NOTEBOOK_SOURCES).parse(raw),
         });
         const sourceSnapshotBytes = snapshots.entries.reduce(
           (sum, entry) => sum + entry.size,
@@ -1310,7 +1312,7 @@ export async function importNotebookBundle(
       const expanded = decodeSourceSnapshots(
         manifest.notebook,
         snapshotInputs,
-        (raw) => z.array(sourceSchema).max(150).parse(raw),
+        (raw) => z.array(sourceSchema).max(MAX_NOTEBOOK_SOURCES).parse(raw),
       );
       const parsed = notebookSchema.safeParse(expanded);
       if (!parsed.success)
