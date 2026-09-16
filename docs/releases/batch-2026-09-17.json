@@ -1,0 +1,189 @@
+{
+  "publishedAt": "2026-09-17",
+  "platform": "Windows x64",
+  "latest": "0.3.16",
+  "credentialScan": {
+    "packagedVersions": 8,
+    "trackedSourceFiles": 287,
+    "findings": 0,
+    "matchingInstallerPortablePayloads": true
+  },
+  "releases": [
+    {
+      "version": "0.3.9",
+      "sha": "f54e34489a22ff323241024c2029d3fa774c929b",
+      "url": "https://github.com/Senni360/LMBook/releases/tag/v0.3.9",
+      "assets": [
+        {
+          "name": "LMBook-Setup-0.3.9.exe",
+          "sha256": "1da743a7e1df1e5156f1ccdfb2df6de5535b0fbc135d117d233debea23a1cea6",
+          "size": 150741026
+        },
+        {
+          "name": "LMBook-0.3.9-portable.exe",
+          "sha256": "25b0d1375cac38a2fd77ee69a850284b7b44be46e40e54dd65ec1698cc74e7b1",
+          "size": 150523982
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "sha256": "16f6d20fcd91267e88f13cb3c60e429a0174b601a3a2543aaff74d218d51d69e",
+          "size": 181
+        }
+      ]
+    },
+    {
+      "version": "0.3.10",
+      "sha": "e367c9437b02fa925788af9c270a7aec0d82eb07",
+      "url": "https://github.com/Senni360/LMBook/releases/tag/v0.3.10",
+      "assets": [
+        {
+          "name": "LMBook-Setup-0.3.10.exe",
+          "sha256": "e4dddb15e1b29d942663d1cbb2415d9bcca6eec96c7f58397d473d6ffe0e8241",
+          "size": 150739869
+        },
+        {
+          "name": "LMBook-0.3.10-portable.exe",
+          "sha256": "7c531c68393a44108731b14a665f9a4b160525946febe12c2ecfc4bfa206b531",
+          "size": 150522847
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "sha256": "4a30a8b9a625a560f46d92a3dbdad8f0da4596ed299f2f7956fafe084fcc1f4d",
+          "size": 183
+        }
+      ]
+    },
+    {
+      "version": "0.3.11",
+      "sha": "abc6e87e5072e2397259c0e6e1f7f6d2371c41de",
+      "url": "https://github.com/Senni360/LMBook/releases/tag/v0.3.11",
+      "assets": [
+        {
+          "name": "LMBook-Setup-0.3.11.exe",
+          "sha256": "59bde3c02fdc8339b1aefdd87ec0cdb0b1f618d2ea2130ce9c9640138e6faf57",
+          "size": 150759269
+        },
+        {
+          "name": "LMBook-0.3.11-portable.exe",
+          "sha256": "84f3187e5f96c7abf000b3b6ae2a7d0e66f86deff97d03dc338bbfd658b1a826",
+          "size": 150542219
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "sha256": "06f7ff068aa6a50359e39661a96e9f584dadd3d980c67451db4e6b1644f6204c",
+          "size": 183
+        }
+      ]
+    },
+    {
+      "version": "0.3.12",
+      "sha": "c233815158d777af39feafea2302c6c07a6c0e9d",
+      "url": "https://github.com/Senni360/LMBook/releases/tag/v0.3.12",
+      "assets": [
+        {
+          "name": "LMBook-Setup-0.3.12.exe",
+          "sha256": "db83936f6244a62315e86f056978a2e87ee49af2bf32249a368f637ce536ef36",
+          "size": 151846240
+        },
+        {
+          "name": "LMBook-0.3.12-portable.exe",
+          "sha256": "c743ad4517d2b6c4503abba3b252e1de89913e88dabc73331326770c4ef5bf66",
+          "size": 151629262
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "sha256": "944388fdf7eaac01f65c23c63a23a435b059922e62fac39f02ec082d2ad2b9bf",
+          "size": 183
+        }
+      ]
+    },
+    {
+      "version": "0.3.13",
+      "sha": "bd38b819fe8491b7c2bfe0ff5a1e577c4283e240",
+      "url": "https://github.com/Senni360/LMBook/releases/tag/v0.3.13",
+      "assets": [
+        {
+          "name": "LMBook-Setup-0.3.13.exe",
+          "sha256": "a4abd40b2c2009d5bf7b238e725d14ef504023b4317edd6a01d9f838cccec3bf",
+          "size": 151777989
+        },
+        {
+          "name": "LMBook-0.3.13-portable.exe",
+          "sha256": "e07df368cb5bc403bd941b1b8195394630fc1644707fffe1536b506ecc0eba58",
+          "size": 151561002
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "sha256": "2603601b4d13a781e90084d2e5bf6ed9a7a36b00403f9c7d839b65e67e964412",
+          "size": 183
+        }
+      ]
+    },
+    {
+      "version": "0.3.14",
+      "sha": "3ab7df4cca20ee63d6b7317f619dbea943759175",
+      "url": "https://github.com/Senni360/LMBook/releases/tag/v0.3.14",
+      "assets": [
+        {
+          "name": "LMBook-Setup-0.3.14.exe",
+          "sha256": "074688d8dadb5baf84767deab568cdd2edf297c8cc075d9d81f8a84e153ddde7",
+          "size": 151778710
+        },
+        {
+          "name": "LMBook-0.3.14-portable.exe",
+          "sha256": "ad0ba3bfdd5b624ab5a195fa8f16265d9e18ec37ee47293d2a2da5f0e44da6cc",
+          "size": 151561676
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "sha256": "2bd98c236274cfb7209a44b824ae84f4829f1a7f76443d93ffa4445d745695fb",
+          "size": 183
+        }
+      ]
+    },
+    {
+      "version": "0.3.15",
+      "sha": "f1d98224026e9f08b67bed25b234738685f1365b",
+      "url": "https://github.com/Senni360/LMBook/releases/tag/v0.3.15",
+      "assets": [
+        {
+          "name": "LMBook-Setup-0.3.15.exe",
+          "sha256": "734e3e6d24130f6143e7eba7ad6678bf93639dbcecbadc5233561b712dfe84cf",
+          "size": 151812934
+        },
+        {
+          "name": "LMBook-0.3.15-portable.exe",
+          "sha256": "ced5d9664458bd5ec6b90e5666ed7eb80da3050d5e519fde65c6f2a48777444c",
+          "size": 151595896
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "sha256": "90759d8f32b8b619353f1a4c037d20eac6e58906f67fea902e29651dce392d92",
+          "size": 183
+        }
+      ]
+    },
+    {
+      "version": "0.3.16",
+      "sha": "e28e53e7acc0611ffe3bb4eb52fc3a2ad0653bd4",
+      "url": "https://github.com/Senni360/LMBook/releases/tag/v0.3.16",
+      "assets": [
+        {
+          "name": "LMBook-Setup-0.3.16.exe",
+          "sha256": "370fca7e6654bb5df884cfc0dc44646672b121ef032d28b9ff8e006ea9956a5b",
+          "size": 151815238
+        },
+        {
+          "name": "LMBook-0.3.16-portable.exe",
+          "sha256": "5daa0ef95953bbc6d7d30706c4e66feaf1f6482847b1ecc409bb81e5b61597a2",
+          "size": 151598206
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "sha256": "dafac4cca7b993a26ff1265ab4aa95fdd22bb3898ab548b8856cfb2a40c34528",
+          "size": 183
+        }
+      ]
+    }
+  ]
+}

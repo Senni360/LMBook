@@ -1,6 +1,6 @@
 # LMBook roadmap
 
-- Local 0.3.16 verifies Jev with the owner-provided key and separates flashcard evidence from recall quality. Low-confidence or inconsistent decisions need review; source verification is unchanged. [Live findings and remaining limits](docs/research/jev-live-evaluation.md). No 0.4 approval.
+- Published Windows 0.3.16 verifies Jev with the owner-provided key and separates flashcard evidence from recall quality. Low-confidence or inconsistent decisions need review; source verification is unchanged. [Live findings and remaining limits](docs/research/jev-live-evaluation.md). No 0.4 approval. Versions 0.3.9–0.3.16 are published with Windows installer/portable downloads; Mac downloads are not part of this batch.
 
 - **Local Windows 0.3.15:** opt-in Luna note connections with three control modes, notifications and undo; TypeSafe Jev settings, selected notebook checks and optional search ranking; persisted vertical card resizing. [Behavior and evidence](docs/ui/background-assistant.md). Actual Jev quality requires the owner's key and evaluation; all ten broader workflows are not complete. This is not 0.4 approval.
 
