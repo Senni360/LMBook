@@ -18,6 +18,7 @@ import {
   type JevEvaluateResponse,
   type JevDecision,
   type JevConnectionStatus,
+  type JevChoiceConsistency,
 } from "../shared/jev.ts";
 
 const credentialFile = path.join(dataDir, "jev-credentials.json");
@@ -245,9 +246,33 @@ export async function decideWithJev(
           choice: answer.choice,
           confidence: answer.confidence,
           probabilities: answer.probabilities,
+          consistency: choiceConsistency(answer.choice, answer.probabilities),
         },
       ]),
     ),
+  };
+}
+
+function choiceConsistency(
+  providerChoice: string,
+  probabilities: Record<string, number>,
+): JevChoiceConsistency {
+  const ranked = Object.entries(probabilities).sort((a, b) => b[1] - a[1]);
+  const argmaxChoice = ranked[0]?.[0] || providerChoice;
+  const chosenProbability = probabilities[providerChoice] ?? 0;
+  const maximumProbability = ranked[0]?.[1] || 0;
+  const probabilityGap = Math.max(
+    0,
+    (ranked[0]?.[1] || 0) - (ranked[1]?.[1] || 0),
+  );
+  return {
+    argmaxChoice,
+    // Several labels may share the maximum; any tied maximum is consistent.
+    matchesArgmax: chosenProbability >= maximumProbability - 1e-9,
+    probabilityGap,
+    ...(chosenProbability >= maximumProbability - 1e-9
+      ? {}
+      : { warning: "provider-choice-differs-from-argmax" as const }),
   };
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClipboardCheck, ChevronDown } from "lucide-react";
 import { InkButton, InkInput, InkSelect } from "./InkControl";
 import { ResizableCard } from "./ResizableCard";
@@ -35,35 +35,61 @@ export function JevNotebookChecks({ notebookId }: { notebookId: string }) {
   >("explanation");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const readRevision = useRef(0);
+  const mutations = useRef(0);
+  const beginMutation = () => {
+    mutations.current++;
+    readRevision.current++;
+  };
+  const endMutation = () => {
+    mutations.current--;
+    readRevision.current++;
+  };
   const working = busy || Boolean(state?.active);
-  const read = async () =>
-    setState(
-      await aiApi<NotebookState>(`/notebooks/${notebookId}/jev-notebook`),
+  const read = async () => {
+    const revision = ++readRevision.current;
+    const next = await aiApi<NotebookState>(
+      `/notebooks/${notebookId}/jev-notebook`,
     );
+    if (revision === readRevision.current && mutations.current === 0)
+      setState(next);
+  };
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
     const poll = async () => {
+      const revision = ++readRevision.current;
+      let running = false;
       try {
         const next = await aiApi<NotebookState>(
           `/notebooks/${notebookId}/jev-notebook`,
         );
-        if (!cancelled) setState(next);
-        if (!cancelled && (next.active || open))
-          timer = setTimeout(poll, next.active ? 1500 : 8000);
+        running = Boolean(next.active);
+        if (
+          !cancelled &&
+          revision === readRevision.current &&
+          mutations.current === 0
+        )
+          setState(next);
       } catch (e) {
-        if (!cancelled) setError((e as Error).message);
+        if (
+          !cancelled &&
+          revision === readRevision.current &&
+          mutations.current === 0
+        )
+          setError((e as Error).message);
+      } finally {
+        if (!cancelled && (running || open))
+          timer = setTimeout(poll, running ? 1500 : 8000);
       }
     };
     void poll();
     return () => {
       cancelled = true;
+      readRevision.current++;
       if (timer) clearTimeout(timer);
     };
   }, [notebookId, open]);
-  useEffect(() => {
-    if (open) void read().catch((e) => setError((e as Error).message));
-  }, [open, notebookId]);
   const toggle = (id: string) =>
     setSelected((v) =>
       v.includes(id)
@@ -82,6 +108,7 @@ export function JevNotebookChecks({ notebookId }: { notebookId: string }) {
     if (selectedChecks.includes("chatQuestion") && !question.trim())
       return setError("Add a question for this check.");
     setBusy(true);
+    beginMutation();
     setError("");
     try {
       const report = await aiApi<NotebookReport>(
@@ -110,17 +137,20 @@ export function JevNotebookChecks({ notebookId }: { notebookId: string }) {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      endMutation();
       setBusy(false);
     }
   };
   const cancel = async () => {
+    beginMutation();
     try {
       await aiApi(`/notebooks/${notebookId}/jev-notebook/cancel`, "POST");
-      await read();
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      endMutation();
       setBusy(false);
+      void read().catch((e) => setError((e as Error).message));
     }
   };
   const feedback = async (
@@ -129,6 +159,7 @@ export function JevNotebookChecks({ notebookId }: { notebookId: string }) {
     value: "helpful" | "not-helpful",
   ) => {
     setFeedbackBusy(itemId);
+    beginMutation();
     setError("");
     try {
       await aiApi(`/notebooks/${notebookId}/jev-notebook/feedback`, "POST", {
@@ -150,6 +181,7 @@ export function JevNotebookChecks({ notebookId }: { notebookId: string }) {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      endMutation();
       setFeedbackBusy("");
     }
   };
@@ -392,8 +424,37 @@ function Report({
               {item.status}
             </span>
           </div>
-          <p className="jev-result-label">{item.label}</p>
+          <p className="jev-result-label">
+            {item.dimension === "evidence"
+              ? "Source support · "
+              : item.dimension === "recall"
+                ? "Recall design · "
+                : ""}
+            {item.status === "unresolved" ? "Needs review" : item.label}
+          </p>
+          {item.status === "unresolved" && (
+            <p>
+              Jev suggested “{item.label}”, but this result is uncertain. Check
+              the excerpts before relying on it.
+            </p>
+          )}
           <p>{item.detail}</p>
+          <details>
+            <summary>Model estimates</summary>
+            <p>{item.confidenceNote}</p>
+            {item.probabilities && (
+              <ul>
+                {Object.entries(item.probabilities).map(
+                  ([label, probability]) => (
+                    <li key={label}>
+                      {label.replaceAll("-", " ")}:{" "}
+                      {Math.round(probability * 100)}%
+                    </li>
+                  ),
+                )}
+              </ul>
+            )}
+          </details>
           <details>
             <summary>Examined excerpts ({evidenceFor(item).length})</summary>
             {evidenceFor(item).map((e) => (

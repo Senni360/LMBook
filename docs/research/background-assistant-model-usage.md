@@ -73,7 +73,7 @@ These are deferrals unless explicitly described as a poor fit; they are not perm
 | Qwen3.5-0.8B | Newer multimodal option; larger advertised capability does not establish better small Dutch extraction. Needs task-specific comparison. |
 | SmolLM3 3B | More local resources for a general assistant; no current task requires this additional model. |
 | FunctionGemma | Task-specific specialization/training is material work. Correctly formatted actions do not prove correct decisions. |
-| TypeSafe Jev | Now integrated under the owner's newer API-access decision; see the current delivery table. Live inference is still pending connection of the actual key. |
+| TypeSafe Jev | Now integrated under the owner's newer API-access decision; see the current delivery table. Live inference is now evaluated; see the 2026-09-17 update below. |
 | Moonshine | Possible live/CPU transcription benefit; no replacement decision before comparing Dutch terminology, numbers and timestamps with the existing worker. |
 | Picovoice Leopard / Cheetah | Alternative transcription adds commercial/runtime considerations without a demonstrated current advantage. |
 | WhisperX | Existing word timestamps cover basic seeking. Add forced alignment only when an observed timing problem justifies the extra dependencies. |
@@ -91,3 +91,10 @@ These are deferrals unless explicitly described as a poor fit; they are not perm
 For each model actually tried, record the exact checkpoint and revision, runtime/device, download versus execution versus shipped status, the concrete task, observed benefit/failure and why it was retained or removed. A model tested and rejected belongs in the used/evaluated section as well as the final decision, not silently in never-used. Include actual usage/cost observations where available; do not estimate savings as though they were measured.
 
 At delivery, explain the selected combination in plain language, then list unused alternatives and the specific reason each was unnecessary, unsuitable, superseded or still unverified. Distinguish this deliverable's status from historical model use elsewhere in LMBook. No model's agreement or confidence counts as proof of source correctness or learning effectiveness.
+
+
+## Live Jev update — 2026-09-17
+
+**Actually used:** TypeSafe `jev-1.13.0`, returned by `jev-latest`, through the direct TypeSafe API with the owner-provided saved key. It evaluated synthetic English/Dutch/German source roles, relationships, learning support, question answerability, vocabulary fidelity, recall quality, proposed links and search ranking. Sixty-eight measured evaluation requests used 105,921 reported input tokens; authentication and desktop UI calls are additional. [Full evidence, failures, changes and pricing caveats](jev-live-evaluation.md). The desktop application also completed real authentication and notebook review.
+
+**Not used in this evaluation:** Luna/Codex, OpenRouter models and local E5/OCR/transcription models. This task isolated Jev's contribution and did not need new generation, indexing or extraction. Existing integrations remain available. No local Jev model was installed, and no owner vault content was sent. Other shortlisted models were not added because they do not resolve the observed Choice-rubric or uncertainty-handling problems.

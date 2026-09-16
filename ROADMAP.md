@@ -1,5 +1,7 @@
 # LMBook roadmap
 
+- Local 0.3.16 verifies Jev with the owner-provided key and separates flashcard evidence from recall quality. Low-confidence or inconsistent decisions need review; source verification is unchanged. [Live findings and remaining limits](docs/research/jev-live-evaluation.md). No 0.4 approval.
+
 - **Local Windows 0.3.15:** opt-in Luna note connections with three control modes, notifications and undo; TypeSafe Jev settings, selected notebook checks and optional search ranking; persisted vertical card resizing. [Behavior and evidence](docs/ui/background-assistant.md). Actual Jev quality requires the owner's key and evaluation; all ten broader workflows are not complete. This is not 0.4 approval.
 
 - **Local Windows 0.3.14:** pre-0.4 audit fixes Trash/workspace identity, source-import capacity, omitted sync warnings and narrow-pane controls. [Release notes](docs/releases/0.3.14.md) and [tested workflows / remaining checks](docs/audits/0.4-release-readiness.md). Owner approval for 0.4 remains pending.

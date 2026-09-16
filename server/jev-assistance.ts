@@ -3,12 +3,17 @@ import { db, getNotebook } from "./store.ts";
 import { decideWithJev, jevAvailable, jevSettings } from "./jev.ts";
 import type { VaultSemanticSearchResponse } from "../shared/vault-semantic.ts";
 import type { BackgroundAssistantProposal } from "../shared/background-assistant.ts";
+import type { JevChoiceConsistency } from "../shared/jev.ts";
 
 export type ConnectionJudgment = {
   verdict: "supported" | "uncertain" | "unsupported" | "unavailable";
   confidence: number | null;
   checkedAt: string;
   message: string;
+  /** Raw provider result retained alongside the safety interpretation. */
+  rawChoice?: string;
+  probabilities?: Record<string, number>;
+  consistency?: JevChoiceConsistency;
 };
 db.exec(`CREATE TABLE IF NOT EXISTS jev_connection_checks (
  proposal_id TEXT PRIMARY KEY, notebook_id TEXT NOT NULL, fingerprint TEXT NOT NULL, body TEXT NOT NULL
@@ -82,16 +87,25 @@ export async function checkConnection(
       signal,
     );
     const answer = response.choices.support;
+    const inconsistent = answer.consistency?.matchesArgmax === false;
     result = {
-      verdict: answer.choice as ConnectionJudgment["verdict"],
+      // Keep the provider choice in the evidence, but gate an automatic link
+      // action when its probability distribution disagrees with that choice.
+      verdict: inconsistent
+        ? "uncertain"
+        : (answer.choice as ConnectionJudgment["verdict"]),
       confidence: answer.confidence,
       checkedAt: new Date().toISOString(),
-      message:
-        answer.choice === "supported"
+      message: inconsistent
+        ? "Jev's selected connection decision conflicts with its probability distribution; review this link manually."
+        : answer.choice === "supported"
           ? "Jev considers this connection supported by the quoted passages."
           : answer.choice === "unsupported"
             ? "Jev flagged a possible mismatch with the quoted passages."
             : "Jev could not establish this connection from the quoted passages.",
+      rawChoice: answer.choice,
+      probabilities: answer.probabilities,
+      ...(answer.consistency ? { consistency: answer.consistency } : {}),
     };
   } catch (e) {
     if (signal?.aborted) throw e;
@@ -170,6 +184,17 @@ export async function rankSearch(
           ? AbortSignal.any([signal, AbortSignal.timeout(5000)])
           : AbortSignal.timeout(5000),
       );
+      if (
+        Object.values(result.choices).some(
+          (choice) => choice.consistency?.matchesArgmax === false,
+        )
+      ) {
+        return {
+          ...response,
+          rankingNotice:
+            "Jev ranking was inconsistent with its probability distributions; showing the original search order.",
+        };
+      }
       order = {
         expires: Date.now() + 5 * 60_000,
         order: candidates

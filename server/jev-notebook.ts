@@ -119,6 +119,7 @@ type Task = {
   kind: NotebookCheckKind;
   subject: string;
   sourceIds: string[];
+  dimension?: "evidence" | "recall";
   question: JevChoiceQuestion;
 };
 
@@ -278,7 +279,7 @@ export function registerJevNotebookRoutes(app: Express) {
           subject: run.chatQuestion,
           sourceIds: sources.map((s) => s.id),
           question: choice(
-            `Can the selected excerpts answer ${JSON.stringify(run.chatQuestion)}?`,
+            `Can the selected excerpts answer ${JSON.stringify(run.chatQuestion)}? An explicitly supported negative answer counts as answerable: a study's stated limits can answer whether it proves a broader claim. Do not confuse this with knowing the outcome of an unmeasured experiment.`,
             {
               answerable: "The passages directly provide sufficient evidence.",
               "partially-answerable":
@@ -288,27 +289,44 @@ export function registerJevNotebookRoutes(app: Express) {
           ),
         });
       if (deck)
-        cards.forEach((c) =>
+        cards.forEach((c) => {
           tasks.push({
-            id: c.id,
+            id: `${c.id}_evidence`,
             kind: "flashcardQuality",
+            dimension: "evidence",
             subject: `${c.front} → ${c.back}`,
             sourceIds: sources.map((s) => s.id),
             question: choice(
-              `Review only ${c.id} in the cards array against selected source passages. Check the question and answer together. Supplied vocabulary translations are authoritative; no substitute translations. A generated translation is not source-supported merely because it is plausible.`,
+              `Check the factual support of only ${c.id} in the cards array against selected source passages. Check the question and answer together. Judge evidence separately from whether the front leaks the answer. Supplied vocabulary translations are authoritative; no substitute translations. A generated translation is not source-supported merely because it is plausible.`,
               {
                 supported:
-                  "This question/answer pair is clear and supported by the selected passages.",
-                ambiguous:
-                  "The prompt permits different answers or the evidence is unclear.",
-                "answer-leak":
-                  "The question itself reveals the answer in a way that defeats recall.",
+                  "The answer to this question is supported by the selected passages; for vocabulary the supplied pair is preserved exactly.",
+                uncertain:
+                  "Relevant evidence exists, but it does not resolve which answer is intended.",
                 unsupported:
                   "The excerpts do not support this pair; missing context may be responsible.",
               },
             ),
-          }),
-        );
+          });
+          tasks.push({
+            id: `${c.id}_recall`,
+            kind: "flashcardQuality",
+            dimension: "recall",
+            subject: `${c.front} → ${c.back}`,
+            sourceIds: sources.map((s) => s.id),
+            question: choice(
+              `Inspect the recall design of only ${c.id} in the cards array. Judge whether the front makes the learner retrieve a specific answer. This is independent of factual correctness or source support. If the front supplies the answer itself, choose answer-leak even when that answer is correct. Ordinary context, a topic name, or a translation prompt alone is not an answer leak.`,
+              {
+                clear:
+                  "The front asks for a specific answer without supplying that answer.",
+                "answer-leak":
+                  "The front itself supplies the requested answer, defeating recall.",
+                ambiguous:
+                  "The front permits multiple distinct answers without specifying which is wanted.",
+              },
+            ),
+          });
+        });
       if (!tasks.length)
         throw fail("Choose a check with enough sources or cards to compare.");
       const runId = randomUUID(),
@@ -390,6 +408,7 @@ export function registerJevNotebookRoutes(app: Express) {
             return {
               id: `${runId}-${t.id}`,
               kind: t.kind,
+              dimension: t.dimension,
               subject: t.subject.slice(0, 2200),
               label: a.choice.replaceAll("-", " "),
               detail:
@@ -401,15 +420,23 @@ export function registerJevNotebookRoutes(app: Express) {
                       ? `Support for ${run.format} in these excerpts; this does not measure your understanding.`
                       : t.kind === "chatQuestion"
                         ? "Answerability from the selected excerpts; outside material was not considered."
-                        : "Card quality against current selected sources; saved verification and translations remain unchanged.",
+                        : t.dimension === "recall"
+                          ? "Checks whether the prompt gives away its answer or permits several answers. Factual support is checked separately."
+                          : "Evidence for this card in current selected sources; saved verification and translations remain unchanged.",
               confidence: a.confidence,
               probabilities: a.probabilities,
-              confidenceNote: "Model confidence is not measured accuracy.",
+              confidenceNote:
+                a.consistency?.matchesArgmax === false
+                  ? "The provider's chosen answer differs from its highest probability. The original answer is preserved; this result needs review. Model confidence is not measured accuracy."
+                  : "Model confidence is not measured accuracy. Results below 60% are marked for review; this display threshold has not been calibrated against learner outcomes.",
               sourceIds: t.sourceIds,
               // Store each examined passage once per report; large batches may
               // reference the same source in dozens of separate decisions.
               excerpts: [],
-              status: "advisory",
+              status:
+                a.confidence < 0.6 || a.consistency?.matchesArgmax === false
+                  ? "unresolved"
+                  : "advisory",
             };
           }),
           feedback: {},

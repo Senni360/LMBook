@@ -65,6 +65,14 @@ export const jevEvaluateResponseSchema = z.object({
 });
 export type JevEvaluateResponse = z.infer<typeof jevEvaluateResponseSchema>;
 
+/** Metadata derived locally from a provider answer; the raw choice is retained. */
+export type JevChoiceConsistency = {
+  argmaxChoice: string;
+  matchesArgmax: boolean;
+  probabilityGap: number;
+  warning?: "provider-choice-differs-from-argmax";
+};
+
 export type JevDecision = {
   choices: Record<
     string,
@@ -72,6 +80,7 @@ export type JevDecision = {
       choice: string;
       confidence: number;
       probabilities: Record<string, number>;
+      consistency?: JevChoiceConsistency;
     }
   >;
   model: string;

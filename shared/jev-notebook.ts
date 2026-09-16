@@ -26,6 +26,7 @@ export type NotebookSource = z.infer<typeof notebookSourceSchema>;
 export const reportItemSchema = z.object({
   id: z.string(),
   kind: notebookCheckKindSchema,
+  dimension: z.enum(["evidence", "recall"]).optional(),
   label: z.string().max(240),
   subject: z.string().max(2200).optional(),
   probabilities: z.record(z.string(), z.number().min(0).max(1)).optional(),
