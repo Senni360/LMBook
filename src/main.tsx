@@ -1,3 +1,7 @@
+import { DesktopBar } from "./components/DesktopBar";
+import { InkTooltip } from "./components/InkTooltip";
+import { InkDialogHost, confirmInk } from "./components/InkDialog";
+import { InkAudio } from "./components/InkAudio";
 import {
   InkInput,
   InkTextarea,
@@ -103,6 +107,7 @@ import {
 } from "./components/Motion";
 import "./motion.css";
 import "./themes/ink.css";
+import "./themes/ink-controls.css";
 
 type Summary = {
   id: string;
@@ -532,7 +537,12 @@ function App() {
     if (n) await change(`/notebooks/${n.id}`, "PATCH", { settings });
   };
   return (
-    <div className="app">
+    <div className={`app ${window.sennibookDesktop ? "desktop-app" : ""}`}>
+      <DesktopBar
+        title={n?.title || "Your learning library"}
+        onNew={() => setCreateOpen(true)}
+        onSettings={openSettings}
+      />
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -1393,10 +1403,12 @@ function Sources({
                 disabled={disabled}
                 className="icon-button delete"
                 aria-label={`Remove ${s.title}`}
-                onClick={() => {
+                onClick={async () => {
                   if (
-                    confirm(
+                    await confirmInk(
                       `Remove “${s.title}” from this notebook? Existing episodes retain their saved source snapshots. The current coverage map will be cleared.`,
+                      "Remove source?",
+                      "Remove source",
                     )
                   )
                     void run("Removing source", () =>
@@ -2563,7 +2575,7 @@ function Studio({
             {e.previewFile && (
               <div className="audio-player">
                 <span>Voice preview · AI-generated speech</span>
-                <audio controls src={`/api/audio/${e.previewFile}`} />
+                <InkAudio controls src={`/api/audio/${e.previewFile}`} />
               </div>
             )}
             {c && (
@@ -2678,10 +2690,12 @@ function Studio({
                       </Button>
                       {script !== savedScript && (
                         <Button
-                          onClick={() => {
+                          onClick={async () => {
                             if (
-                              confirm(
-                                "Discard these unsaved transcript edits? Your saved transcript stays unchanged.",
+                              await confirmInk(
+                                "Your saved transcript stays unchanged. These unsaved edits will be removed.",
+                                "Discard transcript edits?",
+                                "Discard edits",
                               )
                             ) {
                               scriptDraft.discard();
@@ -3391,6 +3405,8 @@ createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <DownloadProvider>
       <App />
+      <InkDialogHost />
+      <InkTooltip />
     </DownloadProvider>
   </React.StrictMode>,
 );

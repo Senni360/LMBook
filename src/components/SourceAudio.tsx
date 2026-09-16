@@ -1,3 +1,4 @@
+import { InkAudio } from "./InkAudio";
 import { InkTextarea, InkSelect, InkButton } from "./InkControl";
 import { responseError } from "../response-error";
 import { canAnimate } from "./Motion";
@@ -414,7 +415,7 @@ export function SourceAudio({
         <span className="source-audio-local-mark">Local</span>
       </div>
 
-      <audio
+      <InkAudio
         key={source.id}
         ref={audioRef}
         className="source-audio-player"
@@ -433,7 +434,7 @@ export function SourceAudio({
         src={mediaUrl}
       >
         Your browser does not support audio playback.
-      </audio>
+      </InkAudio>
       {(audioError || playbackNotice) && (
         <div
           className="source-audio-player-recovery"

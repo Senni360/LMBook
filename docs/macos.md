@@ -10,7 +10,7 @@ The first Mac packages are ad-hoc signed, not Developer ID signed or Apple-notar
 
 Notebooks are stored in `~/Library/Application Support/LMBook/data`. A pre-existing SenniBook profile is reused. Settings shows the actual path. To move notebooks from Windows, use notebook export/import; copying a running database is not a migration method.
 
-The Mac app uses native window controls and an application menu with standard editing, hiding and window shortcuts. Closing a window hides it; the Dock icon reopens it. Command-Q goes through the active-job confirmation before shutdown. The Windows close/quit behavior remains unchanged.
+From 0.3.9, the Mac app uses Ink window controls on the left and retains the native application menu with standard editing, hiding and window shortcuts. Earlier 0.3.8 packages use native traffic lights. Closing a window hides it; the Dock icon reopens it. Command-Q goes through the active-job confirmation before shutdown. The Windows close/quit behavior remains unchanged.
 
 ## External tools
 
@@ -22,6 +22,8 @@ Optional local transcription uses `python3` on macOS; override with `LMBOOK_PYTH
 
 On a Mac: `npm ci`, then `npm run desktop:dist:mac -- --arm64 --publish never` (Apple Silicon) or `--x64` (Intel). CI uses native `macos-15` and `macos-15-intel` runners. Each architecture runs the existing application suite, builds DMG/ZIP, and launches the packaged executable for the existing sandbox, private-backend, persistence and restart check. PR builds upload downloadable artifacts without publishing a release; master publishes only after all three platforms and the combined artifact verification pass.
 
-The implementation is checked from Windows and on native CI; [PR #8](https://github.com/Senni360/LMBook/pull/8) records the delivery checks. First-launch Gatekeeper approval, real user hardware, Mac provider logins and local transcription have not yet been evaluated. Native CI results are recorded on the PR, separately from the Windows build.
+The initial 0.3.8 implementation was checked from Windows and on native CI; [PR #8](https://github.com/Senni360/LMBook/pull/8) records the delivery checks. First-launch Gatekeeper approval, real user hardware, Mac provider logins and local transcription have not yet been evaluated. Native CI results are recorded on the PR, separately from the Windows build.
 
 Sources: [electron-builder v26 macOS configuration](https://www.electron.build/v26/docs/mac/), [GitHub runner architectures](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [Electron application menus](https://www.electronjs.org/docs/latest/api/menu).
+
+The 0.3.9 custom window chrome has been checked locally on Windows. Native Mac execution and physical window gestures still need evaluation through the release matrix and on Mac hardware.

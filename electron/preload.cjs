@@ -11,6 +11,21 @@ contextBridge.exposeInMainWorld(
   "sennibookDesktop",
   Object.freeze({
     getInfo: () => ipcRenderer.invoke("desktop:info"),
+    windowState: () => ipcRenderer.invoke("desktop:window-state"),
+    windowAction: (action) =>
+      ipcRenderer.invoke("desktop:window-action", action),
+    quitResponse: (id, choice) =>
+      ipcRenderer.invoke("desktop:quit-response", id, choice),
+    onWindowState: (callback) => {
+      const listener = (_event, state) => callback(state);
+      ipcRenderer.on("desktop:window-state", listener);
+      return () => ipcRenderer.removeListener("desktop:window-state", listener);
+    },
+    onQuitRequest: (callback) => {
+      const listener = (_event, id) => callback(id);
+      ipcRenderer.on("desktop:quit-request", listener);
+      return () => ipcRenderer.removeListener("desktop:quit-request", listener);
+    },
     openDataFolder: () => ipcRenderer.invoke("desktop:open-data"),
     copyText: (text) => ipcRenderer.invoke("desktop:copy-text", text),
     download: (id, path, suggestedName) =>

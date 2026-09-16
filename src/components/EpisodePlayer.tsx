@@ -1,3 +1,4 @@
+import { InkAudio } from "./InkAudio";
 import { InkSelect, InkButton } from "./InkControl";
 import { PlaybackMark } from "./Motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -195,7 +196,14 @@ export function EpisodePlayer({
     const absoluteSource = activeSource
       ? new URL(activeSource, window.location.href).href
       : "";
-    if (sourceKeyRef.current === key && audio.src === absoluteSource) return;
+    // A development remount can clean up the pending metadata listener before
+    // loading finishes. Reattach it until restoration has actually completed.
+    if (
+      sourceKeyRef.current === key &&
+      audio.src === absoluteSource &&
+      !changingSource.current
+    )
+      return;
 
     continuePlayback.current ||= !audio.paused && !audio.ended;
     persistPosition(true);
@@ -324,7 +332,7 @@ export function EpisodePlayer({
         </label>
       </div>
       {hasAudio ? (
-        <audio
+        <InkAudio
           ref={audioRef}
           controls
           preload="metadata"

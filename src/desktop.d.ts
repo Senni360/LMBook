@@ -2,6 +2,25 @@ export {};
 declare global {
   interface Window {
     sennibookDesktop?: {
+      windowState(): Promise<DesktopWindowState>;
+      windowAction(
+        action:
+          | "minimize"
+          | "maximize"
+          | "close"
+          | "quit"
+          | "fullscreen"
+          | "zoom-in"
+          | "zoom-out"
+          | "zoom-reset"
+          | "data-folder",
+      ): Promise<void>;
+      onWindowState(callback: (state: DesktopWindowState) => void): () => void;
+      onQuitRequest(callback: (id: number) => void): () => void;
+      quitResponse(
+        id: number,
+        choice: "stay" | "background" | "quit",
+      ): Promise<void>;
       getInfo(): Promise<{
         version: string;
         platform: string;
@@ -27,5 +46,11 @@ declare global {
         }) => void,
       ): () => void;
     };
+  }
+  interface DesktopWindowState {
+    maximized: boolean;
+    fullscreen: boolean;
+    focused: boolean;
+    platform: string;
   }
 }

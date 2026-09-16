@@ -1,3 +1,4 @@
+import { confirmInk } from "./InkDialog";
 import { InkButton } from "./InkControl";
 import { MotionList } from "./Motion";
 import { useEffect, useRef, useState } from "react";
@@ -85,9 +86,11 @@ export function NotebookTrash({
     if (actionRef.current || disabled) return;
     if (
       permanent &&
-      !confirm(
+      !(await confirmInk(
         `Permanently delete “${entry.title}”? Its notes, episodes and files cannot be restored from Trash. Files used by other notebooks are kept.`,
-      )
+        "Permanently delete notebook?",
+        "Delete permanently",
+      ))
     )
       return;
     actionRef.current = true;

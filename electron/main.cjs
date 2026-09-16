@@ -81,6 +81,18 @@ let window, backend, tray, origin, poll, blocker, downloads;
 let quitting = false,
   closePrompt = false,
   activeJobs = 0;
+let resolveQuit;
+let quitRequestId = 0;
+let rendererReady = false;
+let rendererResponsive = true;
+function windowState() {
+  return {
+    maximized: window.isMaximized(),
+    fullscreen: window.isFullScreen(),
+    focused: window.isFocused(),
+    platform: process.platform,
+  };
+}
 const token = randomBytes(32).toString("hex");
 // Resolve assets relative to this entry point in both source and app.asar.
 // Electron's app path is the electron/ folder when a diagnostic launches this
@@ -103,6 +115,7 @@ function showWindow() {
 }
 async function requestQuit() {
   if (closePrompt || quitting) return;
+  closePrompt = true;
   if (origin && backend) {
     try {
       const response = await fetch(origin + "/api/status", {
@@ -113,22 +126,45 @@ async function requestQuit() {
     } catch {}
   }
   if (activeJobs) {
-    closePrompt = true;
-    const result = await dialog.showMessageBox(window, {
-      type: "question",
-      title: "Generation is still running",
-      message: "Keep your episode generation running?",
-      detail:
-        "You can leave LMBook in the system tray. Quitting cancels active work; completed chapters remain saved.",
-      buttons: [
-        "Keep working in background",
-        "Stay in LMBook",
-        "Cancel jobs and quit",
-      ],
-      defaultId: 0,
-      cancelId: 1,
-      noLink: true,
-    });
+    // Use the app's accessible dialog when its renderer can answer. A crashed
+    // renderer still needs an OS fallback so active work is never silently lost.
+    const result =
+      !window.isDestroyed() &&
+      rendererReady &&
+      rendererResponsive &&
+      !window.webContents.isCrashed() &&
+      !window.webContents.isLoadingMainFrame()
+        ? await new Promise((resolve) => {
+            const finish = (result) => {
+              window.webContents.removeListener("render-process-gone", cancel);
+              window.webContents.removeListener("did-start-navigation", cancel);
+              resolveQuit = undefined;
+              resolve(result);
+            };
+            const cancel = () => finish({ response: 1 });
+            resolveQuit = finish;
+            window.webContents.once("render-process-gone", cancel);
+            window.webContents.once("did-start-navigation", cancel);
+            showWindow();
+            window.webContents.send("desktop:quit-request", ++quitRequestId);
+          }).finally(() => {
+            resolveQuit = undefined;
+          })
+        : await dialog.showMessageBox(window, {
+            type: "question",
+            title: "Generation is still running",
+            message: "Keep your episode generation running?",
+            detail:
+              "You can leave LMBook in the system tray. Quitting cancels active work; completed chapters remain saved.",
+            buttons: [
+              "Keep working in background",
+              "Stay in LMBook",
+              "Cancel jobs and quit",
+            ],
+            defaultId: 0,
+            cancelId: 1,
+            noLink: true,
+          });
     closePrompt = false;
     if (result.response === 0) {
       window.hide();
@@ -136,6 +172,7 @@ async function requestQuit() {
     }
     if (result.response === 1) return;
   }
+  closePrompt = false;
   quitting = true;
   app.quit();
 }
@@ -268,18 +305,9 @@ async function setup() {
     minWidth: 700,
     minHeight: 560,
     autoHideMenuBar: true,
-    // macOS keeps its native title bar and traffic lights clear of notebook controls.
-    ...(process.platform === "win32"
-      ? {
-          titleBarStyle: "hidden",
-          titleBarOverlay: {
-            color: "#00000000",
-            symbolColor: "#223b34",
-            height: 44,
-          },
-        }
-      : {}),
-    backgroundColor: "#f5f6f2",
+    frame: false,
+    thickFrame: true,
+    backgroundColor: "#fbfbf9",
     show: false,
     icon: path.join(root, "electron", "icon.png"),
     webPreferences: {
@@ -338,6 +366,81 @@ async function setup() {
       configPath: path.join(userData, ".env"),
     };
   });
+  ipcMain.handle("desktop:window-state", (event) => {
+    verifySender(event);
+    rendererReady = true;
+    return windowState();
+  });
+  ipcMain.handle("desktop:quit-response", (event, id, choice) => {
+    verifySender(event);
+    if (!["stay", "background", "quit"].includes(choice))
+      throw new Error("Unknown quit choice.");
+    if (id !== quitRequestId) return;
+    resolveQuit?.({ response: { background: 0, stay: 1, quit: 2 }[choice] });
+    resolveQuit = undefined;
+  });
+  ipcMain.handle("desktop:window-action", (event, action) => {
+    verifySender(event);
+    switch (action) {
+      case "minimize":
+        window.minimize();
+        break;
+      case "maximize":
+        window.isMaximized() ? window.unmaximize() : window.maximize();
+        break;
+      case "fullscreen":
+        window.setFullScreen(!window.isFullScreen());
+        break;
+      case "close":
+        window.close();
+        break;
+      case "quit":
+        void requestQuit();
+        break;
+      case "data-folder":
+        return shell.openPath(path.join(userData, "data"));
+      case "zoom-in":
+        window.webContents.setZoomLevel(
+          Math.min(3, window.webContents.getZoomLevel() + 0.5),
+        );
+        break;
+      case "zoom-out":
+        window.webContents.setZoomLevel(
+          Math.max(-2, window.webContents.getZoomLevel() - 0.5),
+        );
+        break;
+      case "zoom-reset":
+        window.webContents.setZoomLevel(0);
+        break;
+      default:
+        throw new Error("Unknown window action.");
+    }
+  });
+  for (const name of [
+    "maximize",
+    "unmaximize",
+    "enter-full-screen",
+    "leave-full-screen",
+    "focus",
+    "blur",
+  ])
+    window.on(name, () => {
+      if (!window.webContents.isDestroyed())
+        window.webContents.send("desktop:window-state", windowState());
+    });
+  window.on("unresponsive", () => {
+    rendererResponsive = false;
+    resolveQuit?.({ response: 1 });
+  });
+  window.on("responsive", () => {
+    rendererResponsive = true;
+  });
+  window.webContents.on(
+    "did-start-navigation",
+    (_event, _url, inPlace, mainFrame) => {
+      if (mainFrame && !inPlace) rendererReady = false;
+    },
+  );
   ipcMain.handle("desktop:open-data", (event) => {
     verifySender(event);
     return shell.openPath(path.join(userData, "data"));
@@ -401,9 +504,9 @@ async function setup() {
       },
     ]),
   );
-  // Keep native window controls and menu accelerators without a second bar.
-  // Alt temporarily reveals the menu on Windows/Linux.
+  // macOS retains its system menu. In-window menus belong to Ink on every OS.
   window.setMenuBarVisibility(false);
+  window.setAutoHideMenuBar(false);
   const trayIcon = nativeImage.createFromPath(
     path.join(root, "electron", "icon.png"),
   );

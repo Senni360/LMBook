@@ -1,5 +1,7 @@
 # LMBook roadmap
 
+- Version 0.3.9 brings application-owned menus, desktop chrome, confirmations, media controls and supporting states into Ink. Implementation and visual/behavior evidence are in [the controls evaluation](docs/ui/ink-desktop-controls.md). Windows 0.3.9 is locally packaged and checked; native Mac evaluation and owner preference review remain separate.
+
 - Version 0.3.8 adds native Apple Silicon and Intel Mac packaging, Finder tool discovery and Mac window/menu behavior. Native CI and release verification are part of [PR #8](https://github.com/Senni360/LMBook/pull/8); see [Mac setup](docs/macos.md).
 
 - Version 0.3.7 refines Ink's shared hover, editing focus and heading-arrival rules, fits desktop chat to the window, and removes repetitive interface copy. Research, visual revisions, package checks and long-list performance limits are in [the interaction evaluation](docs/ui/ink-interactions.md). Local build complete; owner review remains next.

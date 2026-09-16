@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type ComponentPropsWithRef,
+  type CSSProperties,
   type RefObject,
 } from "react";
 
@@ -178,11 +179,17 @@ export function InkStroke({
 
 export function InkButton({
   children,
+  title,
   className = "",
   ...props
 }: ComponentPropsWithRef<"button">) {
   return (
-    <button {...props} className={`${className} ink-control`}>
+    <button
+      {...props}
+      data-ink-tooltip={title}
+      aria-description={props["aria-description"] || title}
+      className={`${className} ink-control`}
+    >
       {children}
       <InkStroke />
     </button>
@@ -191,11 +198,17 @@ export function InkButton({
 
 export function InkLink({
   children,
+  title,
   className = "",
   ...props
 }: ComponentPropsWithRef<"a">) {
   return (
-    <a {...props} className={`${className} ink-control`}>
+    <a
+      {...props}
+      data-ink-tooltip={title}
+      aria-description={props["aria-description"] || title}
+      className={`${className} ink-control`}
+    >
       {children}
       <InkStroke />
     </a>
@@ -204,6 +217,30 @@ export function InkLink({
 
 export function InkInput(props: ComponentPropsWithRef<"input">) {
   const owner = useRef<HTMLSpanElement>(null);
+  if (props.type === "range") {
+    const min = Number(props.min ?? 0),
+      max = Number(props.max ?? 100);
+    const progress = Math.max(
+      0,
+      Math.min(
+        100,
+        ((Number(props.value ?? props.defaultValue ?? min) - min) /
+          (max - min || 1)) *
+          100,
+      ),
+    );
+    return (
+      <input
+        {...props}
+        style={
+          {
+            "--range-progress": `${progress}%`,
+            ...props.style,
+          } as CSSProperties
+        }
+      />
+    );
+  }
   if (
     props.hidden ||
     ["hidden", "checkbox", "radio", "range"].includes(props.type || "")
