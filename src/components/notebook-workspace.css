@@ -256,6 +256,10 @@
   --ink-fill: transparent;
 }
 @container (max-width: 480px) {
+  .notebook-learning-pane .flash-deck-toolbar label {
+    flex-basis: 100%;
+    min-width: 0;
+  }
   :root[data-theme="ink"] .notebook-learning-pane .flash-create,
   .notebook-learning-pane .sources-grid,
   .notebook-learning-pane .form-row,

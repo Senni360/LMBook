@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { MAX_NOTEBOOK_SOURCES } from "../shared/notebook-limits.ts";
 import express, {
   type Request,
   type Response,
@@ -6,12 +7,7 @@ import express, {
 } from "express";
 import multer from "multer";
 import { z } from "zod";
-import {
-  existsSync,
-  readdirSync,
-  mkdirSync,
-  rmSync,
-} from "node:fs";
+import { existsSync, readdirSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { extractDocument } from "./document-import.ts";
@@ -97,10 +93,7 @@ import {
   turnSchema,
 } from "./jobs.ts";
 import { withArtifactMutation } from "./artifact-lock.ts";
-import {
-  listTrash,
-  purgeTrashNotebook,
-} from "./notebook-trash.ts";
+import { listTrash, purgeTrashNotebook } from "./notebook-trash.ts";
 
 const app = express();
 reconcileInterruptedActivities();
@@ -210,6 +203,15 @@ const exclusive = (
       jobs.delete(nid);
     }
   });
+function requireSourceSpace(current: number) {
+  if (current >= MAX_NOTEBOOK_SOURCES)
+    throw Object.assign(
+      new Error(
+        "This notebook has reached its 2,000-source limit. Remove a source or use another notebook before importing more.",
+      ),
+      { status: 400 },
+    );
+}
 function editable(req: Request) {
   const nid = id(req);
   if (jobs.has(nid) && !requestSignals.has(req))
@@ -588,8 +590,7 @@ app.delete(
 );
 app.post(
   "/api/notebooks/:id/sources",
-  route((req, res) => {
-    const n = editable(req);
+  route(async (req, res) => {
     const input = z
       .object({
         title: z.string().trim().min(1).max(200),
@@ -597,15 +598,20 @@ app.post(
         kind: z.enum(["course", "supplement"]).default("course"),
       })
       .parse(req.body);
-    n.sources.push({
-      ...input,
-      extractedSha256: createHash("sha256").update(input.text).digest("hex"),
-      extraction: "Pasted source text",
-      id: uid(),
-      createdAt: new Date().toISOString(),
+    const saved = await withArtifactMutation(() => {
+      const n = editable(req);
+      requireSourceSpace(n.sources.length);
+      n.sources.push({
+        ...input,
+        extractedSha256: createHash("sha256").update(input.text).digest("hex"),
+        extraction: "Pasted source text",
+        id: uid(),
+        createdAt: new Date().toISOString(),
+      });
+      n.coverage = [];
+      return saveNotebook(n);
     });
-    n.coverage = [];
-    res.json(saveNotebook(n));
+    res.json(saved);
   }),
 );
 const upload = multer({
@@ -617,6 +623,7 @@ app.post(
   upload.single("file"),
   exclusive("Importing source", async (req, res) => {
     const n = editable(req);
+    requireSourceSpace(n.sources.length);
     if (!req.file) throw new Error("Choose a document to import.");
     const ext = path.extname(req.file.originalname).toLowerCase();
     const signal = requestSignals.get(req);
@@ -643,6 +650,7 @@ app.post(
     };
     const saved = await withArtifactMutation(async () => {
       signal?.throwIfAborted();
+      requireSourceSpace(editable(req).sources.length);
       const attachment = await storeOriginal(
         originalsDir,
         req.file!.buffer,
@@ -652,7 +660,8 @@ app.post(
       );
       requestSignals.get(req)?.throwIfAborted();
       // Preserve any state saved before this import acquired the notebook lock.
-      const latest = getNotebook(n.id);
+      const latest = editable(req);
+      requireSourceSpace(latest.sources.length);
       latest.sources.push({
         id: uid(),
         title: req.file!.originalname,
@@ -772,7 +781,7 @@ app.post(
       const saved = await withArtifactMutation(async () => {
         // Hold the artifact lock before reading/publishing the original so a
         // concurrent notebook trash/purge cannot invalidate this publication.
-        editable(req);
+        requireSourceSpace(editable(req).sources.length);
         const attachment = await storeOriginal(
           originalsDir,
           req.file!.path,
@@ -781,6 +790,7 @@ app.post(
         );
         // Recheck the notebook lock after the asynchronous original-file write.
         const latest = editable(req);
+        requireSourceSpace(latest.sources.length);
         latest.sources.push({
           id: uid(),
           title: req.file!.originalname,

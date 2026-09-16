@@ -1,5 +1,7 @@
 # LMBook roadmap
 
+- **Local Windows 0.3.14:** pre-0.4 audit fixes Trash/workspace identity, source-import capacity, omitted sync warnings and narrow-pane controls. [Release notes](docs/releases/0.3.14.md) and [tested workflows / remaining checks](docs/audits/0.4-release-readiness.md). Owner approval for 0.4 remains pending.
+
 - **Local Windows 0.3.13:** unified notebook/Markdown-vault workspaces, three resizable panes, vault export, light/dark/system appearance and clearer local-model checks/indexing. [Release notes](docs/releases/0.3.13.md) and [behavior/evidence](docs/ui/unified-notebook-workspace.md). The 0.3.12 PR #9 is merged; these changes are a separate follow-up. Owner review and 0.4 approval remain pending.
 
 - **Local Windows 0.3.12:** model-install progress, cancellation/retry recovery, concise Luna hardware advice and enforced delivery to the main checkout's normal release folder. [Release notes](docs/releases/0.3.12.md). This does not approve 0.4 publication.

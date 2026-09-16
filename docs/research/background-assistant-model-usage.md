@@ -32,6 +32,10 @@ OpenRouter routing remains integrated, but no live paid request was made here. E
 
 ## Candidates not yet used and why
 
+### 0.3.14 release audit
+
+Luna through Codex generated four authored German/Dutch pairs in 10.10 seconds, retaining the exact supplied translations and quoted rows. E5 performed a real 384-dimensional runtime check (26.97 seconds cold in this run), indexed two authored notes, ranked the relevant note first, excluded an externally changed stale passage and stopped a cancelled indexing job. These checks establish that the exercised paths run; they do not measure general semantic accuracy. No additional model was installed or integrated. No live OpenRouter, OCR or transcription request was made in this audit because the reproduced defects concerned workspace lifecycle, capacity and interface behavior. The candidate-specific deferrals below remain unchanged; Jev remains excluded.
+
 These are deferrals unless explicitly described as a poor fit; they are not permanent rejections. Update individual rows as execution occurs and record the actual checkpoint/revision/runtime, task, result and limitation.
 
 | Candidate | Current reason for not using it |

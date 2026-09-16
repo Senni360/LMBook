@@ -8,6 +8,7 @@ import {
   listWorkspaceLinks,
   syncNotebookWorkspace,
   createObsidianNotebookExport,
+  workspaceIsTrashed,
 } from "./notebook-workspace.ts";
 
 export function registerNotebookWorkspaceRoutes(app: Express) {
@@ -25,7 +26,9 @@ export function registerNotebookWorkspaceRoutes(app: Express) {
   app.post(
     "/api/workspaces/connect-existing",
     route(async (_req, res) => {
-      for (const vault of listVaults()) await notebookForVault(vault.id);
+      for (const vault of listVaults()) {
+        if (!workspaceIsTrashed(vault.id)) await notebookForVault(vault.id);
+      }
       res.json(listWorkspaceLinks());
     }),
   );

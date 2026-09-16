@@ -37,17 +37,53 @@ const MAX_EXPORT_BYTES = 512 * 1024 * 1024;
 const MAX_WARNINGS = 50;
 
 db.exec(`CREATE TABLE IF NOT EXISTS notebook_workspace_links (
-  notebook_id TEXT PRIMARY KEY REFERENCES notebooks(id) ON DELETE CASCADE,
+  notebook_id TEXT PRIMARY KEY,
   vault_id TEXT NOT NULL UNIQUE REFERENCES vaults(id),
   managed INTEGER NOT NULL CHECK (managed IN (0,1)),
   created_at TEXT NOT NULL
 )`);
+// A notebook moves between the active and Trash tables. Its folder association
+// must survive that move; a foreign key to only the active table cannot do that.
+if (
+  (
+    db.prepare("PRAGMA foreign_key_list(notebook_workspace_links)").all() as {
+      table: string;
+    }[]
+  ).some((key) => key.table === "notebooks")
+) {
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    db.exec(`CREATE TABLE notebook_workspace_links_migration (
+      notebook_id TEXT PRIMARY KEY,
+      vault_id TEXT NOT NULL UNIQUE REFERENCES vaults(id),
+      managed INTEGER NOT NULL CHECK (managed IN (0,1)),
+      created_at TEXT NOT NULL);
+      INSERT INTO notebook_workspace_links_migration SELECT * FROM notebook_workspace_links;
+      DROP TABLE notebook_workspace_links;
+      ALTER TABLE notebook_workspace_links_migration RENAME TO notebook_workspace_links;
+      COMMIT;`);
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
 db.exec(`CREATE TABLE IF NOT EXISTS notebook_workspace_exclusions (
   notebook_id TEXT NOT NULL,
   path TEXT NOT NULL,
   created_at TEXT NOT NULL,
   PRIMARY KEY (notebook_id, path)
 )`);
+// Restoring inserts the active row before deleting Trash. Only a permanent
+// purge disconnects the folder, preventing startup from recreating the notebook.
+db.exec(`CREATE TRIGGER IF NOT EXISTS notebook_workspace_purge
+  AFTER DELETE ON notebook_trash
+  WHEN NOT EXISTS (SELECT 1 FROM notebooks WHERE id=OLD.id)
+  BEGIN
+    UPDATE vaults SET active=0 WHERE id IN (
+      SELECT vault_id FROM notebook_workspace_links WHERE notebook_id=OLD.id);
+    DELETE FROM notebook_workspace_links WHERE notebook_id=OLD.id;
+    DELETE FROM notebook_workspace_exclusions WHERE notebook_id=OLD.id;
+  END;`);
 
 function warning(message: string, pathName?: string): WorkspaceWarning {
   return pathName ? { path: pathName, message } : { message };
@@ -260,14 +296,34 @@ export async function notebookForVault(
 ): Promise<NotebookWorkspaceLink> {
   const vault = getVault(vaultId);
   const known = findByVault(vaultId);
-  if (known) return known;
+  if (known) return activeWorkspaceLink(known);
   const notebook = newNotebook(vault.name);
   return withArtifactMutation(() => {
     const again = findByVault(vaultId);
-    if (again) return again;
+    if (again) return activeWorkspaceLink(again);
     saveNotebook(notebook);
     return insertLink(notebook.id, vault.id, false);
   });
+}
+
+export function workspaceIsTrashed(vaultId: string) {
+  return !!db
+    .prepare(
+      `SELECT 1 FROM notebook_workspace_links l
+    JOIN notebook_trash t ON t.id=l.notebook_id WHERE l.vault_id=?`,
+    )
+    .get(vaultId);
+}
+function activeWorkspaceLink(link: NotebookWorkspaceLink) {
+  if (workspaceIsTrashed(link.vaultId))
+    throw Object.assign(
+      new Error(
+        "This folder belongs to a notebook in Trash. Restore it in Settings → Trash to reopen the same workspace.",
+      ),
+      { status: 409 },
+    );
+  getNotebook(link.notebookId);
+  return link;
 }
 
 export function listWorkspaceLinks(): NotebookWorkspaceLink[] {
@@ -332,7 +388,9 @@ export async function syncNotebookWorkspace(
   );
   const index = await scanVault(link.vaultId);
   const notes = index.files.slice(0, MAX_NOTES);
-  const warnings: WorkspaceWarning[] = [];
+  const warnings: WorkspaceWarning[] = index.warnings.map((message) =>
+    warning(message),
+  );
   const linkWarnings = link.warnings || [];
   warnings.push(...linkWarnings);
   if (index.files.length > MAX_NOTES)
