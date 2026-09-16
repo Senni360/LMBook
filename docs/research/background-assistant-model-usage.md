@@ -22,6 +22,14 @@ The table above records the earlier research phase. **multilingual-e5-small is n
 
 Existing faster-whisper setup and Tesseract remain available in the unified local-model settings. Neither was replaced or newly evaluated during this implementation. Optional models do not all load together; the E5 worker unloads after idle time. The ten background-agent workflows are not implemented by this integration. [Delivery and evaluation](ai-integration-delivery.md).
 
+## 0.3.13 workspace follow-up
+
+E5 remains the only newly integrated local specialist. A real runtime check produced a 384-dimensional embedding; the isolated PWS workspace indexed all 291 notes into 1,494 passages. An English meaning query retrieved relevant Dutch dam-relocation passages. This supports practical feasibility on this machine, not a measured retrieval-accuracy guarantee. No additional model downloads were needed for this follow-up.
+
+Luna through Codex answered a short question about a separately authored saved note in 4.842 seconds and returned the correct quotation. This verifies the notebook-to-source-to-answer path without sending the owner's PWS material. E5 powers note-finder meaning search; Luna chat still uses the existing bounded source selection.
+
+OpenRouter routing remains integrated, but no live paid request was made here. Existing OCR/transcription remain available and were not newly evaluated in this follow-up. The unused candidates below retain their stated reasons: none was needed to fix workspace integration, model readiness, indexing feedback or export. Jev remains excluded. The ten broader background workflows are still separate pending work.
+
 ## Candidates not yet used and why
 
 These are deferrals unless explicitly described as a poor fit; they are not permanent rejections. Update individual rows as execution occurs and record the actual checkpoint/revision/runtime, task, result and limitation.

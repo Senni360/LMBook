@@ -21,7 +21,7 @@ A merge without a version bump does not produce another release for an already p
 
 Inspect **Actions → Desktop release**. Failed builds or desktop checks publish nothing. Failed uploads leave an unpublished draft; rerunning the failed jobs can complete that same release. The workflow never replaces published downloads or moves an existing version tag. If a tag or draft belongs to a different commit, it stops for inspection; use a new version for changed application code.
 
-**Run workflow** on `master` can publish an already merged but unreleased version only when the release policy approves that version. With approval unset, it produces checked iteration artifacts without publishing. Re-running an approved published version skips the build and leaves its downloads unchanged. Runs are serialized so releases cannot upload over each other.
+**Run workflow** on `master` can publish an already merged but unreleased version only when the release policy approves that version. With approval unset, it checks the build without uploading iteration artifacts. Re-running an approved published version skips the build and leaves its downloads unchanged. Runs are serialized so releases cannot upload over each other.
 
 For local packaging, `npm run desktop:dist` builds the Windows artifacts. Local binaries are not uploaded by merging a PR: the workflow produces its own checked build on a clean runner. Installer filenames on GitHub use `LMBook-Setup-<version>.exe`; portable files use `LMBook-<version>-portable.exe`.
 
@@ -30,7 +30,7 @@ Implementation references: [GitHub token permissions](https://docs.github.com/en
 
 ## macOS and PR checks
 
-Pull requests to master run the same native Windows/Apple Silicon/Intel build matrix, even for an already released version. They upload checked downloads as Actions artifacts and never run the publishing job. The two Mac runners produce architecture-labelled DMG and ZIP files; Windows names remain compatible with earlier releases.
+Pull requests to master run the same native Windows/Apple Silicon/Intel build matrix, even for an already released version. They build and check locally on each runner. They do not upload downloads as Actions artifacts and never run the publishing job. Artifact transfer is enabled only for an approved publication. The two Mac runners produce architecture-labelled DMG and ZIP files; Windows names remain compatible with earlier releases.
 
 Each runner stages its own commit/version-bound manifest. A separate verification job requires all three target manifests, verifies every hash and size, and creates the combined checksum file. The publisher rechecks that complete set before creating or repairing its unpublished draft. One failed platform prevents publication of the whole release. Build and verification jobs have only read permissions; only master publication receives contents:write.
 

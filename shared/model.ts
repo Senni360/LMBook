@@ -125,6 +125,8 @@ export type Source = {
   extractionWarnings?: string[];
   attachment?: SourceAttachment;
   vault?: SourceVaultProvenance;
+  /** Original shared note when this source was copied into another notebook. */
+  vaultOrigin?: SourceVaultProvenance;
   ocr?: OcrResult;
   ocrCandidate?: boolean;
   transcript?: Transcript;

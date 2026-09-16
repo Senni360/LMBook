@@ -17,6 +17,8 @@ import { createHash } from "node:crypto";
 import { extractDocument } from "./document-import.ts";
 import { registerFlashcardRoutes } from "./flashcard-routes.ts";
 import { registerVaultRoutes } from "./vault-routes.ts";
+import { registerNotebookWorkspaceRoutes } from "./notebook-workspace-routes.ts";
+import { excludeWorkspaceSource } from "./notebook-workspace.ts";
 import { registerAiRoutes, stopAiRuntime } from "./ai-routes.ts";
 import { storeOriginal, verifyOriginal } from "./source-originals.ts";
 import {
@@ -140,6 +142,7 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: "15mb" }));
 registerAiRoutes(app);
+registerNotebookWorkspaceRoutes(app);
 const route =
   (fn: (req: Request, res: Response) => unknown) =>
   async (req: Request, res: Response, next: NextFunction) => {
@@ -680,6 +683,7 @@ app.delete(
   route(async (req, res) => {
     const saved = await withArtifactMutation(() => {
       const n = editable(req);
+      excludeWorkspaceSource(n.id, String(req.params.sourceId));
       n.sources = n.sources.filter((s) => s.id !== req.params.sourceId);
       n.coverage = [];
       return saveNotebook(n);

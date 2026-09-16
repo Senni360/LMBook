@@ -1,3 +1,4 @@
+import { MAX_NOTEBOOK_SOURCES } from "../shared/notebook-limits.ts";
 import { z } from "zod";
 import { parseFragment, type DefaultTreeAdapterTypes } from "parse5";
 import { uid, type Notebook } from "../shared/model.ts";
@@ -17,7 +18,7 @@ import { jobs, startJob } from "./jobs.ts";
 
 export const flashRequestSchema = z
   .object({
-    sourceIds: z.array(z.string().uuid()).min(1).max(150),
+    sourceIds: z.array(z.string().uuid()).min(1).max(MAX_NOTEBOOK_SOURCES),
     prompt: z.string().trim().min(1).max(12000),
     title: z.string().trim().min(1).max(180),
     mode: z.enum(["vocabulary", "concepts"]),

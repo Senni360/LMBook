@@ -1,4 +1,12 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   FolderOpen,
   FileText,
@@ -37,7 +45,7 @@ import {
   inspectVaultMarkdown,
   createVaultLinkResolver,
 } from "../../shared/vault-markdown";
-import { InkButton, InkInput, InkSelect } from "./InkControl";
+import { InkButton, InkInput, InkSelect, InkStroke } from "./InkControl";
 import { confirmInk } from "./InkDialog";
 import type { VaultEditorHandle } from "./vault/VaultEditor";
 const VaultEditor = lazy(() =>
@@ -56,6 +64,8 @@ import {
   type RecoveryMetadata,
 } from "./vault/vault-drafts";
 import "./vault-workspace.css";
+import { useWorkspacePanes } from "./WorkspaceResizer";
+import { VaultIndexPanel } from "./vault/VaultIndexPanel";
 
 async function request<T>(
   url: string,
@@ -171,7 +181,17 @@ export function VaultWorkspace({
   onSourcesAdded,
   onOpenNotebook,
   openRequest,
+  forcedVault,
+  inventoryRevision,
+  workspaceTitle,
+  learningContent,
+  onNoteSaved,
 }: {
+  forcedVault?: Vault;
+  inventoryRevision?: number;
+  workspaceTitle?: string;
+  learningContent?: ReactNode;
+  onNoteSaved?: () => Promise<void>;
   active: boolean;
   openRequest?: { vaultId: string; path: string; nonce: number } | null;
   notebooks: {
@@ -187,6 +207,8 @@ export function VaultWorkspace({
     section?: "sources" | "chat" | "flashcards" | "studio",
   ) => Promise<void>;
 }) {
+  const deskRef = useRef<HTMLDivElement>(null);
+  const panes = useWorkspacePanes(forcedVault?.id || "vault", deskRef);
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [vaultId, setVaultId] = useState("");
   const semantic = useVaultSemantic(vaultId || "");
@@ -201,6 +223,7 @@ export function VaultWorkspace({
   const [searchMore, setSearchMore] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [navigatorOpen, setNavigatorOpen] = useState(true);
+  const [selectionTools, setSelectionTools] = useState(false);
   const [view, setView] = useState<"notes" | "drafts" | "recovery">("notes");
   const [drafts, setDrafts] = useState<VaultDraft[]>([]);
   const [moreDrafts, setMoreDrafts] = useState(false);
@@ -219,6 +242,7 @@ export function VaultWorkspace({
   const [ready, setReady] = useState(false);
   const [loadedVault, setLoadedVault] = useState("");
   const handledOpenRequest = useRef<number | null>(null);
+  const initialNoteAttempt = useRef("");
   const requestedNote = useRef(openRequest);
   requestedNote.current = openRequest;
   const [generating, setGenerating] = useState<{
@@ -371,6 +395,7 @@ export function VaultWorkspace({
       refresh ? "POST" : "GET",
     );
     if (latest.current.vaultId === id) setIndex(result);
+    return result;
   }
   async function loadRecovery(id: string) {
     const rows = await repository.list(id);
@@ -421,7 +446,10 @@ export function VaultWorkspace({
         try {
           last = localStorage.getItem("lmbook:last-vault") || "";
         } catch {}
-        setVaultId(rows.some((v) => v.id === last) ? last : rows[0]?.id || "");
+        setVaultId(
+          forcedVault?.id ||
+            (rows.some((v) => v.id === last) ? last : rows[0]?.id || ""),
+        );
         setReady(true);
       })
       .catch((error) => {
@@ -455,6 +483,7 @@ export function VaultWorkspace({
     setView("notes");
     navigation.current = { entries: [], position: -1 };
     const saved = readPreferences(vaultId);
+    if (learningContent && !saved.pane) saved.pane = "learning";
     setPrefs(saved);
     if (!vaultId) return;
     try {
@@ -465,11 +494,18 @@ export function VaultWorkspace({
       loadRecovery(vaultId),
       loadDrafts(vaultId),
     ])
-      .then(() => {
+      .then(([loadedIndex]) => {
         if (!cancelled) {
           setLoadedVault(vaultId);
           if (saved.activePath && requestedNote.current?.vaultId !== vaultId)
             void openNote(saved.activePath, undefined, true);
+          else if (
+            forcedVault &&
+            !saved.activePath &&
+            loadedIndex.files.length &&
+            requestedNote.current?.vaultId !== vaultId
+          )
+            void openNote(loadedIndex.files[0].path, undefined, true);
         }
       })
       .catch((error) => {
@@ -479,6 +515,42 @@ export function VaultWorkspace({
       cancelled = true;
     };
   }, [vaultId]);
+  useEffect(() => {
+    if (!vaultId || !inventoryRevision) return;
+    void loadIndex(vaultId, true).catch((reason) =>
+      setError((reason as Error).message),
+    );
+  }, [vaultId, inventoryRevision]);
+  useEffect(() => {
+    // The initial inventory can arrive empty while its background scan runs.
+    // Open the first note when that scan finishes, as well as for cached lists.
+    if (
+      !forcedVault ||
+      !active ||
+      loadedVault !== vaultId ||
+      editor ||
+      index.status.running ||
+      !index.files.length ||
+      busy ||
+      navigationPending ||
+      prefs.activePath ||
+      requestedNote.current?.vaultId === vaultId ||
+      initialNoteAttempt.current === vaultId
+    )
+      return;
+    initialNoteAttempt.current = vaultId;
+    void openNote(index.files[0].path, undefined, true);
+  }, [
+    forcedVault,
+    active,
+    loadedVault,
+    vaultId,
+    editor,
+    index,
+    busy,
+    navigationPending,
+    prefs.activePath,
+  ]);
   useEffect(() => {
     if (
       !active ||
@@ -503,7 +575,7 @@ export function VaultWorkspace({
     if (loadedVault !== vaultId) return;
     handledOpenRequest.current = openRequest.nonce;
     setView("notes");
-    changePrefs({ pane: null });
+    if (!learningContent) changePrefs({ pane: null });
     void openNote(openRequest.path);
   }, [
     active,
@@ -751,8 +823,10 @@ export function VaultWorkspace({
         ),
         mode: targetAnchor ? "read" : previous.mode,
       }));
-      if (window.matchMedia("(max-width: 1000px)").matches)
+      if (window.matchMedia("(max-width: 760px)").matches) {
         setNavigatorOpen(false);
+        changePrefs({ pane: null });
+      }
       setNotice(
         draft
           ? readIssue
@@ -879,8 +953,10 @@ export function VaultWorkspace({
         tabs: [...new Set([...previous.tabs, path])].slice(-12),
         mode: draft ? "read" : "edit",
       }));
-      if (window.matchMedia("(max-width: 1000px)").matches)
+      if (window.matchMedia("(max-width: 760px)").matches) {
         setNavigatorOpen(false);
+        changePrefs({ pane: null });
+      }
       setNotice(
         draft
           ? "Review this draft and its sources before saving a new note."
@@ -1004,6 +1080,7 @@ export function VaultWorkspace({
           });
         }
         await Promise.all([loadIndex(id, true), loadRecovery(id)]);
+        await onNoteSaved?.();
       } catch (error) {
         if ((error as { status?: number }).status === 409 && submitted.base)
           setConflict(
@@ -1286,10 +1363,10 @@ export function VaultWorkspace({
         <div className="vault-identity">
           <FolderOpen size={22} />
           <div>
-            <h1>{vault ? "Your vault" : "Obsidian"}</h1>
+            <h1>{workspaceTitle || (vault ? "Your vault" : "Obsidian")}</h1>
             {!vault && <p>Read, write and learn from the same notes.</p>}
           </div>
-          {vault && (
+          {vault && !forcedVault && (
             <InkSelect
               aria-label="Connected vault"
               value={vaultId}
@@ -1319,7 +1396,10 @@ export function VaultWorkspace({
                 aria-label="Refresh vault"
                 disabled={!!busy || index.status.running}
                 onClick={() =>
-                  void run("Refreshing vault", () => loadIndex(vaultId, true))
+                  void run("Refreshing vault", async () => {
+                    await loadIndex(vaultId, true);
+                    await onNoteSaved?.();
+                  })
                 }
               >
                 <RefreshCw
@@ -1347,16 +1427,25 @@ export function VaultWorkspace({
               </InkButton>
             </>
           )}
-          <InkButton
-            className="button"
-            onClick={() => void connect()}
-            disabled={!!busy || !window.sennibookDesktop}
-          >
-            <Plus size={16} />
-            {vault ? "Connect another" : "Connect a vault"}
-          </InkButton>
+          {!forcedVault && (
+            <InkButton
+              className="button"
+              onClick={() => void connect()}
+              disabled={!!busy || !window.sennibookDesktop}
+            >
+              <Plus size={16} />
+              {vault ? "Connect another" : "Connect a vault"}
+            </InkButton>
+          )}
         </div>
       </header>
+      {vault && (
+        <VaultIndexPanel
+          vaultId={vaultId}
+          semantic={semantic}
+          onFind={() => setQuickOpen(true)}
+        />
+      )}
       {error && (
         <div role="alert" className="alert error vault-message">
           <span>{error}</span>
@@ -1491,9 +1580,11 @@ export function VaultWorkspace({
                   </div>
                 </div>
               )}
-              <InkButton className="button" onClick={() => void disconnect()}>
-                Disconnect folder
-              </InkButton>
+              {!forcedVault && (
+                <InkButton className="button" onClick={() => void disconnect()}>
+                  Disconnect folder
+                </InkButton>
+              )}
               <InkButton
                 className="button"
                 disabled={!!busy}
@@ -1522,7 +1613,7 @@ export function VaultWorkspace({
                 onClick={() => {
                   if (
                     prefs.pane &&
-                    window.matchMedia("(max-width:1250px)").matches
+                    window.matchMedia("(max-width:760px)").matches
                   ) {
                     changePrefs({ pane: null });
                     setNavigatorOpen(true);
@@ -1531,6 +1622,17 @@ export function VaultWorkspace({
               >
                 <PanelLeft size={16} /> Notes
               </InkButton>
+              {learningContent && (
+                <InkButton
+                  className="button small"
+                  onClick={() => {
+                    setSelectionTools(true);
+                    changePrefs({ pane: "learning" });
+                  }}
+                >
+                  <Pencil size={14} /> Summarize
+                </InkButton>
+              )}
               <InkButton
                 className={`button small ${view === "drafts" ? "active" : ""}`}
                 onClick={() => {
@@ -1588,8 +1690,32 @@ export function VaultWorkspace({
             </div>
           </div>
           <div
-            className={`vault-desk ${navigatorOpen ? "has-navigator" : ""} ${prefs.pane ? "has-pane" : ""}`}
+            ref={deskRef}
+            style={panes.style}
+            className={`vault-desk resizable-desk ${navigatorOpen ? "has-navigator" : ""} ${prefs.pane ? "has-pane" : ""}`}
           >
+            <span
+              className="workspace-frame frame-center ink-writing-surface"
+              aria-hidden="true"
+            >
+              <InkStroke />
+            </span>
+            {navigatorOpen && (
+              <span
+                className="workspace-frame frame-left ink-writing-surface"
+                aria-hidden="true"
+              >
+                <InkStroke />
+              </span>
+            )}
+            {prefs.pane && (
+              <span
+                className="workspace-frame frame-right ink-writing-surface"
+                aria-hidden="true"
+              >
+                <InkStroke />
+              </span>
+            )}
             {navigatorOpen && (
               <aside
                 className="vault-navigator-region"
@@ -1720,6 +1846,7 @@ export function VaultWorkspace({
                 )}
               </aside>
             )}
+            {navigatorOpen && panes.handle("left")}
             <div className="vault-note-region">
               {prefs.tabs.length > 0 && (
                 <div className="vault-open-tabs" aria-label="Open notes">
@@ -1767,7 +1894,7 @@ export function VaultWorkspace({
                   </h2>
                   <p>
                     {files.length
-                      ? "Read a note from the left, follow its links, or choose notes for a learning notebook."
+                      ? "Open a note from the left. Read and edit here, with learning tools beside you."
                       : "Create a Markdown note here, or add files to this folder in Obsidian."}
                   </p>
                   <div>
@@ -2240,15 +2367,39 @@ export function VaultWorkspace({
               )}
             </div>
             <>
+              {prefs.pane && panes.handle("right")}
+              {learningContent &&
+                prefs.pane === "learning" &&
+                !selectionTools && (
+                  <aside
+                    className="vault-side-pane notebook-learning-pane"
+                    aria-label="Learning tools"
+                  >
+                    {learningContent}
+                  </aside>
+                )}
               <aside
                 className="vault-side-pane"
-                hidden={!prefs.pane}
+                hidden={
+                  !prefs.pane ||
+                  (!!learningContent &&
+                    prefs.pane === "learning" &&
+                    !selectionTools)
+                }
                 aria-label={
                   prefs.pane === "learning"
                     ? "Learning selection"
                     : "Note details"
                 }
               >
+                {learningContent && selectionTools && (
+                  <InkButton
+                    className="button small quiet"
+                    onClick={() => setSelectionTools(false)}
+                  >
+                    <ArrowLeft size={14} /> Back to learning tools
+                  </InkButton>
+                )}
                 <div className="vault-pane-title">
                   <h2>
                     {prefs.pane === "learning"

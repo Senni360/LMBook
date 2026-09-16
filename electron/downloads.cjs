@@ -90,6 +90,7 @@ function defaultName(requestPath) {
   if (requestPath.includes("/flashcards/") && requestPath.endsWith("/export"))
     return "lmbook-flashcards.json";
   if (requestPath.endsWith("/bundle")) return "lmbook-notebook.zip";
+  if (requestPath.endsWith("/vault-export")) return "lmbook-vault.zip";
   if (requestPath.endsWith("/export")) return "lmbook-notebook.md";
   if (requestPath.includes("/episodes/") && requestPath.includes("/download"))
     return requestPath.includes("format=mp3")
@@ -126,7 +127,7 @@ function validatePath(requestPath) {
     throw new Error("Download address is invalid.");
 
   const exportMatch = requestPath.match(
-    new RegExp(`^/api/notebooks/${UUID}/(bundle|export)$`, "iu"),
+    new RegExp(`^/api/notebooks/${UUID}/(bundle|export|vault-export)$`, "iu"),
   );
   if (exportMatch && url.searchParams.size === 0) return url.pathname;
   if (

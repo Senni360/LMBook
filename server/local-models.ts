@@ -20,6 +20,7 @@ import {
   type LocalModelHardware,
   type LocalModelProgress,
   type LocalModelStatus,
+  type LocalModelCheckResult,
 } from "../shared/local-models.ts";
 import type { VaultEmbeddingProvider } from "../shared/vault-semantic.ts";
 
@@ -52,6 +53,19 @@ type InstallState = {
   progress: LocalModelProgress | null;
   error: string | null;
 };
+type PersistedReadiness = {
+  downloaded?: boolean;
+  ready?: boolean;
+  runtimeChecked?: boolean;
+  runtimeReady?: boolean;
+  probeError?: string | null;
+  lastCheckedAt?: string | null;
+};
+type PersistedState = {
+  enabled?: boolean;
+  install?: InstallState;
+  readiness?: PersistedReadiness;
+};
 let install:
   { controller: AbortController; promise: Promise<void> } | undefined;
 let installState: InstallState = {
@@ -60,11 +74,47 @@ let installState: InstallState = {
   progress: null,
   error: null,
 };
+let readiness: PersistedReadiness = {};
+let persistedStateLoaded = false;
 let stateWrite: Promise<void> = Promise.resolve();
-function persistInstallState(nextEnabled?: boolean) {
+async function loadPersistedState() {
+  if (persistedStateLoaded) return;
+  persistedStateLoaded = true;
+  try {
+    const current = JSON.parse(
+      await readFile(statePath, "utf8"),
+    ) as PersistedState;
+    readiness = current.readiness || {};
+    if (current.install && !installState.running) {
+      installState = {
+        ...installState,
+        ...current.install,
+        running: false,
+        cancelling: false,
+        ...(current.install.running
+          ? {
+              progress: {
+                phase: "runtime" as const,
+                progress: null,
+                message:
+                  "Setup was interrupted. Downloaded files are kept; retry to finish.",
+              },
+              error: null,
+            }
+          : {}),
+      };
+    }
+  } catch {
+    /* first run */
+  }
+}
+function persistInstallState(
+  nextEnabled?: boolean,
+  nextReadiness?: PersistedReadiness,
+) {
   const nextInstall = structuredClone(installState);
   const write = stateWrite.then(async () => {
-    let current: { enabled?: boolean } = {};
+    let current: PersistedState = {};
     try {
       current = JSON.parse(await readFile(statePath, "utf8"));
     } catch {
@@ -78,6 +128,7 @@ function persistInstallState(nextEnabled?: boolean) {
         JSON.stringify({
           enabled: nextEnabled ?? current.enabled === true,
           install: nextInstall,
+          readiness: nextReadiness ?? readiness,
         }),
         { encoding: "utf8", mode: 0o600 },
       );
@@ -385,28 +436,80 @@ async function probeRuntime() {
   runtimeProbe = (async () => {
     let worker = false,
       message = "The local runtime needs setup.";
+    let probeMessage = "The local runtime needs setup.";
     await run(
       runtimePython,
       ["-u", workerPath, "status", "--models-root", modelsRoot],
       {
         timeoutMs: 15000,
         onLine: (r) => {
-          if (r.type === "status") worker = r.runtime === true;
+          if (r.type === "status") {
+            worker = r.runtime === true;
+            probeMessage = String(r.message || probeMessage);
+          }
         },
       },
-    ).catch(() => {});
+    ).catch((error) => {
+      probeMessage = sanitizeError(error);
+    });
     if (worker) message = "Local embedding runtime is available.";
+    else message = probeMessage;
     runtimeCheck = { at: Date.now(), worker, message };
+    readiness = {
+      ...readiness,
+      runtimeChecked: true,
+      runtimeReady: worker,
+      probeError: worker ? null : sanitizeError(message),
+      lastCheckedAt: new Date().toISOString(),
+    };
+    void persistInstallState().catch(() => {});
     return runtimeCheck;
   })().finally(() => {
     runtimeProbe = undefined;
   });
   return runtimeProbe;
 }
+function sanitizeError(error: unknown) {
+  const raw =
+    error instanceof Error
+      ? error.message
+      : String(error || "Local model probe failed.");
+  return raw
+    .replace(/https?:\/\/\S+|Bearer\s+\S+|(?:sk-|hf_)[\w-]+/g, "[redacted]")
+    .slice(0, 350);
+}
+let hardwareCache: LocalModelHardware | undefined;
+let hardwareProbe: Promise<LocalModelHardware> | undefined;
+function refreshHardware() {
+  if (hardwareProbe) return hardwareProbe;
+  hardwareProbe = detectLocalModelHardware()
+    .then((value) => {
+      hardwareCache = value;
+      return value;
+    })
+    .finally(() => {
+      hardwareProbe = undefined;
+    });
+  return hardwareProbe;
+}
 export async function getLocalModelStatus(): Promise<LocalModelStatus> {
-  const hardware = await detectLocalModelHardware();
+  await loadPersistedState();
+  void refreshHardware();
+  const hardware =
+    hardwareCache ||
+    ({
+      platform: platform(),
+      cpuModel: os.cpus()[0]?.model || "Unknown CPU",
+      logicalCores: os.cpus().length,
+      memoryBytes: os.totalmem() || null,
+      freeMemoryBytes: os.freemem() || null,
+      gpu: null,
+      checkedAt: new Date().toISOString(),
+    } satisfies LocalModelHardware);
   const assessment = fitFor(hardware);
-  const ready = (await prepared()) && (await verified());
+  const preparedModel = await prepared();
+  const verifiedModel = await verified();
+  const downloaded = preparedModel;
   const python = await run(
     systemPython,
     ["-c", "import sys; print(sys.version_info[:2])"],
@@ -415,17 +518,27 @@ export async function getLocalModelStatus(): Promise<LocalModelStatus> {
     .then(() => true)
     .catch(() => false);
   const runtime = (await exists(runtimePython)) && (await exists(workerPath));
-  let worker = false,
-    message = ready
-      ? "Local multilingual search is ready."
+  let worker = runtime && readiness.runtimeReady === true,
+    message = downloaded
+      ? runtime
+        ? "Local multilingual search is ready."
+        : "The model is downloaded; finish setting up the local runtime to use it."
       : "Set up local multilingual search to download the pinned model.";
   if (runtime && !installState.running)
     ({ worker, message } = await probeRuntime());
+  const ready = preparedModel && verifiedModel && runtime && worker;
+  readiness = { ...readiness, downloaded, ready };
+  void persistInstallState().catch(() => {});
   const currentEnabled = await enabled();
   return {
     model: LOCAL_EMBEDDING_MODEL,
     revision: LOCAL_EMBEDDING_REVISION,
     ready: ready && runtime && worker,
+    downloaded,
+    runtimeChecked: readiness.runtimeChecked === true,
+    runtimeReady: readiness.runtimeReady === true,
+    probeError: readiness.probeError || null,
+    lastCheckedAt: readiness.lastCheckedAt || null,
     runtime,
     python,
     worker,
@@ -446,6 +559,82 @@ export async function getLocalModelStatus(): Promise<LocalModelStatus> {
       error: installState.error,
     },
   };
+}
+
+/** Perform one real offline embedding without changing the user's enabled preference. */
+export async function checkLocalModel(): Promise<LocalModelCheckResult> {
+  await loadPersistedState();
+  const started = performance.now();
+  const preparedModel = await prepared();
+  const verifiedModel = await verified();
+  const runtimePresent = await exists(runtimePython);
+  if (!preparedModel) {
+    readiness = { ...readiness, downloaded: false, ready: false };
+    void persistInstallState().catch(() => {});
+    return {
+      ok: false,
+      status: "missing",
+      elapsedMs: Math.round(performance.now() - started),
+      dimensions: null,
+      error: "The local model is not downloaded.",
+    };
+  }
+  if (!verifiedModel || !runtimePresent) {
+    readiness = { ...readiness, downloaded: true, ready: false };
+    void persistInstallState().catch(() => {});
+    return {
+      ok: false,
+      status: "downloaded",
+      elapsedMs: Math.round(performance.now() - started),
+      dimensions: null,
+      error: !runtimePresent
+        ? "The model is downloaded, but the local runtime is not available."
+        : "The model is downloaded, but its runtime verification is incomplete.",
+    };
+  }
+  try {
+    const result = await embedLocal(
+      ["query: LMBook local search check"],
+      "query",
+      undefined,
+      true,
+    );
+    const dimensions = result.vectors[0]?.length || null;
+    readiness = {
+      ...readiness,
+      runtimeChecked: true,
+      runtimeReady: true,
+      probeError: null,
+      lastCheckedAt: new Date().toISOString(),
+    };
+    void persistInstallState().catch(() => {});
+    return {
+      ok: !!dimensions,
+      status: dimensions ? "ready" : "error",
+      elapsedMs: Math.round(performance.now() - started),
+      dimensions,
+      error: dimensions
+        ? null
+        : "The embedding worker returned an empty vector.",
+    };
+  } catch (error) {
+    const message = sanitizeError(error);
+    readiness = {
+      ...readiness,
+      runtimeChecked: true,
+      runtimeReady: false,
+      probeError: message,
+      lastCheckedAt: new Date().toISOString(),
+    };
+    void persistInstallState().catch(() => {});
+    return {
+      ok: false,
+      status: "error",
+      elapsedMs: Math.round(performance.now() - started),
+      dimensions: null,
+      error: message,
+    };
+  }
 }
 
 export async function prepareLocalModel(
@@ -642,8 +831,8 @@ let embeddingWorker:
     }
   | undefined;
 let idleTimer: ReturnType<typeof setTimeout> | undefined;
-async function workerFor() {
-  if (!(await enabled()))
+async function workerFor(allowDisabled = false) {
+  if (!allowDisabled && !(await enabled()))
     throw new Error("Local multilingual search is disabled.");
   if (installState.running)
     throw new Error("Wait for local model setup to finish before searching.");
@@ -767,6 +956,7 @@ export async function embedLocal(
   texts: string[],
   kind: "query" | "passage" = "query",
   signal?: AbortSignal,
+  allowDisabled = false,
 ): Promise<EmbeddingResult> {
   if (!texts.length) return { vectors: [], model: LOCAL_EMBEDDING_MODEL };
   if (
@@ -781,7 +971,7 @@ export async function embedLocal(
     const abort = () => unloadLocalModel();
     signal?.addEventListener("abort", abort, { once: true });
     try {
-      const state = await workerFor();
+      const state = await workerFor(allowDisabled);
       signal?.throwIfAborted();
       const id = crypto.randomUUID();
       const vectors = await new Promise<number[][]>((resolve, reject) => {

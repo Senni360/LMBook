@@ -1,0 +1,352 @@
+.notebook-workspace {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  min-width: 0;
+}
+.notebook-workspace .vault-workspace {
+  padding-inline: 18px;
+}
+.workspace-index {
+  flex-shrink: 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.workspace-index-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-block: 6px;
+  color: var(--muted);
+}
+.workspace-index-body {
+  padding: 8px 12px 14px;
+  max-height: 240px;
+  overflow: auto;
+}
+.workspace-index-body p {
+  line-height: 1.6;
+  max-width: 75ch;
+}
+.workspace-index-body details {
+  margin-top: 12px;
+}
+.workspace-sync {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.workspace-sync-warnings {
+  margin: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.notebook-learning-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  font-size: 13px;
+}
+.notebook-learning-pane .tabs {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0 10px 10px;
+  gap: 3px;
+}
+.notebook-learning-pane .tabs button {
+  padding: 8px;
+  font-size: 11px;
+  gap: 5px;
+}
+.notebook-learning-pane .tabs button svg {
+  width: 14px;
+  height: 14px;
+}
+.notebook-learning-pane .page-content {
+  padding: 18px 14px;
+  min-width: 0;
+}
+.notebook-learning-pane .section-heading {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.notebook-learning-pane h2 {
+  font-size: 19px;
+}
+.notebook-learning-pane .sources-layout,
+.notebook-learning-pane .studio-layout,
+.notebook-learning-pane .goals-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.notebook-learning-pane .source-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.notebook-learning-pane .form-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.notebook-learning-pane .reader {
+  position: relative;
+  top: auto;
+  width: auto;
+}
+.notebook-learning-pane .chat-thread {
+  min-height: 200px;
+}
+.workspace-resizer {
+  align-self: stretch;
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  z-index: 5;
+}
+.workspace-resizer span {
+  position: absolute;
+  top: 42%;
+  bottom: 42%;
+  left: calc(50% - 1px);
+  width: 2px;
+  background: var(--line);
+  border-radius: 55% 40% 60% 45%;
+  transition:
+    background 150ms ease,
+    top 150ms ease,
+    bottom 150ms ease;
+}
+.workspace-resizer:hover span,
+.workspace-resizer:focus-visible span {
+  top: 35%;
+  bottom: 35%;
+  background: var(--pen);
+}
+.workspace-resizer:focus-visible {
+  outline: 1px solid var(--pen);
+  outline-offset: -3px;
+  border-radius: 5px;
+}
+.workspace-selection-tools {
+  padding: 8px 12px 0;
+}
+.workspace-frame {
+  display: none;
+}
+@media (min-width: 761px) {
+  .main:has(.notebook-workspace) {
+    height: calc(100dvh - var(--desktop-height, 0px));
+    min-height: 0;
+    overflow: hidden;
+  }
+  .main:has(.notebook-workspace) > .topbar {
+    display: none;
+  }
+  .resizable-desk.vault-desk {
+    grid-template-columns: minmax(0, 1fr);
+    border-bottom: 0;
+    margin-top: 10px;
+  }
+  .resizable-desk.vault-desk.has-navigator {
+    grid-template-columns: minmax(140px, var(--nav-width)) 10px minmax(0, 1fr);
+  }
+  .resizable-desk.vault-desk.has-pane {
+    grid-template-columns: minmax(0, 1fr) 10px minmax(240px, var(--learn-width));
+  }
+  .resizable-desk.vault-desk.has-navigator.has-pane {
+    grid-template-columns:
+      minmax(140px, var(--nav-width)) 10px minmax(0, 1fr)
+      10px minmax(240px, var(--learn-width));
+  }
+  .resizable-desk.vault-desk .vault-navigator-region,
+  .resizable-desk.vault-desk .vault-note-region,
+  .resizable-desk.vault-desk .vault-side-pane:not([hidden]) {
+    display: block;
+    grid-column: auto;
+    width: auto;
+    max-width: none;
+    justify-self: stretch;
+    border: 1px solid var(--line);
+    border-radius: 8px 12px 9px 7px / 11px 7px 13px 8px;
+    background: var(--paper);
+  }
+  .resizable-desk.vault-desk .vault-navigator-region {
+    padding: 14px 9px;
+    border-radius: 11px 7px 13px 8px / 8px 12px 9px 7px;
+  }
+  .resizable-desk.vault-desk .vault-side-pane {
+    padding: 12px;
+  }
+  .resizable-desk.vault-desk .notebook-learning-pane {
+    padding: 0;
+    container-type: inline-size;
+  }
+  .resizable-desk.vault-desk .vault-note-region {
+    padding-inline: 0;
+  }
+  .resizable-desk .vault-read-surface {
+    padding-inline: clamp(16px, 3vw, 36px);
+  }
+  .resizable-desk > .workspace-frame {
+    display: block;
+    grid-row: 1;
+    align-self: stretch;
+    pointer-events: none;
+    min-height: 0;
+    min-width: 0;
+    z-index: 6;
+    --ink-edge: var(--muted);
+    --ink-stroke: 0.8px;
+  }
+  .resizable-desk
+    > :is(
+      .vault-navigator-region,
+      .vault-note-region,
+      .vault-side-pane,
+      .workspace-resizer
+    ) {
+    grid-row: 1;
+  }
+  .resizable-desk.vault-desk
+    :is(
+      .vault-navigator-region,
+      .vault-note-region,
+      .vault-side-pane:not([hidden])
+    ) {
+    border-color: transparent;
+  }
+  .resizable-desk.vault-desk > :is(.frame-left, .vault-navigator-region) {
+    grid-column: 1;
+  }
+  .resizable-desk > .resize-left {
+    grid-column: 2;
+  }
+  .resizable-desk.vault-desk > :is(.frame-center, .vault-note-region) {
+    grid-column: 1;
+  }
+  .resizable-desk.has-navigator.vault-desk
+    > :is(.frame-center, .vault-note-region) {
+    grid-column: 3;
+  }
+  .resizable-desk > .resize-right {
+    grid-column: 2;
+  }
+  .resizable-desk.has-navigator > .resize-right {
+    grid-column: 4;
+  }
+  .resizable-desk.vault-desk
+    > :is(.frame-right, .vault-side-pane:not([hidden])) {
+    grid-column: 3;
+  }
+  .resizable-desk.vault-desk.has-navigator
+    > :is(.frame-right, .vault-side-pane:not([hidden])) {
+    grid-column: 5;
+  }
+}
+:root[data-theme="ink"] .resizable-desk > .workspace-frame {
+  background: transparent;
+  --ink-fill: transparent;
+}
+@container (max-width: 480px) {
+  :root[data-theme="ink"] .notebook-learning-pane .flash-create,
+  .notebook-learning-pane .sources-grid,
+  .notebook-learning-pane .form-row,
+  .notebook-learning-pane .two-col,
+  .notebook-learning-pane .config-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .notebook-learning-pane .context-summary {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 760px) {
+  .workspace-resizer {
+    display: none;
+  }
+  .notebook-workspace .vault-workspace {
+    padding-inline: 12px;
+  }
+  .resizable-desk.vault-desk .notebook-learning-pane {
+    padding: 0;
+    max-width: none;
+    border: 1px solid var(--line);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-resizer span {
+    transition: none;
+  }
+}
+@media (min-width: 761px) and (min-height: 650px) {
+  :root[data-theme="ink"] .main:has(.notebook-workspace) {
+    height: calc(100dvh - var(--desktop-height, 0px));
+  }
+  :root[data-theme="ink"]
+    .resizable-desk.vault-desk
+    .notebook-learning-pane:has(.chat) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .notebook-learning-pane:has(.chat)
+    > :is(.workspace-sync, .notebook-learning-heading, .tabs) {
+    flex-shrink: 0;
+  }
+  :root[data-theme="ink"] .notebook-learning-pane .page-content:has(.chat) {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    padding: 14px;
+    overflow: hidden;
+  }
+  :root[data-theme="ink"] .notebook-learning-pane .chat {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  :root[data-theme="ink"]
+    .notebook-learning-pane
+    .chat
+    > :is(.messages, .chat-empty) {
+    flex: 1;
+    min-height: 50px;
+    overflow: auto;
+    padding-block: 12px;
+  }
+  .notebook-learning-pane
+    .chat
+    > :is(.section-heading, .chat-composer, .fine-print) {
+    flex-shrink: 0;
+  }
+  .notebook-learning-pane .chat .section-heading {
+    margin-bottom: 12px;
+  }
+  .notebook-learning-pane .chat-empty h3 {
+    font-size: 21px;
+    margin: 12px 0 6px;
+  }
+  .notebook-learning-pane .chat-empty > svg {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+  .notebook-learning-pane .suggestions {
+    margin-top: 16px;
+  }
+  .notebook-learning-pane .chat .fine-print {
+    font-size: 10px;
+    margin-top: 8px;
+  }
+  .notebook-learning-pane .chat-composer {
+    padding: 12px;
+  }
+}

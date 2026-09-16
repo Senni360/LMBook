@@ -159,3 +159,5 @@
     margin-bottom: 12px;
   }
 }
+
+.local-model-readiness { flex-basis: 100%; font-size: 13px; line-height: 1.6; }

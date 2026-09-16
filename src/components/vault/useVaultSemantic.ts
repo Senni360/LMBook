@@ -169,6 +169,7 @@ export function useVaultSemantic(vaultId: string) {
         }
       };
       modeQueue.current = modeQueue.current.then(operation, operation);
+      return modeQueue.current;
     },
     [current, refresh, status?.running, vaultId],
   );

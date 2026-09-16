@@ -12,6 +12,7 @@ import {
 } from "./components/InkControl";
 import React, {
   useEffect,
+  useContext,
   useLayoutEffect,
   useId,
   useMemo,
@@ -19,6 +20,7 @@ import React, {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
+import { WorkspaceVaultContext } from "./workspace-context";
 import "@fontsource/manrope/400.css";
 import "@fontsource/manrope/500.css";
 import "@fontsource/manrope/600.css";
@@ -95,6 +97,8 @@ import {
   FirstRunSetup,
   type OnboardingStatus,
 } from "./components/CodexSetup";
+import { AppearanceSetup } from "./components/AppearanceSetup";
+import { initializeAppearance } from "./appearance";
 import { LocalModelsSetup } from "./components/LocalModelsSetup";
 import { locateEvidence, locateSourceRange } from "../shared/evidence-location";
 import { ContextSummary } from "./components/ContextSummary";
@@ -119,6 +123,8 @@ import {
 import "./motion.css";
 import "./themes/ink.css";
 import "./themes/ink-controls.css";
+import "./appearance.css";
+initializeAppearance();
 
 type Summary = {
   id: string;
@@ -127,9 +133,9 @@ type Summary = {
   sourceCount: number;
   example: boolean;
 };
-const VaultWorkspace = React.lazy(() =>
-  import("./components/VaultWorkspace").then((module) => ({
-    default: module.VaultWorkspace,
+const NotebookWorkspace = React.lazy(() =>
+  import("./components/NotebookWorkspace").then((module) => ({
+    default: module.NotebookWorkspace,
   })),
 );
 const VaultSourceReview = React.lazy(() =>
@@ -141,8 +147,7 @@ const priceLabel = (amount: number) =>
   amount > 0 && amount < 0.01 ? "<$0.01" : `$${amount.toFixed(2)}`;
 const durationLabel = (wordCount: number) =>
   wordCount < 145 ? "<1 min" : `~${Math.round(wordCount / 145)} min`;
-type Tab =
-  "sources" | "goals" | "studio" | "flashcards" | "chat" | "settings" | "vault";
+type Tab = "sources" | "goals" | "studio" | "flashcards" | "chat" | "settings";
 type SourceRequest = {
   snapshot?: Source;
   snapshotMessageId?: string;
@@ -287,10 +292,6 @@ function App() {
   const [notebooks, setNotebooks] = useState<Summary[]>([]);
   const [n, setN] = useState<Notebook | null>(null);
   const [tab, setTab] = useState<Tab>("sources");
-  const [vaultOpened, setVaultOpened] = useState(false);
-  useEffect(() => {
-    if (tab === "vault") setVaultOpened(true);
-  }, [tab]);
   const motionTab = useRef(tab);
   const motionDirection = useMemo(() => {
     const order: Tab[] = [
@@ -300,7 +301,6 @@ function App() {
       "chat",
       "flashcards",
       "settings",
-      "vault",
     ];
     const direction =
       order.indexOf(tab) < order.indexOf(motionTab.current) ? -1 : 1;
@@ -328,8 +328,13 @@ function App() {
     nonce: number;
   } | null>(null);
   const openVaultNote = (vaultId: string, path: string) => {
-    setVaultNoteRequest({ vaultId, path, nonce: Date.now() });
-    setTab("vault");
+    void run("Opening note", async () => {
+      const book = await api<Notebook>(`/vaults/${vaultId}/notebook`, "POST");
+      await loadList();
+      if (selected.current !== book.id) await choose(book.id);
+      setVaultNoteRequest({ vaultId, path, nonce: Date.now() });
+      setTab("sources");
+    });
   };
   const openSource: OpenSource = (
     sourceId,
@@ -427,7 +432,7 @@ function App() {
           setSetupError((e as Error).message);
         }
         const [list, st] = await Promise.all([
-          loadList(),
+          api("/workspaces/connect-existing", "POST").then(() => loadList()),
           api<Capabilities>("/status"),
         ]);
         setStatus(st);
@@ -650,11 +655,7 @@ function App() {
   return (
     <div className={`app ${window.sennibookDesktop ? "desktop-app" : ""}`}>
       <DesktopBar
-        title={
-          tab === "vault"
-            ? "Obsidian vaults"
-            : n?.title || "Your learning library"
-        }
+        title={n?.title || "Your learning library"}
         onNew={() => setCreateOpen(true)}
         onSettings={openSettings}
       />
@@ -693,7 +694,7 @@ function App() {
           </InkButton>
         </div>
         <MotionNavigation
-          activeKey={tab === "vault" ? "vault" : n?.id || ""}
+          activeKey={n?.id || ""}
           itemsKey={notebooks.map((book) => book.id).join(":")}
           selector=".notebook-item.selected"
           vertical
@@ -703,14 +704,11 @@ function App() {
           {notebooks.map((book) => (
             <InkButton
               key={book.id}
-              className={`notebook-item ${n?.id === book.id && tab !== "vault" ? "selected" : ""}`}
-              aria-current={
-                n?.id === book.id && tab !== "vault" ? "page" : undefined
-              }
+              className={`notebook-item ${n?.id === book.id ? "selected" : ""}`}
+              aria-current={n?.id === book.id ? "page" : undefined}
               onClick={() =>
                 void (async () => {
                   await choose(book.id);
-                  if (tab === "vault") setTab("sources");
                 })().catch((error: Error) => setError(error.message))
               }
             >
@@ -737,12 +735,24 @@ function App() {
         </Button>
         <div className="sidebar-bottom">
           <InkButton
-            className={`rail-settings ${tab === "vault" ? "active" : ""}`}
-            title="Obsidian vaults"
-            aria-current={tab === "vault" ? "page" : undefined}
-            onClick={() => setTab("vault")}
+            className="rail-settings"
+            title="Open an Obsidian folder as a notebook"
+            disabled={!window.sennibookDesktop || !!busy}
+            onClick={() =>
+              void run("Opening folder", async () => {
+                const vault = await window.sennibookDesktop?.chooseVault();
+                if (!vault) return;
+                const book = await api<Notebook>(
+                  `/vaults/${vault.id}/notebook`,
+                  "POST",
+                );
+                await loadList();
+                await choose(book.id);
+                setTab("sources");
+              })
+            }
           >
-            <FolderOpen size={18} /> Obsidian vaults
+            <FolderOpen size={18} /> Open folder as notebook
           </InkButton>
           <div className="local-note">
             <span className="status-dot" /> Saved on this computer
@@ -775,7 +785,7 @@ function App() {
         <header className="topbar">
           <span>
             <Library size={15} /> Your learning library{" "}
-            {n && tab !== "vault" && (
+            {n && (
               <>
                 <ChevronRight size={14} />
                 <strong>{n.settings.subject}</strong>
@@ -814,40 +824,11 @@ function App() {
             {notice}
           </div>
         )}
-        {loaded && (vaultOpened || tab === "vault") && (
-          <WorkspaceBoundary
-            name="The vault workspace"
-            active={tab === "vault"}
-          >
-            <React.Suspense
-              fallback={
-                <p className="page-content" role="status">
-                  Opening vault workspace…
-                </p>
-              }
-            >
-              <VaultWorkspace
-                active={tab === "vault"}
-                openRequest={vaultNoteRequest}
-                notebooks={notebooks}
-                currentNotebook={n?.id || null}
-                onOpenNotebook={async (id, section = "sources") => {
-                  await choose(id);
-                  if (selected.current === id) setTab(section);
-                }}
-                onSourcesAdded={async (id) => {
-                  await loadList();
-                  if (selected.current === id) await refresh();
-                }}
-              />
-            </React.Suspense>
-          </WorkspaceBoundary>
-        )}
         {!loaded ? (
           <Empty icon={LoaderCircle} title="Opening your library…">
             Loading saved notebooks.
           </Empty>
-        ) : tab === "vault" ? null : tab === "settings" ? (
+        ) : tab === "settings" ? (
           <Connections
             refreshStatus={async () => {
               setStatus(await api<Capabilities>("/status"));
@@ -986,170 +967,188 @@ function App() {
             </div>
           </div>
         ) : (
-          <>
-            <section className="page-heading">
-              <div>
-                <div className="kicker">
-                  {n.example
-                    ? "Illustrative example notebook"
-                    : "Learning notebook"}
-                </div>
-                <h1>{n.title}</h1>
-                <p>
-                  {n.description ||
-                    "Collect the evidence. Follow the questions. Go a little further."}
-                </p>
-              </div>
-              <DownloadLink
-                className="button quiet"
-                href={`/api/notebooks/${n.id}/export`}
-                filename={`${n.title}.md`}
+          <WorkspaceBoundary name="The notebook workspace" active>
+            <React.Suspense
+              fallback={<p role="status">Opening notebook workspace…</p>}
+            >
+              <NotebookWorkspace
+                key={n.id}
+                notebookId={n.id}
+                title={n.title}
+                sourceFingerprint={JSON.stringify(
+                  n.sources.map((source) => [
+                    source.id,
+                    source.processing?.status,
+                    source.extractedSha256,
+                    source.text.length,
+                  ]),
+                )}
+                notebooks={notebooks}
+                openRequest={vaultNoteRequest}
+                onRefresh={refresh}
+                onOpenNotebook={async (id, section = "sources") => {
+                  await choose(id);
+                  if (selected.current === id) setTab(section);
+                }}
               >
-                <Download size={16} /> Export notes
-              </DownloadLink>
-            </section>
-            <MotionNavigation
-              activeKey={`${n.id}:${tab}`}
-              selector="button.active"
-              className="tabs"
-              aria-label="Notebook sections"
-            >
-              {(
-                [
-                  {
-                    id: "sources",
-                    label: "Sources",
-                    icon: FileText,
-                    count: n.sources.length,
-                  },
-                  {
-                    id: "goals",
-                    label: "Learning goals",
-                    icon: Target,
-                    count: n.objectives.length,
-                  },
-                  {
-                    id: "studio",
-                    label: "Audio studio",
-                    icon: Headphones,
-                    count: n.episodes.length,
-                  },
-                  {
-                    id: "chat",
-                    label: "Ask your sources",
-                    icon: MessageSquare,
-                  },
-                  {
-                    id: "flashcards",
-                    label: "Flashcards",
-                    icon: BookOpen,
-                    count: n.flashcards?.length || 0,
-                  },
-                ] as const
-              ).map((t) => (
-                <InkButton
-                  key={t.id}
-                  className={tab === t.id ? "active" : ""}
-                  aria-current={tab === t.id ? "page" : undefined}
-                  onClick={() => setTab(t.id)}
-                >
-                  <t.icon size={18} />
-                  {t.label}
-                  {"count" in t && <span className="tab-count">{t.count}</span>}
-                </InkButton>
-              ))}
-            </MotionNavigation>
-            <MotionSurface
-              motionKey={`${n.id}:${tab}`}
-              direction={motionDirection}
-              className="page-content"
-            >
-              {job && (
-                <div className="job-banner" role="status">
-                  <LoaderCircle className="spin" size={18} />
-                  <span>
-                    {n.episodes.find(
-                      (e) => e.status === "script" || e.status === "audio",
-                    )?.progress || status?.activeJobs[n.id]}
-                    <small>
-                      You can switch notebooks. Keep the local server running.
-                    </small>
-                  </span>
-                  <Button
-                    icon={Square}
-                    variant="quiet"
-                    onClick={() =>
-                      void run("Cancelling", async () => {
-                        await api(`/notebooks/${n.id}/cancel`, "POST");
-                        await refresh();
-                      })
-                    }
+                <div className="notebook-learning-heading">
+                  <strong>Learn from this notebook</strong>
+                  <DownloadLink
+                    className="button small quiet"
+                    href={`/api/notebooks/${n.id}/vault-export`}
+                    filename={`${n.title}.zip`}
                   >
-                    Stop
-                  </Button>
+                    <Download size={15} />
+                    Export vault
+                  </DownloadLink>
                 </div>
-              )}
-              {tab === "sources" && (
-                <Sources
-                  key={n.id}
-                  n={n}
-                  disabled={disabled}
-                  run={run}
-                  change={change}
-                  next={() => setTab("goals")}
-                  refresh={refresh}
-                  settings={openSettings}
-                  request={sourceRequest}
-                  onCloseReader={() => setSourceRequest(null)}
-                  onOpenVaultNote={openVaultNote}
-                />
-              )}
-              {tab === "goals" && (
-                <Goals
-                  key={n.id}
-                  n={n}
-                  disabled={disabled}
-                  run={run}
-                  change={change}
-                  next={() => setTab("studio")}
-                  openSource={openSource}
-                />
-              )}
-              {tab === "studio" && (
-                <Studio
-                  key={n.id}
-                  n={n}
-                  disabled={disabled}
-                  status={status}
-                  activityRevision={activityRevision}
-                  run={run}
-                  change={change}
-                  refresh={refresh}
-                  saveSettings={saveSettings}
-                  settings={openSettings}
-                />
-              )}
-              {tab === "chat" && (
-                <Chat
-                  key={n.id}
-                  n={n}
-                  disabled={disabled}
-                  run={run}
-                  change={change}
-                  openSource={openSource}
-                />
-              )}
-              {tab === "flashcards" && (
-                <Flashcards
-                  key={n.id}
-                  n={n}
-                  disabled={disabled}
-                  run={run}
-                  change={change}
-                />
-              )}
-            </MotionSurface>
-          </>
+                <MotionNavigation
+                  activeKey={`${n.id}:${tab}`}
+                  selector="button.active"
+                  className="tabs"
+                  aria-label="Notebook sections"
+                >
+                  {(
+                    [
+                      {
+                        id: "sources",
+                        label: "Sources",
+                        icon: FileText,
+                        count: n.sources.length,
+                      },
+                      {
+                        id: "goals",
+                        label: "Learning goals",
+                        icon: Target,
+                        count: n.objectives.length,
+                      },
+                      {
+                        id: "studio",
+                        label: "Audio studio",
+                        icon: Headphones,
+                        count: n.episodes.length,
+                      },
+                      {
+                        id: "chat",
+                        label: "Ask your sources",
+                        icon: MessageSquare,
+                      },
+                      {
+                        id: "flashcards",
+                        label: "Flashcards",
+                        icon: BookOpen,
+                        count: n.flashcards?.length || 0,
+                      },
+                    ] as const
+                  ).map((t) => (
+                    <InkButton
+                      key={t.id}
+                      className={tab === t.id ? "active" : ""}
+                      aria-current={tab === t.id ? "page" : undefined}
+                      onClick={() => setTab(t.id)}
+                    >
+                      <t.icon size={18} />
+                      {t.label}
+                      {"count" in t && (
+                        <span className="tab-count">{t.count}</span>
+                      )}
+                    </InkButton>
+                  ))}
+                </MotionNavigation>
+                <MotionSurface
+                  motionKey={`${n.id}:${tab}`}
+                  direction={motionDirection}
+                  className="page-content"
+                >
+                  {job && (
+                    <div className="job-banner" role="status">
+                      <LoaderCircle className="spin" size={18} />
+                      <span>
+                        {n.episodes.find(
+                          (e) => e.status === "script" || e.status === "audio",
+                        )?.progress || status?.activeJobs[n.id]}
+                        <small>
+                          You can switch notebooks. Keep the local server
+                          running.
+                        </small>
+                      </span>
+                      <Button
+                        icon={Square}
+                        variant="quiet"
+                        onClick={() =>
+                          void run("Cancelling", async () => {
+                            await api(`/notebooks/${n.id}/cancel`, "POST");
+                            await refresh();
+                          })
+                        }
+                      >
+                        Stop
+                      </Button>
+                    </div>
+                  )}
+                  {tab === "sources" && (
+                    <Sources
+                      key={n.id}
+                      n={n}
+                      disabled={disabled}
+                      run={run}
+                      change={change}
+                      next={() => setTab("goals")}
+                      refresh={refresh}
+                      settings={openSettings}
+                      request={sourceRequest}
+                      onCloseReader={() => setSourceRequest(null)}
+                      onOpenVaultNote={openVaultNote}
+                    />
+                  )}
+                  {tab === "goals" && (
+                    <Goals
+                      key={n.id}
+                      n={n}
+                      disabled={disabled}
+                      run={run}
+                      change={change}
+                      next={() => setTab("studio")}
+                      openSource={openSource}
+                    />
+                  )}
+                  {tab === "studio" && (
+                    <Studio
+                      key={n.id}
+                      n={n}
+                      disabled={disabled}
+                      status={status}
+                      activityRevision={activityRevision}
+                      run={run}
+                      change={change}
+                      refresh={refresh}
+                      saveSettings={saveSettings}
+                      settings={openSettings}
+                    />
+                  )}
+                  {tab === "chat" && (
+                    <Chat
+                      key={n.id}
+                      n={n}
+                      disabled={disabled}
+                      run={run}
+                      change={change}
+                      openSource={openSource}
+                    />
+                  )}
+                  {tab === "flashcards" && (
+                    <Flashcards
+                      key={n.id}
+                      n={n}
+                      disabled={disabled}
+                      run={run}
+                      change={change}
+                    />
+                  )}
+                </MotionSurface>
+              </NotebookWorkspace>
+            </React.Suspense>
+          </WorkspaceBoundary>
         )}
       </main>
       <dialog
@@ -1236,6 +1235,10 @@ function Sources({
   onOpenVaultNote: (vaultId: string, path: string) => void;
 }) {
   const sourceTitleDraft = useDraftText(`${n.id}:source-title`, "", 200);
+  const workspaceVaultId = useContext(WorkspaceVaultContext);
+  const externalVaultSources = n.sources.filter(
+    (source) => source.vault && source.vault.vaultId !== workspaceVaultId,
+  );
   const sourceTextDraft = useDraftText(`${n.id}:source-text`, "", 1_000_000);
   const { text: title, setText: setTitle } = sourceTitleDraft;
   const { text, setText } = sourceTextDraft;
@@ -1368,13 +1371,13 @@ function Sources({
           {adding ? "Close editor" : "Paste a source"}
         </Button>
       </div>
-      {n.sources.some((source) => source.vault) && (
+      {externalVaultSources.length > 0 && (
         <WorkspaceBoundary name="Vault source review">
           <React.Suspense
             fallback={<p role="status">Opening vault source review…</p>}
           >
             <VaultSourceReview
-              notebook={n}
+              notebook={{ ...n, sources: externalVaultSources }}
               onUpdated={refresh}
               onOpenVaultNote={onOpenVaultNote}
             />
@@ -3199,6 +3202,15 @@ function Connections({
           <p>Connect your accounts and manage saved notebooks.</p>
         </div>
       </div>
+      <section className="settings-section">
+        <div>
+          <h2>Appearance</h2>
+          <p>Choose paper, ink and accent colors.</p>
+        </div>
+        <div className="settings-body">
+          <AppearanceSetup />
+        </div>
+      </section>
       <section className="settings-section">
         <div>
           <h2>Thinking & writing</h2>
