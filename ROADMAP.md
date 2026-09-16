@@ -1,5 +1,7 @@
 # LMBook roadmap
 
+- Version 0.3.10 corrects settings disclosure spacing and container styling. Obsidian support is in [feasibility discussion](docs/research/obsidian-feasibility.md), with no integration implementation selected.
+
 - Version 0.3.9 brings application-owned menus, desktop chrome, confirmations, media controls and supporting states into Ink. Implementation and visual/behavior evidence are in [the controls evaluation](docs/ui/ink-desktop-controls.md). Windows 0.3.9 is locally packaged and checked; native Mac evaluation and owner preference review remain separate.
 
 - Version 0.3.8 adds native Apple Silicon and Intel Mac packaging, Finder tool discovery and Mac window/menu behavior. Native CI and release verification are part of [PR #8](https://github.com/Senni360/LMBook/pull/8); see [Mac setup](docs/macos.md).

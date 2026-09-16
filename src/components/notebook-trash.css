@@ -1,15 +1,24 @@
 .notebook-trash {
-  border-block: 1px solid var(--line);
+  border: 1px solid var(--line);
   margin-block: 24px;
-  padding-block: 16px;
+  padding: 16px;
 }
-.notebook-trash > summary {
+.settings-body .notebook-trash > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 28px;
   cursor: pointer;
   font-weight: 700;
   padding-block: 4px;
 }
 .notebook-trash > summary svg {
-  margin-inline: 5px 8px;
+  flex-shrink: 0;
+  margin: 0;
+}
+:root[data-theme="ink"] .notebook-trash > summary::before {
+  flex-shrink: 0;
+  margin: 0;
 }
 .notebook-trash > p,
 .notebook-trash > .trash-error {
