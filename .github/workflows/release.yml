@@ -18,6 +18,7 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
+      build: ${{ steps.plan.outputs.build }}
       publish: ${{ steps.plan.outputs.publish }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -34,7 +35,7 @@ jobs:
 
   build:
     needs: plan
-    if: needs.plan.outputs.publish == 'true'
+    if: needs.plan.outputs.build == 'true'
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
@@ -126,8 +127,8 @@ jobs:
           compression-level: 0
 
   publish:
-    needs: verify
-    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: [plan, verify]
+    if: needs.plan.outputs.publish == 'true' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

@@ -1,6 +1,6 @@
 # Obsidian integration: feasibility discussion
 
-16 September 2026. The owner asks for “full Obsidian support,” ideally Obsidian inside LMBook, but explicitly wants feasibility and discussion before implementation. No integration is authorized or implemented in this pass. The earlier statement that the owner does not use Obsidian is historical; current usage has not been reconfirmed.
+16 September 2026. The owner asks for “full Obsidian support,” ideally Obsidian inside LMBook, but explicitly wants feasibility and discussion before implementation. The owner subsequently accepted the shared-vault recommendation as the direction for 0.4; implementation is authorized but has not begun. See [the milestone plan](../0.4-plan.md). The earlier statement that the owner does not use Obsidian is historical; current usage has not been reconfirmed.
 
 ## Confirmed evidence
 

@@ -1,5 +1,9 @@
 # Work log
 
+## 2026-09-16 — Owner-defined 0.4 milestone and publication gate
+
+The owner accepted shared-vault editing and wants to iterate the whole app until they consider it ready, then release 0.4. Recorded the outcome and proposed implementation sequence in [the milestone plan](docs/0.4-plan.md). Added a fail-closed version approval policy to both CI publication and the release script; unapproved master/PR builds remain downloadable iteration artifacts. Six offline release-gate scenarios passed: unapproved master build, refused unapproved publication, approved PR build without publication, approved master publication planning, wrong-version rejection and invalid-approval rejection. No GitHub publication or new repository tests. No version bump or vault implementation is claimed in this planning/gating change.
+
 ## 2026-09-16 — Settings disclosure fix and Obsidian feasibility
 
 Reproduced the owner’s screenshot: a broad Ink selector styled every settings disclosure as a card, while Trash had only vertical padding and horizontal borders. Limited card styling to the actual Trash container, added its complete border/inset and aligned its arrow/icon/text. Plain neighbouring disclosures retain their simpler presentation. Desktop and 390px expanded/empty states, keyboard toggling, production build and scoped layout checks passed. Windows 0.3.10 installer/portable packages are built locally and the packaged startup/sandbox/persistence/restart check passes. No new repository tests. Researched official Obsidian terms, storage, URI and plugin APIs; [feasibility notes](docs/research/obsidian-feasibility.md) separate shared-vault editing from a companion plugin and embedding the actual proprietary app. No Obsidian implementation started; the owner clarified shared-vault editing, file creation and AI summaries as the intended workflow, with plugin compatibility still under discussion.
