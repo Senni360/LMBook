@@ -51,35 +51,45 @@ export function getVault(id: string) {
 }
 export async function connectVault(folder: string, reconnectId?: string) {
   return withArtifactMutation(async () => {
-  const root = await realpath(folder);
-  if (!(await lstat(root)).isDirectory() || root === path.parse(root).root)
-    throw vaultError("Choose a vault folder, not an entire drive.");
-  const known = db.prepare("SELECT id,name,root FROM vaults").all() as Vault[];
-  const old = known.find((v) =>
-    process.platform === "win32"
-      ? v.root.toLowerCase() === root.toLowerCase()
-      : v.root === root,
-  );
-  if (reconnectId) {
-    const previous = known.find(v => v.id === reconnectId);
-    if (!previous) throw vaultError("This vault connection no longer exists.",404);
-    if (old && old.id !== reconnectId)
-      throw vaultError("This folder is already connected as another vault. Switch to that connection instead.",409);
-    const relocated = {...previous,root,name:path.basename(root)};
-    db.prepare("UPDATE vaults SET root=?,name=?,active=1 WHERE id=?").run(root,relocated.name,reconnectId);
-    return relocated;
-  }
-  if (old) {
-    db.prepare("UPDATE vaults SET active=1 WHERE id=?").run(old.id);
-    return old;
-  }
-  const vault = { id: randomUUID(), name: path.basename(root), root };
-  db.prepare("INSERT INTO vaults (id, name, root) VALUES (?, ?, ?)").run(
-    vault.id,
-    vault.name,
-    root,
-  );
-  return vault;
+    const root = await realpath(folder);
+    if (!(await lstat(root)).isDirectory() || root === path.parse(root).root)
+      throw vaultError("Choose a vault folder, not an entire drive.");
+    const known = db
+      .prepare("SELECT id,name,root FROM vaults")
+      .all() as Vault[];
+    const old = known.find((v) =>
+      process.platform === "win32"
+        ? v.root.toLowerCase() === root.toLowerCase()
+        : v.root === root,
+    );
+    if (reconnectId) {
+      const previous = known.find((v) => v.id === reconnectId);
+      if (!previous)
+        throw vaultError("This vault connection no longer exists.", 404);
+      if (old && old.id !== reconnectId)
+        throw vaultError(
+          "This folder is already connected as another vault. Switch to that connection instead.",
+          409,
+        );
+      const relocated = { ...previous, root, name: path.basename(root) };
+      db.prepare("UPDATE vaults SET root=?,name=?,active=1 WHERE id=?").run(
+        root,
+        relocated.name,
+        reconnectId,
+      );
+      return relocated;
+    }
+    if (old) {
+      db.prepare("UPDATE vaults SET active=1 WHERE id=?").run(old.id);
+      return old;
+    }
+    const vault = { id: randomUUID(), name: path.basename(root), root };
+    db.prepare("INSERT INTO vaults (id, name, root) VALUES (?, ?, ?)").run(
+      vault.id,
+      vault.name,
+      root,
+    );
+    return vault;
   });
 }
 export function disconnectVault(id: string) {
@@ -193,26 +203,40 @@ export async function readVaultAsset(id: string, relative: string) {
     const info = await handle.stat();
     if (!info.isFile() || info.size > 16 * 1024 * 1024)
       throw vaultError("This image exceeds the 16 MB preview limit.");
-    const bytes = await readBounded(handle,16 * 1024 * 1024);
-    const current = await lstat(await checkedVaultPath(vault,relative));
-    if (current.ino !== info.ino || current.dev !== info.dev || current.size !== info.size || current.mtimeMs !== info.mtimeMs)
-      throw vaultError("This image changed while it was being opened. Open the note again.",409);
+    const bytes = await readBounded(handle, 16 * 1024 * 1024);
+    const current = await lstat(await checkedVaultPath(vault, relative));
+    if (
+      current.ino !== info.ino ||
+      current.dev !== info.dev ||
+      current.size !== info.size ||
+      current.mtimeMs !== info.mtimeMs
+    )
+      throw vaultError(
+        "This image changed while it was being opened. Open the note again.",
+        409,
+      );
     return { bytes, type };
   } finally {
     await handle.close();
   }
 }
 
-async function readBounded(handle: Awaited<ReturnType<typeof open>>, maximum: number) {
+async function readBounded(
+  handle: Awaited<ReturnType<typeof open>>,
+  maximum: number,
+) {
   const parts: Buffer[] = [];
   let total = 0;
   while (total <= maximum) {
     const part = Buffer.allocUnsafe(Math.min(64 * 1024, maximum + 1 - total));
-    const {bytesRead} = await handle.read(part,0,part.length,null);
-    if (!bytesRead) return Buffer.concat(parts,total);
+    const { bytesRead } = await handle.read(part, 0, part.length, null);
+    if (!bytesRead) return Buffer.concat(parts, total);
     total += bytesRead;
-    if (total > maximum) throw vaultError("This file grew beyond the reading limit. Open a smaller file.");
-    parts.push(part.subarray(0,bytesRead));
+    if (total > maximum)
+      throw vaultError(
+        "This file grew beyond the reading limit. Open a smaller file.",
+      );
+    parts.push(part.subarray(0, bytesRead));
   }
   throw vaultError("This file exceeds the reading limit.");
 }
@@ -304,10 +328,18 @@ export async function readVaultNote(id: string, relative: string) {
       throw vaultError(
         "The note exceeds the 1 MB editor limit. Split it into smaller notes.",
       );
-    const bytes = await readBounded(handle,MAX_BYTES);
-    const current = await lstat(await checkedPath(vault,relative));
-    if (current.ino !== info.ino || current.dev !== info.dev || current.size !== info.size || current.mtimeMs !== info.mtimeMs)
-      throw vaultError("This note changed while it was being read. Try opening it again.",409);
+    const bytes = await readBounded(handle, MAX_BYTES);
+    const current = await lstat(await checkedPath(vault, relative));
+    if (
+      current.ino !== info.ino ||
+      current.dev !== info.dev ||
+      current.size !== info.size ||
+      current.mtimeMs !== info.mtimeMs
+    )
+      throw vaultError(
+        "This note changed while it was being read. Try opening it again.",
+        409,
+      );
     return {
       note: {
         path: relative,
@@ -353,6 +385,7 @@ export async function saveVaultNote(
   relative: string,
   text: string,
   revision: string | null,
+  beforePublish?: () => void,
 ) {
   if (Buffer.byteLength(text) > MAX_BYTES)
     throw vaultError("The note exceeds the 1 MB editor limit.");
@@ -394,6 +427,7 @@ export async function saveVaultNote(
       }
       await checkedPath(vault, relative, revision === null);
       if (revision === null) {
+        beforePublish?.();
         // A hard link publishes the completed file only if the name is still free.
         await link(temporary, target).catch(
           async (error: NodeJS.ErrnoException) => {
@@ -440,11 +474,15 @@ export async function saveVaultNote(
             "This note changed while saving. Your draft is safe; compare versions and retry.",
             409,
           );
+        beforePublish?.();
         await rename(temporary, target);
       }
       const saved = (await readVaultNote(id, relative)).note;
       if (saved.revision !== digest(bytes))
-        throw vaultError("Another app changed this note immediately after the save. Your submitted draft is kept in recovery; compare the current file before retrying.",409);
+        throw vaultError(
+          "Another app changed this note immediately after the save. Your submitted draft is kept in recovery; compare the current file before retrying.",
+          409,
+        );
       return saved;
     } finally {
       await unlink(temporary).catch(() => {});

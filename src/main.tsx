@@ -92,6 +92,7 @@ import {
   OpenRouterSetup,
   OpenRouterModelPicker,
 } from "./components/OpenRouterSetup";
+import { JevSetup } from "./components/JevSetup";
 import {
   CodexSetup,
   FirstRunSetup,
@@ -3364,6 +3365,7 @@ function Connections({
         </div>
         <div className="settings-body">
           <OpenRouterSetup />
+          <JevSetup />
         </div>
       </section>
       <section className="settings-section">

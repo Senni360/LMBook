@@ -14,6 +14,15 @@ import { extractDocument } from "./document-import.ts";
 import { registerFlashcardRoutes } from "./flashcard-routes.ts";
 import { registerVaultRoutes } from "./vault-routes.ts";
 import { registerNotebookWorkspaceRoutes } from "./notebook-workspace-routes.ts";
+import { registerJevRoutes } from "./jev-routes.ts";
+import {
+  registerJevNotebookRoutes,
+  stopJevNotebookRuns,
+} from "./jev-notebook.ts";
+import {
+  registerBackgroundAssistantRoutes,
+  stopBackgroundAssistant,
+} from "./background-assistant.ts";
 import { excludeWorkspaceSource } from "./notebook-workspace.ts";
 import { registerAiRoutes, stopAiRuntime } from "./ai-routes.ts";
 import { storeOriginal, verifyOriginal } from "./source-originals.ts";
@@ -136,6 +145,9 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "15mb" }));
 registerAiRoutes(app);
 registerNotebookWorkspaceRoutes(app);
+registerJevRoutes(app);
+registerJevNotebookRoutes(app);
+registerBackgroundAssistantRoutes(app);
 const route =
   (fn: (req: Request, res: Response) => unknown) =>
   async (req: Request, res: Response, next: NextFunction) => {
@@ -1296,6 +1308,8 @@ let shuttingDown = false;
 async function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
+  stopBackgroundAssistant();
+  stopJevNotebookRuns();
   stopAiRuntime();
   for (const job of jobs.values()) job.controller.abort();
   server.close();

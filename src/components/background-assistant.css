@@ -1,0 +1,233 @@
+.background-assistant {
+  margin: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.6;
+  padding-bottom: 12px;
+  min-width: 0;
+}
+.assistant-heading,
+.assistant-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.assistant-heading {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+.assistant-expand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 7px 4px;
+}
+.assistant-expand strong {
+  font-size: 13px;
+}
+.assistant-expand > svg:last-child {
+  transition: transform 160ms ease;
+}
+.assistant-expand .is-open {
+  transform: rotate(180deg);
+}
+.assistant-count {
+  color: var(--pen);
+  font-weight: 700;
+}
+.assistant-status,
+.assistant-actions > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.assistant-intro p,
+.assistant-empty {
+  margin: 8px 0 10px;
+  color: var(--muted);
+}
+.assistant-content {
+  padding-top: 12px;
+}
+.assistant-height-card {
+  margin-top: 8px;
+}
+.resizable-desk.vault-desk .assistant-height-card > .ink-contour {
+  display: none;
+}
+.background-assistant {
+  flex-shrink: 0;
+}
+.assistant-settings {
+  display: grid;
+  gap: 12px;
+}
+.assistant-settings > label:not(.assistant-check) {
+  display: grid;
+  gap: 6px;
+}
+.assistant-settings p {
+  margin: 0;
+}
+.assistant-settings fieldset {
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 10px 0 0;
+  min-width: 0;
+}
+.assistant-settings legend {
+  font-weight: 600;
+  padding: 0 6px 0 0;
+}
+.assistant-settings fieldset .assistant-actions {
+  margin: 8px 0;
+}
+.assistant-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+.assistant-check input {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+.assistant-check span {
+  overflow-wrap: anywhere;
+}
+.assistant-scope {
+  max-height: 190px;
+  overflow: auto;
+  padding: 4px 2px;
+}
+.assistant-scope .assistant-check {
+  padding: 5px 0;
+}
+.assistant-proposal {
+  padding-block: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.assistant-proposal p {
+  margin: 6px 0 10px;
+}
+.assistant-pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+.assistant-pair button {
+  font-weight: 650;
+  text-align: left;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.assistant-proposal details {
+  margin-bottom: 12px;
+}
+.assistant-proposal h4 {
+  font-size: 11px;
+  margin: 12px 0 4px;
+}
+.assistant-proposal blockquote {
+  margin: 0;
+  padding: 8px;
+  background: var(--appearance-soft, var(--canvas));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.assistant-proposal pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  margin: 0;
+  padding: 8px;
+  background: var(--appearance-soft, var(--canvas));
+}
+.assistant-history {
+  margin-top: 14px;
+}
+.assistant-history p {
+  color: var(--muted);
+  font-size: 11px;
+  margin-block: 8px;
+}
+.assistant-history time {
+  font-variant-numeric: tabular-nums;
+}
+.assistant-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+.assistant-history-item > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.assistant-history-item small {
+  display: block;
+  color: var(--muted);
+}
+.assistant-error {
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 8px;
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+.assistant-toast {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  z-index: 85;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: min(390px, calc(100vw - 28px));
+  padding: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 8px 28px #0003;
+  border-radius: 12px 9px 13px 10px;
+  font-size: 13px;
+  animation: assistant-notice-arrive 180ms ease-out;
+}
+.assistant-toast > svg {
+  color: var(--pen);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.assistant-toast > div {
+  min-width: 0;
+}
+.assistant-toast p {
+  margin: 4px 0 12px;
+  line-height: 1.5;
+}
+.assistant-toast .icon-button {
+  flex-shrink: 0;
+}
+@keyframes assistant-notice-arrive {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-toast {
+    animation: none;
+  }
+  .assistant-expand > svg:last-child {
+    transition: none;
+  }
+}

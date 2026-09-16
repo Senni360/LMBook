@@ -1,6 +1,17 @@
 # Background-assistant model usage
 
-Updated 2026-09-16. Living implementation record, not a completed feature report. The owner permits all researched small models when useful and requests used/not-used explanations after the work. All ten background-assistant directions and the three control modes are accepted in [the specification](background-assistant-proposal.md).
+Updated 2026-09-17. Living implementation record. The owner permits researched small models when useful and requests used/not-used explanations. All ten directions and three control modes are accepted in [the specification](background-assistant-proposal.md); the current delivered slice is documented in [background connections and Jev checks](../ui/background-assistant.md).
+
+## Current delivery — background assistant and Jev
+
+| Model | Implemented role | Actually executed in this delivery / why |
+| --- | --- | --- |
+| GPT-5.6 Luna through Codex | Bounded background note-link proposals with exact quotations, three control modes and undo. Existing chat, flashcards and script generation remain. | Real authored-note evaluation: initial ask run returned two pending connections in 10.154 seconds; additional runs exercised ask/straightforward/full, external-edit rejection and pause. Luna remains necessary for writing relationship explanations. No paid Luna API route was added. |
+| TypeSafe Jev, direct API | API-key settings/check, per-source organization, source-pair relationship checks, goal support, question answerability, per-card quality review, background link support and optional search ranking. | **Integrated but no live Jev inference here:** the owner reports access, but their key is not installed in the evaluation library. Authored-response diagnostics exercised the actual provider, routes and UI, including 38-decision batching, cancellation, source scope, stale reports and feedback. Jev fits finite decisions; it does not generate notes or translations. Its quality and cost savings are unmeasured. |
+| multilingual-e5-small, local CPU | Existing local vault retrieval remains available and can feed optional Jev ranking. | No new E5 benchmark in this delivery. Prior actual app/PWS evidence is retained below. No additional local weights were needed for these hosted decision experiments. |
+| OpenRouter specialists, OCR and transcription baselines | Existing capabilities remain available. | No new live OpenRouter, OCR or transcription call in this delivery: the current work concerns links, selected text judgments and interface behavior. |
+
+Jev is now explicitly permitted, superseding the historical exclusion below. It is the owner's direct-provider exception to OpenRouter routing. All Jev features default off and remain advisory; confidence cannot verify a source or prove learning. Other candidate deferrals below are unchanged: they add downloads, runtime cost or unvalidated behavior without filling a demonstrated gap in this slice. No model was installed just to widen the model list. Live Jev evaluation on representative Dutch/German/English evidence is the next consequential check.
 
 ## What has actually been used
 
@@ -62,7 +73,7 @@ These are deferrals unless explicitly described as a poor fit; they are not perm
 | Qwen3.5-0.8B | Newer multimodal option; larger advertised capability does not establish better small Dutch extraction. Needs task-specific comparison. |
 | SmolLM3 3B | More local resources for a general assistant; no current task requires this additional model. |
 | FunctionGemma | Task-specific specialization/training is material work. Correctly formatted actions do not prove correct decisions. |
-| TypeSafe Jev | **Excluded by the owner's explicit direction: no API access yet; do not implement.** Use code and Luna for bounded decision roles initially. Revisit only when access changes and a useful gap remains. |
+| TypeSafe Jev | Now integrated under the owner's newer API-access decision; see the current delivery table. Live inference is still pending connection of the actual key. |
 | Moonshine | Possible live/CPU transcription benefit; no replacement decision before comparing Dutch terminology, numbers and timestamps with the existing worker. |
 | Picovoice Leopard / Cheetah | Alternative transcription adds commercial/runtime considerations without a demonstrated current advantage. |
 | WhisperX | Existing word timestamps cover basic seeking. Add forced alignment only when an observed timing problem justifies the extra dependencies. |

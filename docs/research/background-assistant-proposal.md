@@ -1,6 +1,6 @@
 # A background assistant for LMBook
 
-2026-09-16. All ten feature directions are now endorsed by the owner, with the autonomy and notification corrections recorded below. This is the accepted product direction and developing specification; no new background model behavior has been enabled.
+2026-09-17. All ten feature directions are now endorsed by the owner, with the autonomy and notification corrections recorded below. This is the accepted product direction and developing specification; the bounded implementation status is recorded below and all new assistant features remain opt-in and default off.
 
 ## Owner decisions after reviewing the ten ideas
 
@@ -17,15 +17,26 @@ The owner subsequently authorized using any of the researched small AI models if
 
 The owner then made their existing RTX 3060 a required target, including projects like `D:\Downloads\PWS\vault`. Model selection must fit that machine through bounded processing, CPU fallbacks and selective hosted work where justified by cost; an upgrade is not the proposed solution. The concrete vault assessment and API cost comparison belong in [the 3060 feasibility report](vault-3060-feasibility.md). Do not claim the full application works at that scale merely because one model fits.
 
-**Jev is excluded from implementation for now:** the owner explicitly reports no API access and says not to implement it yet. Use plain code and Luna for its proposed decision roles initially; add another specialist only for a demonstrated gap. Do not add a non-working Jev integration, sign-up dependency or hidden fallback to it. Revisit only after access changes.
+**Jev is now allowed:** the owner reports API access and authorizes broad Jev experiments. Jev may use a direct TypeSafe key; this is the exception to the hosted-provider routing below, where other specialist models use OpenRouter. Luna remains on the existing Codex/OpenAI subscription and its routing is unchanged. No live Jev key is available in this worktree, so Jev diagnostics here are mocked; do not describe them as real Jev requests or use a hidden fallback.
 
 ## Provider routing — owner decision, 2026-09-16
 
 Use the existing OpenAI subscription connection through Codex App Server for GPT-5.6 Luna. Use OpenRouter for all other hosted models selected for this assistant work. This supersedes the research recommendation to route Luna through OpenRouter or add direct specialist accounts. Local models remain local; this decision does not require moving local retrieval to an API or replacing existing speech integrations.
 
-If a specialist is unavailable through OpenRouter, choose an adequate OpenRouter alternative or retain a local implementation; report any unresolved capability gap rather than silently adding a direct provider. Jev remains excluded. Subscription usage is subject to the connected account's limits; do not silently fall back to paid Luna API requests when those limits are reached. Earlier Luna API cost examples are comparisons, not the selected billing path.
+If a specialist is unavailable through OpenRouter, choose an adequate OpenRouter alternative or retain a local implementation; report any unresolved capability gap rather than silently adding a direct provider. Jev is the explicit direct-TypeSafe-key exception. Subscription usage is subject to the connected account's limits; do not silently fall back to paid Luna API requests when those limits are reached. Earlier Luna API cost examples are comparisons, not the selected billing path.
 
 Read-only code inspection confirms that `server/codex-app-server.ts` already checks the existing account and starts model-specific Codex threads. This records the selected routing policy, not a new OpenRouter integration or a fresh account/model access check. Availability research remains in [the router evidence](vault-api-cost-evidence.md#router-availability-follow-up--2026-09-16).
+
+## Bounded implementation status — 2026-09-17
+
+All features in this section are opt-in and default off. This is a partial implementation of bounded controls; it does not mean all ten endorsed directions are implemented.
+
+* The Luna scheduler has three user-selectable modes, undo/recovery, and a Jev advisory gate. The actual Luna modes passed diagnostics. Jev diagnostics were mocked because no live Jev key is available in this worktree.
+* The optional manual notebook role can assess one source at a time, pair relationships (up to 12), one goal/question, and the first 12 deck cards. Jev results are advisory review candidates only. No model probability or confidence may mark an item `verified`; source checks and human review remain necessary.
+* Optional search reranking considers the top 10 candidates within a five-second budget and falls back deterministically on timeout or unavailable Jev.
+* Source checks are bounded to the first 6,000 characters across 12 sources. Background processing is bounded to 150 notes per batch.
+
+The future user-facing behavior belongs in [the background-assistant UI specification](../ui/background-assistant.md). The current bounded controls should not be described as the complete ten-feature assistant.
 
 ## Agent control modes
 

@@ -141,6 +141,9 @@
 .workspace-frame {
   display: none;
 }
+.workspace-card[hidden] {
+  display: none !important;
+}
 @media (min-width: 761px) {
   .main:has(.notebook-workspace) {
     height: calc(100dvh - var(--desktop-height, 0px));
@@ -250,6 +253,109 @@
     > :is(.frame-right, .vault-side-pane:not([hidden])) {
     grid-column: 5;
   }
+
+  /* Each workspace surface owns its vertical rhythm. The card body scrolls,
+     while the desk itself can still reveal the bottoms of tall cards. */
+  .resizable-desk.vault-desk {
+    align-items: start;
+    grid-auto-rows: max-content;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+  .resizable-desk.vault-desk .workspace-card {
+    position: relative;
+    --ink-fill: transparent;
+    --ink-edge: var(--muted);
+    --ink-stroke: 0.8px;
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    min-width: 0;
+    min-height: 0;
+    height: var(--card-height);
+    overflow: hidden;
+    grid-row: 1;
+  }
+  .resizable-desk.vault-desk .workspace-card > svg.ink-contour {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+  }
+  .resizable-desk.vault-desk .workspace-card-content {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+  .workspace-card-content.vault-note-region > div,
+  .workspace-card-content > aside {
+    display: contents;
+  }
+  .resizable-desk.vault-desk > .workspace-frame {
+    display: none;
+  }
+  .resizable-desk.vault-desk
+    .workspace-card-content
+    > :is(.vault-navigator-region, .vault-note-region, .vault-side-pane) {
+    box-sizing: border-box;
+    min-height: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .resizable-desk.vault-desk .workspace-card-navigator {
+    grid-column: 1;
+  }
+  .resizable-desk.vault-desk.has-navigator .workspace-card-note {
+    grid-column: 3;
+  }
+  .resizable-desk.vault-desk:not(.has-navigator) .workspace-card-note {
+    grid-column: 1;
+  }
+  .resizable-desk.vault-desk .workspace-card-learning,
+  .resizable-desk.vault-desk .workspace-card-details {
+    grid-column: 3;
+  }
+  .resizable-desk.vault-desk.has-navigator .workspace-card-learning,
+  .resizable-desk.vault-desk.has-navigator .workspace-card-details {
+    grid-column: 5;
+  }
+  .resizable-desk.vault-desk .workspace-card-resizer {
+    flex: 0 0 12px;
+    position: relative;
+    cursor: row-resize;
+    touch-action: none;
+    user-select: none;
+    z-index: 7;
+  }
+  .resizable-desk.vault-desk .workspace-card-resizer span {
+    position: absolute;
+    left: 42%;
+    right: 42%;
+    top: 5px;
+    height: 2px;
+    background: var(--line);
+    border-radius: 55% 40% 60% 45%;
+    transition:
+      background 150ms ease,
+      left 150ms ease,
+      right 150ms ease;
+  }
+  .resizable-desk.vault-desk .workspace-card-resizer:hover span,
+  .resizable-desk.vault-desk .workspace-card-resizer:focus-visible span {
+    left: 35%;
+    right: 35%;
+    background: var(--pen);
+  }
+  .resizable-desk.vault-desk .workspace-card-resizer:focus-visible {
+    outline: 1px solid var(--pen);
+    outline-offset: -3px;
+    border-radius: 5px;
+  }
 }
 :root[data-theme="ink"] .resizable-desk > .workspace-frame {
   background: transparent;
@@ -283,9 +389,30 @@
     max-width: none;
     border: 1px solid var(--line);
   }
+  .resizable-desk.vault-desk .workspace-card {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  .resizable-desk.vault-desk .workspace-card-content {
+    overflow: visible;
+  }
+  .resizable-desk.vault-desk
+    .workspace-card-content
+    > :is(.vault-navigator-region, .vault-note-region, .vault-side-pane) {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .workspace-card-resizer {
+    display: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .workspace-resizer span {
+    transition: none;
+  }
+  .workspace-card-resizer span {
     transition: none;
   }
 }

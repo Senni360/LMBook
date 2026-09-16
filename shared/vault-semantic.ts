@@ -51,6 +51,7 @@ export type VaultEmbeddingProvider = VaultEmbeddingIdentity & {
 };
 
 export type VaultSemanticSearchResponse = {
+  rankingNotice?: string;
   results: VaultSemanticSearchResult[];
   status: VaultSemanticStatus;
   more: boolean;

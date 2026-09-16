@@ -11,6 +11,8 @@ import { VaultWorkspace } from "./VaultWorkspace";
 import { InkButton } from "./InkControl";
 import { aiApi } from "../ai-api";
 import { WorkspaceVaultContext } from "../workspace-context";
+import { BackgroundAssistantPanel } from "./BackgroundAssistantPanel";
+import { JevNotebookChecks } from "./JevNotebookChecks";
 import "./notebook-workspace.css";
 
 export function NotebookWorkspace({
@@ -41,6 +43,12 @@ export function NotebookWorkspace({
   const [report, setReport] = useState<WorkspaceSyncResult | null>(null);
   const [inventoryRevision, setInventoryRevision] = useState(0);
   const [attempt, setAttempt] = useState(0);
+  const [assistantReviewRequest, setAssistantReviewRequest] = useState(0);
+  const [assistantNote, setAssistantNote] = useState<{
+    vaultId: string;
+    path: string;
+    nonce: number;
+  } | null>(null);
   const refresh = useRef(onRefresh);
   refresh.current = onRefresh;
   const pending = useRef<Promise<void> | null>(null);
@@ -123,7 +131,13 @@ export function NotebookWorkspace({
           workspaceTitle={title}
           notebooks={notebooks}
           currentNotebook={notebookId}
-          openRequest={openRequest}
+          assistantReviewRequest={assistantReviewRequest}
+          openRequest={
+            assistantNote &&
+            (!openRequest || assistantNote.nonce > openRequest.nonce)
+              ? assistantNote
+              : openRequest
+          }
           onOpenNotebook={onOpenNotebook}
           onSourcesAdded={async () => refresh.current()}
           onNoteSaved={sync}
@@ -170,6 +184,26 @@ export function NotebookWorkspace({
                 </p>
               )}
               <WorkspaceVaultContext.Provider value={vault.id}>
+                <BackgroundAssistantPanel
+                  key={notebookId}
+                  notebookId={notebookId}
+                  vaultId={vault.id}
+                  onOpenNote={(path) =>
+                    setAssistantNote({
+                      vaultId: vault.id,
+                      path,
+                      nonce: Date.now(),
+                    })
+                  }
+                  onChanged={sync}
+                  onReveal={() =>
+                    setAssistantReviewRequest((value) => value + 1)
+                  }
+                />
+                <JevNotebookChecks
+                  key={`jev-${notebookId}`}
+                  notebookId={notebookId}
+                />
                 {children}
               </WorkspaceVaultContext.Provider>
             </>
