@@ -139,7 +139,6 @@ async function output(key, value) {
 }
 async function releaseState() {
   const release = await request(`releases/tags/${tag}`, { missing: true });
-  if (release && !release.draft) return { release, published: true };
   // Never attach a new binary to another commit's tag or draft.
   let ref = (await request(`git/ref/tags/${tag}`, { missing: true }))?.object;
   for (let depth = 0; ref?.type === "tag" && depth < 5; depth++)
@@ -148,6 +147,11 @@ async function releaseState() {
     throw new Error(
       `${tag} already refers to a different commit. Bump the version; tags are never moved.`,
     );
+  if (release && !release.draft) {
+    if (!ref)
+      throw new Error(`${tag} is published but its source tag is missing.`);
+    return { release, published: true };
+  }
   if (release && release.target_commitish !== sha)
     throw new Error(
       `${tag} has a draft for another commit. Inspect that draft before retrying.`,
@@ -361,7 +365,15 @@ if (command === "plan") {
     // 'legacy' selects Latest by version, avoiding an older queued run replacing it.
     release = await request(`releases/${release.id}`, {
       method: "PATCH",
-      body: { draft: false, body, make_latest: "legacy" },
+      body: {
+        draft: false,
+        body,
+        make_latest: batchVersion
+          ? version === "0.3.16"
+            ? "true"
+            : "false"
+          : "legacy",
+      },
     });
     await summary(
       `Published [${tag}](${release.html_url}) with all seven verified downloads.`,
