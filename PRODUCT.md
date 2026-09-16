@@ -33,6 +33,8 @@ The owner preferred the 44.1 kHz sample in a matched Cartesia comparison and app
 
 Codex uses the official App Server integration and the owner's existing login, with LMBook's own identity and normal account limits. The owner proposed T3 Code's provider approach; a separate API key is not a settled requirement. OpenCode Go's coding-traffic permission remains a separate unresolved issue.
 ## Evidence on Hand
+The owner explicitly requested building the shared-vault workflow on 2026-09-16. Local preview 0.3.11 now connects existing folders, edits and creates Markdown, recovers conflicts/drafts, snapshots selected notes for learning, and writes reviewed AI summary drafts back as new files. [Implementation evidence and limits](docs/obsidian-vaults.md) are separate from owner acceptance and real Obsidian/plugin/Sync validation. The 0.4 publication gate remains closed.
+
 Detailed user conversation and the owner's 148-pair German flashcard HTML. Its original idioom has not been supplied; the HTML is not evidence of fidelity to that textbook. Example notebook content must be visibly labelled illustrative. Feature-specific provider and listening observations are recorded in their research notes.
 ## Product Principles
 - On 2026-09-16 the owner requested custom, cohesive Ink menus, desktop chrome and controls, with visual evaluation. This supersedes the earlier preference to keep native Windows chrome. Platform file dialogs, tray/global menus and emergency renderer-independent errors remain intentional exceptions; see [Ink desktop controls](docs/ui/ink-desktop-controls.md).

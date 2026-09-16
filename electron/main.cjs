@@ -445,6 +445,64 @@ async function setup() {
     verifySender(event);
     return shell.openPath(path.join(userData, "data"));
   });
+  ipcMain.handle("desktop:choose-vault", async (event) => {
+    verifySender(event);
+    const result = await dialog.showOpenDialog(window, {
+      title: "Connect an Obsidian vault",
+      buttonLabel: "Connect vault",
+      properties: ["openDirectory"],
+    });
+    if (result.canceled || !result.filePaths[0]) return null;
+    const response = await fetch(origin + "/api/vaults/connect", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-sennibook": "1",
+        "x-sennibook-desktop": token,
+        "x-lmbook-vault-picker": token,
+      },
+      body: JSON.stringify({ folder: result.filePaths[0] }),
+    });
+    const value = await response.json();
+    if (!response.ok)
+      throw new Error(value.error || "Could not connect the vault.");
+    return value;
+  });
+  ipcMain.handle(
+    "desktop:open-vault-obsidian",
+    async (event, vaultId, notePath) => {
+      verifySender(event);
+      if (
+        typeof vaultId !== "string" ||
+        typeof notePath !== "string" ||
+        notePath.length > 500
+      )
+        throw new Error("Invalid note.");
+      const response = await fetch(origin + "/api/vaults", {
+        headers: { "x-sennibook-desktop": token },
+      });
+      const vault = (await response.json()).find((item) => item.id === vaultId);
+      if (
+        !vault ||
+        !/\.md$/i.test(notePath) ||
+        notePath
+          .split("/")
+          .some((part) => !part || part.startsWith(".") || /[\\:]/.test(part))
+      )
+        throw new Error("Choose a connected vault note.");
+      const noteResponse = await fetch(
+        origin +
+          `/api/vaults/${vaultId}/note?path=${encodeURIComponent(notePath)}`,
+        { headers: { "x-sennibook-desktop": token } },
+      );
+      const checked = await noteResponse.json();
+      if (!noteResponse.ok)
+        throw new Error(checked.error || "This note is unavailable.");
+      await shell.openExternal(
+        `obsidian://open?path=${encodeURIComponent(path.join(vault.root, ...notePath.split("/")))}`,
+      );
+    },
+  );
   ipcMain.handle("desktop:copy-text", (event, text) => {
     verifySender(event);
     if (typeof text !== "string" || text.length > 12000)

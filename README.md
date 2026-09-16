@@ -6,7 +6,9 @@ A local, open-source learning notebook for detailed two-person audio and source-
 
 Build the installer with `npm run desktop:dist`, or launch the desktop app from source with `npm run desktop`. Build artifacts go to `release/`: an installer, a portable executable, and `win-unpacked/LMBook.exe`.
 
-Download the current Windows installer/portable app or matching Mac DMG/ZIP from [GitHub Releases](https://github.com/Senni360/LMBook/releases/latest). Merging a new version into `master` automatically builds, checks and publishes its Windows, Apple Silicon and Intel Mac downloads. See [the release workflow](docs/releasing.md) for version bumps, required release notes and retry behavior.
+Download the current published Windows installer/portable app or matching Mac DMG/ZIP from [GitHub Releases](https://github.com/Senni360/LMBook/releases/latest). Merging builds and checks iteration artifacts; publication additionally requires the owner's explicit release approval recorded in `release-policy.json`. See [the release workflow](docs/releasing.md).
+
+**0.4 work in progress:** local preview 0.3.11 connects shared Obsidian vault folders, edits their Markdown files, imports selected notes as immutable learning snapshots, and creates reviewable AI summary drafts. Open **Obsidian vaults** in the sidebar. [Workflow, compatibility and evaluation](docs/obsidian-vaults.md). Plugins continue running in Obsidian; 0.4 remains unpublished pending owner approval.
 
 **0.3.9 unifies Ink controls:** custom desktop chrome and menus, dropdowns, confirmations, audio transport, tooltips and sliders now share the same paper and pen states. See [0.3.9 notes](docs/releases/0.3.9.md).
 

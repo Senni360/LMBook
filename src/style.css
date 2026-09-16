@@ -2197,7 +2197,7 @@ input[type="file"] {
 }
 @media (max-width: 680px) {
   .sidebar {
-    grid-template-columns: 1fr 44px 44px;
+    grid-template-columns: 1fr 44px 92px;
   }
   .mobile-create,
   .rail-settings {
@@ -2212,6 +2212,8 @@ input[type="file"] {
   }
   .sidebar-bottom {
     grid-column: 3;
+    display: flex;
+    gap: 4px;
   }
   .notebook-list {
     grid-column: 1/-1;

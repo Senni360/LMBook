@@ -1,6 +1,6 @@
 # LMBook roadmap
 
-- **Active milestone: 0.4.** The owner accepted shared-vault editing and wants iterative refinement until they consider the app ready. [Scope and release gate](docs/0.4-plan.md). Vault implementation is next; release approval is currently unset.
+- **Active milestone: 0.4.** The first shared-vault workflow is implemented as local preview 0.3.11: browse/edit/create shared Markdown, conflict recovery, selected-note snapshots and reviewed AI summaries. [Capabilities and remaining checks](docs/obsidian-vaults.md). Owner iteration, deeper compatibility and native Mac/real-vault checks remain; [release approval is unset](docs/0.4-plan.md).
 
 - Version 0.3.10 corrects settings disclosure spacing and container styling. Obsidian support is in [feasibility discussion](docs/research/obsidian-feasibility.md), now adopted as the shared-vault direction for 0.4; implementation remains pending.
 

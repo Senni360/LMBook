@@ -27,6 +27,16 @@ contextBridge.exposeInMainWorld(
       return () => ipcRenderer.removeListener("desktop:quit-request", listener);
     },
     openDataFolder: () => ipcRenderer.invoke("desktop:open-data"),
+    chooseVault: () =>
+      ipcRenderer.invoke("desktop:choose-vault").catch((error) => {
+        throw readableDownloadError(error);
+      }),
+    openVaultInObsidian: (vaultId, notePath) =>
+      ipcRenderer
+        .invoke("desktop:open-vault-obsidian", vaultId, notePath)
+        .catch((error) => {
+          throw readableDownloadError(error);
+        }),
     copyText: (text) => ipcRenderer.invoke("desktop:copy-text", text),
     download: (id, path, suggestedName) =>
       ipcRenderer

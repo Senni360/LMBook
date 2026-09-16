@@ -54,6 +54,7 @@ import {
   Square,
   Bookmark,
   Volume2,
+  FolderOpen,
 } from "lucide-react";
 import {
   type Notebook,
@@ -116,11 +117,17 @@ type Summary = {
   sourceCount: number;
   example: boolean;
 };
+const VaultWorkspace = React.lazy(() =>
+  import("./components/VaultWorkspace").then((module) => ({
+    default: module.VaultWorkspace,
+  })),
+);
 const priceLabel = (amount: number) =>
   amount > 0 && amount < 0.01 ? "<$0.01" : `$${amount.toFixed(2)}`;
 const durationLabel = (wordCount: number) =>
   wordCount < 145 ? "<1 min" : `~${Math.round(wordCount / 145)} min`;
-type Tab = "sources" | "goals" | "studio" | "flashcards" | "chat" | "settings";
+type Tab =
+  "sources" | "goals" | "studio" | "flashcards" | "chat" | "settings" | "vault";
 type SourceRequest = {
   sourceId: string;
   quote?: string;
@@ -261,6 +268,10 @@ function App() {
   const [notebooks, setNotebooks] = useState<Summary[]>([]);
   const [n, setN] = useState<Notebook | null>(null);
   const [tab, setTab] = useState<Tab>("sources");
+  const [vaultOpened, setVaultOpened] = useState(false);
+  useEffect(() => {
+    if (tab === "vault") setVaultOpened(true);
+  }, [tab]);
   const motionTab = useRef(tab);
   const motionDirection = useMemo(() => {
     const order: Tab[] = [
@@ -270,6 +281,7 @@ function App() {
       "chat",
       "flashcards",
       "settings",
+      "vault",
     ];
     const direction =
       order.indexOf(tab) < order.indexOf(motionTab.current) ? -1 : 1;
@@ -539,7 +551,11 @@ function App() {
   return (
     <div className={`app ${window.sennibookDesktop ? "desktop-app" : ""}`}>
       <DesktopBar
-        title={n?.title || "Your learning library"}
+        title={
+          tab === "vault"
+            ? "Obsidian vaults"
+            : n?.title || "Your learning library"
+        }
         onNew={() => setCreateOpen(true)}
         onSettings={openSettings}
       />
@@ -578,7 +594,7 @@ function App() {
           </InkButton>
         </div>
         <MotionNavigation
-          activeKey={n?.id || ""}
+          activeKey={tab === "vault" ? "vault" : n?.id || ""}
           itemsKey={notebooks.map((book) => book.id).join(":")}
           selector=".notebook-item.selected"
           vertical
@@ -588,12 +604,15 @@ function App() {
           {notebooks.map((book) => (
             <InkButton
               key={book.id}
-              className={`notebook-item ${n?.id === book.id ? "selected" : ""}`}
-              aria-current={n?.id === book.id ? "page" : undefined}
+              className={`notebook-item ${n?.id === book.id && tab !== "vault" ? "selected" : ""}`}
+              aria-current={
+                n?.id === book.id && tab !== "vault" ? "page" : undefined
+              }
               onClick={() =>
-                void choose(book.id).catch((error: Error) =>
-                  setError(error.message),
-                )
+                void (async () => {
+                  await choose(book.id);
+                  if (tab === "vault") setTab("sources");
+                })().catch((error: Error) => setError(error.message))
               }
             >
               <BookOpen size={17} />
@@ -618,6 +637,14 @@ function App() {
           New notebook
         </Button>
         <div className="sidebar-bottom">
+          <InkButton
+            className={`rail-settings ${tab === "vault" ? "active" : ""}`}
+            title="Obsidian vaults"
+            aria-current={tab === "vault" ? "page" : undefined}
+            onClick={() => setTab("vault")}
+          >
+            <FolderOpen size={18} /> Obsidian vaults
+          </InkButton>
           <div className="local-note">
             <span className="status-dot" /> Saved on this computer
           </div>
@@ -649,7 +676,7 @@ function App() {
         <header className="topbar">
           <span>
             <Library size={15} /> Your learning library{" "}
-            {n && (
+            {n && tab !== "vault" && (
               <>
                 <ChevronRight size={14} />
                 <strong>{n.settings.subject}</strong>
@@ -688,11 +715,31 @@ function App() {
             {notice}
           </div>
         )}
+        {loaded && (vaultOpened || tab === "vault") && (
+          <React.Suspense
+            fallback={
+              <p className="page-content" role="status">
+                Opening vault workspace…
+              </p>
+            }
+          >
+            <VaultWorkspace
+              active={tab === "vault"}
+              notebooks={notebooks}
+              currentNotebook={n?.id || null}
+              onCreateNotebook={() => setCreateOpen(true)}
+              onSourcesAdded={async (id) => {
+                await loadList();
+                if (selected.current === id) await refresh();
+              }}
+            />
+          </React.Suspense>
+        )}
         {!loaded ? (
           <Empty icon={LoaderCircle} title="Opening your library…">
             Loading saved notebooks.
           </Empty>
-        ) : tab === "settings" ? (
+        ) : tab === "vault" ? null : tab === "settings" ? (
           <Connections
             refreshStatus={async () => {
               setStatus(await api<Capabilities>("/status"));
