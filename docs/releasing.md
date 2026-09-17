@@ -8,7 +8,7 @@
 
 The owner's explicit 2026-09-16 direction is to deliver builds only to the normal `D:\Downloads\SenniBook\release\<version>` directory on this computer. Do not put releases in worktree-local folders, `ai-preview`, temporary preview destinations or upload them elsewhere. This is the current delivery rule; older preview paths are historical evidence only. `scripts/package-desktop.mjs`, used by the desktop packaging npm scripts, resolves the main checkout even when run from a worktree, chooses `release/<version>` there and forces `--publish never`. Source archives use their own `release/<version>` directory. A local version request does not authorize GitHub publication or 0.4 approval.
 
-The **Desktop release** GitHub Actions workflow builds iteration artifacts on PRs and `master`. Publication also requires explicit owner approval recorded in `release-policy.json`. The current target is 0.4.0 and approval is unset; see [the milestone agreement](0.4-plan.md). A merge or version bump alone cannot publish. To release an approved milestone:
+The **Desktop release** GitHub Actions workflow builds iteration artifacts on PRs and `master`. Publication also requires explicit owner approval recorded in `release-policy.json`. The owner has now approved publication of exactly `0.4.0-preview.1`; the target and approval both name that prerelease. Final 0.4.0 remains unapproved; see [the milestone agreement](0.4-plan.md). A merge or version bump alone cannot publish. To release an approved milestone:
 
 1. Set the new version with `npm version <version> --no-git-tag-version`; commit both package files.
 2. Add `docs/releases/<version>.md` with the release notes.
@@ -19,7 +19,7 @@ The workflow installs locked dependencies, builds the app, runs the existing app
 
 No personal token is required. The first Mac builds are ad-hoc signed and not notarized; Developer ID signing would require separate Apple credentials. Build jobs have `contents: read`; only the publishing job has `contents: write` through GitHub's temporary `GITHUB_TOKEN`. Dependencies and packaging run without that write token. The workflow's third-party actions are pinned to commit SHAs.
 
-A merge without a version bump does not produce another release for an already published version. Version numbers are not automatically incremented. Stable `MAJOR.MINOR.PATCH` versions and numbered `-alpha.N`, `-beta.N`, `-rc.N` and `-preview.N` prereleases are supported. Prereleases are explicitly marked on GitHub and never replace the stable Latest release. They still require exact-version approval; `0.4.0-preview.1` is prepared for review, not approved for publication. This publishes downloads on GitHub; it does not install updates into an already running desktop app.
+A merge without a version bump does not produce another release for an already published version. Version numbers are not automatically incremented. Stable `MAJOR.MINOR.PATCH` versions and numbered `-alpha.N`, `-beta.N`, `-rc.N` and `-preview.N` prereleases are supported. Prereleases are explicitly marked on GitHub and never replace the stable Latest release. They still require exact-version approval; `0.4.0-preview.1` has exact-version owner approval following the merged PR. This publishes downloads on GitHub; it does not install updates into an already running desktop app.
 
 ## Failures and retries
 

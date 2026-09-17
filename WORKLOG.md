@@ -1,5 +1,9 @@
 # Work log
 
+## 2026-09-17 — Authorize GitHub prerelease publication
+
+After PR #11 merged and all three native builds passed, the owner asked to fix the missing GitHub prerelease. Recorded exact-version approval for `0.4.0-preview.1` and enabled the existing native build, artifact verification and publication pipeline. This approval applies only to this prerelease. The publisher marks it as a prerelease and leaves stable Latest unchanged; final 0.4.0 remains unapproved. Earlier preparation entries describe the approval state before this instruction.
+
 ## 2026-09-17 — Layout gallery prerelease preparation
 
 Prepared 0.4.0-preview.1 with all eleven comparison layouts, accessible before Codex account setup. Fixed the fixed-position Electron title bar covering the picker in directions 1–10 and preview/main-theme color leakage behind the logo/window buttons. The sketch now exposes a visible layout selector. Shared Ink variables keep menus and placeholder text consistent with the gallery theme. Added numbered prerelease support to local packaging and the release publisher, with prerelease marking and no stable Latest promotion; approval remains unset. Development-only Electron preview entry is excluded from packaged apps.
