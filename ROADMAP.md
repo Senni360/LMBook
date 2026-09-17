@@ -1,6 +1,6 @@
 # LMBook roadmap
 
-- **0.4.0-preview.1 PR candidate:** all eleven layouts are accessible before account setup. Electron chrome reserves its own row and follows the gallery theme; the sketch has a visible layout selector. Prerelease packaging keeps stable Latest unchanged. [Readiness and remaining boundaries](docs/audits/0.4.0-preview.1-readiness.md). Publication and final 0.4 remain separate.
+- **[Published 0.4.0-preview.1](https://github.com/Senni360/LMBook/releases/tag/v0.4.0-preview.1):** all eleven layouts are accessible before account setup. Electron chrome reserves its own row and follows the gallery theme; the sketch has a visible layout selector. Prerelease packaging keeps stable Latest unchanged. [Readiness and remaining boundaries](docs/audits/0.4.0-preview.1-readiness.md). Windows and both native Mac builds passed and the prerelease is public. Stable Latest remains 0.3.16; final 0.4 remains unapproved.
 
 - **Owner-drawn flexible workspace:** [direction 11](docs/ui/sketch-workspace.md) extends the comparison lab with freely moved tabs, nested horizontal/vertical splits, saved proportions, undo and pane focus. It now also runs as a live Electron preview with a single compact title row and edge-to-edge draggable panes. It remains a fictional-data prototype pending owner iteration and production integration.
 

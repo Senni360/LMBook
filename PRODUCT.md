@@ -83,3 +83,5 @@ The owner supplied two Paint sketches for a three-column workspace with independ
 On 2026-09-17 the owner required a live Electron version of the sketch workspace with border-to-border panes, compact top chrome and direct tab/divider dragging instead of persistent split buttons. [The workspace note](docs/ui/sketch-workspace.md) records the preview implementation and its separation from real notebook data.
 
 The owner requested PR preparation for a prerelease in which everyone can compare all eleven layouts. The gallery must be reachable before account setup, keep its sample data separate, and expose working layout/theme controls in every Electron layout. Version `0.4.0-preview.1` names this review candidate; it does not approve final 0.4 or publish downloads.
+
+The owner subsequently directed publication of `0.4.0-preview.1` on GitHub. The exact-version approval and successful Windows/Mac prerelease delivery are recorded in [WORKLOG.md](WORKLOG.md); stable Latest remains 0.3.16 and final 0.4.0 remains unapproved.

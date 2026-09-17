@@ -1,5 +1,9 @@
 # Work log
 
+## 2026-09-17 — Prerelease published
+
+Published [v0.4.0-preview.1](https://github.com/Senni360/LMBook/releases/tag/v0.4.0-preview.1) from commit `4320c60` through [Desktop release run 35234718203](https://github.com/Senni360/LMBook/actions/runs/35234718203). Windows x64 and both Mac architectures passed native build/application/package checks. Cross-platform verification and publication succeeded. All six public package digests match the uploaded SHA256SUMS.txt; GitHub reports `prerelease: true`, `draft: false`. Confirmed stable Latest is still v0.3.16. Final 0.4.0 remains unapproved.
+
 ## 2026-09-17 — Authorize GitHub prerelease publication
 
 After PR #11 merged and all three native builds passed, the owner asked to fix the missing GitHub prerelease. Recorded exact-version approval for `0.4.0-preview.1` and enabled the existing native build, artifact verification and publication pipeline. This approval applies only to this prerelease. The publisher marks it as a prerelease and leaves stable Latest unchanged; final 0.4.0 remains unapproved. Earlier preparation entries describe the approval state before this instruction.
