@@ -1,0 +1,171 @@
+export type Task = "notes" | "ask" | "practice" | "listen" | "home";
+export type LabNote = {
+  id: string;
+  path: string;
+  title: string;
+  text: string;
+  revision: number;
+  topic: string;
+  source: boolean;
+};
+export type Pair = {
+  id: string;
+  german: string;
+  dutch: string;
+  generated?: boolean;
+  reviewed: boolean;
+};
+export type Suggestion = {
+  id: string;
+  title: string;
+  noteId: string;
+  detail: string;
+  quote: string;
+  addition: string;
+  baseRevision: number;
+  status: "pending" | "dismissed" | "applied" | "stale";
+  uncertain?: boolean;
+  before?: string;
+  replacement?: boolean;
+};
+export type Message = {
+  id: string;
+  question: string;
+  answer: string;
+  sources: { id: string; title: string; text: string; revision: number }[];
+};
+export type Job = {
+  id: string;
+  label: string;
+  progress: number;
+  status: "running" | "cancelled" | "done" | "failed";
+};
+export type ViewState = {
+  task: Task;
+  noteId: string;
+  tabs: string[];
+  closedTabs: string[];
+  pinned: string[];
+  filter: string;
+  focus: boolean;
+  panel: "material" | "work" | "context";
+  signatureOpen: boolean;
+  scroll: number;
+  questionLens: boolean;
+  selectedQuestion: string;
+  compare: boolean;
+  proposal?: string;
+  proposalRevision?: number;
+  pendingTitle?: string;
+  materialTab?: "notes" | "sources";
+  handoff?: { noteId: string; text: string; revision: number };
+  anchor?: { noteId: string; text: string; revision: number; scroll?: number };
+  contextPinned?: string;
+  contextTab: "suggestions" | "evidence" | "activity";
+  evidence?: { title: string; text: string; revision: number; id: string };
+};
+export type Thought = {
+  id: string;
+  title: string;
+  noteId: string;
+  task: Task;
+  sources: string[];
+  question: string;
+  scroll: number;
+  revision: number;
+};
+export type WorkingSet = {
+  id: string;
+  title: string;
+  view: ViewState;
+  revisions: Record<string, number>;
+  layout?: string;
+};
+export type MarginDraft = {
+  noteId: string;
+  base: string;
+  baseRevision: number;
+  text: string;
+};
+export type LabState = {
+  version: 1;
+  direction: number;
+  notebook: "water" | "german";
+  theme: "light" | "dark";
+  accent: "cobalt" | "moss" | "plum";
+  collections?: {
+    id: string;
+    title: string;
+    noteIds: string[];
+    mode: "attached" | "copied";
+  }[];
+  activeCollection?: string;
+  notes: LabNote[];
+  drafts: Record<string, string>;
+  views: Record<number, ViewState>;
+  sourceIds: string[];
+  pairs: Pair[];
+  practice: {
+    index: number;
+    reverse: boolean;
+    typing: boolean;
+    revealed: boolean;
+    answer: string;
+    feedback: string;
+    editing: boolean;
+  };
+  audio: { seconds: number; playing: boolean; speed: number };
+  question: string;
+  messages: Message[];
+  askRun?: Message;
+  suggestions: Suggestion[];
+  jobs: Job[];
+  history: { id: string; text: string; time: string }[];
+  thoughts: Thought[];
+  workingSets: WorkingSet[];
+  margin?: MarginDraft;
+  claim: {
+    text: string;
+    supports: string[];
+    limits: string[];
+    unresolved: string;
+    noteRevision?: number;
+  };
+  detour?: {
+    task: Task;
+    noteId: string;
+    seconds: number;
+    playing: boolean;
+    help: string;
+  };
+  controlMode: "ask" | "obvious" | "full";
+  model: {
+    downloaded: boolean;
+    checked: boolean;
+    enabled: boolean;
+    indexed: boolean;
+  };
+  seenAt: string;
+  changedIds: string[];
+  saveFailure: boolean;
+  providerFailure: boolean;
+  imported: boolean;
+  draftBases?: Record<string, number>;
+};
+export type LabContextValue = {
+  state: LabState;
+  update: (fn: (state: LabState) => LabState) => void;
+  view: ViewState;
+  setView: (patch: Partial<ViewState>) => void;
+  openNote: (id: string, pin?: boolean) => void;
+  navigate: (task: Task) => void;
+  saveNote: (id: string) => boolean;
+  applySuggestion: (id: string) => void;
+  undoSuggestion: (id: string) => void;
+  startJob: (label: string) => void;
+  cancelJob: (id: string) => void;
+  reset: () => void;
+  notify: (message: string) => void;
+  notice: string;
+  storageError: boolean;
+};

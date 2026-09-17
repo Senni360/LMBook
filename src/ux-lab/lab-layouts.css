@@ -1,0 +1,592 @@
+.ux-lab {
+  --lab-paper: #fbfbf9;
+  --lab-surface: #ffffff;
+  --lab-line: #d9d9d2;
+  --lab-ink: #1d1f24;
+  --lab-muted: #696c74;
+  --lab-accent: #2346d8;
+  --lab-tint: #f2f2ee;
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 24px clamp(16px, 3vw, 48px) 40px;
+  background: var(--lab-paper);
+  color: var(--lab-ink);
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  line-height: 1.4;
+}
+.ux-lab *,
+.ux-lab *::before,
+.ux-lab *::after {
+  box-sizing: border-box;
+}
+.lab-toolstrip {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  max-width: 1500px;
+  min-height: 34px;
+  margin: 0 auto 12px;
+  color: var(--lab-muted);
+  font-size: 12px;
+}
+.lab-layout-label {
+  margin-right: auto;
+  color: var(--lab-ink);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.lab-focus-state {
+  font-size: 11px;
+}
+.lab-overline,
+.lab-kicker {
+  color: var(--lab-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.lab-header h1 {
+  margin: 2px 0 0;
+  font-size: clamp(24px, 3vw, 36px);
+  letter-spacing: -0.035em;
+  font-weight: 680;
+}
+.lab-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--lab-muted);
+}
+.lab-task {
+  max-width: 360px;
+  text-align: right;
+}
+.lab-quiet-button {
+  border: 0;
+  border-bottom: 1px solid var(--lab-line);
+  padding: 3px 2px;
+  color: var(--lab-muted);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.lab-quiet-button:hover,
+.lab-quiet-button:focus-visible {
+  color: var(--lab-accent);
+  border-color: var(--lab-accent);
+}
+.lab-nav-strip {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: 1500px;
+  margin: 0 auto 16px;
+  min-height: 36px;
+  color: var(--lab-muted);
+  border-bottom: 1px solid var(--lab-line);
+}
+.lab-nav-strip > *:first-child {
+  flex: 0 0 auto;
+}
+.lab-nav-tabs {
+  flex: 1;
+  min-width: 0;
+}
+.lab-desktop-layout {
+  max-width: 1500px;
+  min-height: min(720px, calc(100vh - 180px));
+  margin: 0 auto;
+}
+.lab-panel {
+  min-width: 0;
+  min-height: 0;
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-line);
+  border-radius: 3px 7px 4px 6px;
+  overflow: auto;
+}
+.lab-panel-heading {
+  min-height: 40px;
+  padding: 11px 14px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--lab-line);
+  background: var(--lab-tint);
+}
+.lab-panel-content {
+  padding: 14px;
+}
+.lab-panel.is-collapsed {
+  overflow: visible;
+}
+.lab-panel.is-collapsed .lab-panel-heading {
+  min-height: 100%;
+  writing-mode: vertical-rl;
+  padding: 14px 9px;
+  border: 0;
+}
+.lab-panel.is-collapsed .lab-kicker {
+  transform: rotate(180deg);
+}
+.lab-resize {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 10px;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+.lab-resize::after {
+  content: "";
+  position: absolute;
+  inset: 20% 4px;
+  border-left: 1px solid transparent;
+  transition: border-color 160ms ease;
+}
+.lab-resize:hover::after,
+.lab-resize:focus-visible::after {
+  border-color: var(--lab-accent);
+}
+.lab-resize-lower {
+  width: 100%;
+  height: 10px;
+  cursor: row-resize;
+}
+.lab-resize-lower::after {
+  inset: 4px 20%;
+  border-left: 0;
+  border-top: 1px solid transparent;
+}
+.lab-focus-dock {
+  display: none;
+}
+.lab-mobile-sections {
+  display: none;
+}
+
+/* 01 — an editorial three-pane reading room */
+.ux-lab-balanced3panes .lab-desktop-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(170px, var(--lab-left)) 10px minmax(280px, 1fr)
+    10px minmax(190px, var(--lab-right));
+}
+.ux-lab-balanced3panes.is-left-collapsed .lab-desktop-layout {
+  grid-template-columns: 46px 10px minmax(280px, 1fr) 10px minmax(
+      190px,
+      var(--lab-right)
+    );
+}
+.ux-lab-balanced3panes.is-right-collapsed .lab-desktop-layout {
+  grid-template-columns:
+    minmax(170px, var(--lab-left)) 10px minmax(280px, 1fr)
+    10px 46px;
+}
+.lab-balanced-left,
+.lab-balanced-right,
+.lab-balanced-center {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lab-balanced-center {
+  overflow: auto;
+  padding: 0 4px;
+}
+.lab-balanced-center > .lab-panel {
+  flex: 1;
+}
+
+/* 02 — one generous central study surface with a context drawer */
+.ux-lab-focusedcentral .lab-desktop-layout {
+  display: grid;
+  grid-template-columns: minmax(170px, var(--lab-left)) 10px minmax(0, 1fr);
+  min-height: 680px;
+}
+.lab-rail {
+  padding-right: 18px;
+}
+.lab-central-focus {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 0 clamp(10px, 4vw, 64px);
+}
+.lab-context-drawer {
+  order: 4;
+  margin-top: auto;
+  border-top: 1px solid var(--lab-line);
+  padding-top: 12px;
+  color: var(--lab-muted);
+}
+.lab-focus-work {
+  flex: 1;
+  display: grid;
+  align-items: center;
+  min-height: 420px;
+  background: var(--lab-surface);
+  border-inline: 1px solid var(--lab-line);
+  padding: clamp(16px, 5vw, 72px);
+}
+
+/* 03 — notebook rail, page, and living activity column */
+.ux-lab-notebookactivitytabs .lab-desktop-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(150px, var(--lab-left)) 10px minmax(0, 1fr)
+    minmax(190px, var(--lab-right));
+  gap: 18px;
+}
+.ux-lab-notebookactivitytabs.is-left-collapsed .lab-desktop-layout {
+  grid-template-columns: 46px 10px minmax(0, 1fr) minmax(
+      190px,
+      var(--lab-right)
+    );
+}
+.ux-lab-notebookactivitytabs.is-right-collapsed .lab-desktop-layout {
+  grid-template-columns: minmax(150px, var(--lab-left)) 10px minmax(0, 1fr) 46px;
+}
+.lab-notebook-rail,
+.lab-activity-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.lab-notebook-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+.lab-notebook-page {
+  flex: 1;
+  min-height: 520px;
+  padding: clamp(18px, 4vw, 60px);
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-line);
+  box-shadow: 10px 10px 0 var(--lab-tint);
+}
+
+/* 04 — document reading with a narrow citation margin */
+.ux-lab-documentmargin .lab-desktop-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(150px, var(--lab-left)) 10px minmax(0, 1fr)
+    minmax(190px, var(--lab-right));
+  gap: 22px;
+}
+.ux-lab-documentmargin.is-left-collapsed .lab-desktop-layout {
+  grid-template-columns: 46px 10px minmax(0, 1fr) minmax(
+      190px,
+      var(--lab-right)
+    );
+}
+.ux-lab-documentmargin.is-right-collapsed .lab-desktop-layout {
+  grid-template-columns: minmax(150px, var(--lab-left)) 10px minmax(0, 1fr) 46px;
+}
+.lab-margin-rail,
+.lab-document-margin {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.lab-document-canvas {
+  min-width: 0;
+}
+.lab-document-reading {
+  max-width: 760px;
+  min-height: 620px;
+  margin: 14px auto;
+  padding: clamp(20px, 5vw, 76px);
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-line);
+}
+.lab-document-margin {
+  border-left: 1px solid var(--lab-line);
+  padding-left: 16px;
+}
+
+/* 05 — home first, session second, support last */
+.ux-lab-studysession .lab-desktop-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 25%) minmax(0, 1fr) minmax(190px, 24%);
+  gap: 18px;
+}
+.lab-study-home,
+.lab-session-stage,
+.lab-session-context {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lab-study-home {
+  padding: 18px;
+  background: var(--lab-tint);
+  border: 1px solid var(--lab-line);
+}
+.lab-session-picker {
+  margin-top: auto;
+  display: grid;
+  gap: 12px;
+}
+.lab-session-stage {
+  padding: clamp(12px, 3vw, 34px);
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-line);
+}
+
+/* 06 — source comparison keeps both arguments visible */
+.ux-lab-researchcomparison .lab-desktop-layout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 250px;
+  gap: 18px;
+}
+.lab-research-sources,
+.lab-research-context {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.lab-comparison-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  min-height: 630px;
+}
+.lab-comparison-grid > div {
+  min-width: 0;
+  overflow: auto;
+  padding: 14px;
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-line);
+}
+.lab-comparison-grid > .lab-resize + div {
+  border-left: 0;
+}
+.lab-comparison-grid > :last-child {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  border: 0;
+  background: transparent;
+}
+
+/* 07 — outline as navigation spine */
+.ux-lab-topicoutline .lab-desktop-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(170px, var(--lab-left)) 10px minmax(0, 1fr)
+    minmax(190px, var(--lab-right));
+  gap: 18px;
+}
+.ux-lab-topicoutline.is-left-collapsed .lab-desktop-layout {
+  grid-template-columns: 46px 10px minmax(0, 1fr) minmax(
+      190px,
+      var(--lab-right)
+    );
+}
+.ux-lab-topicoutline.is-right-collapsed .lab-desktop-layout {
+  grid-template-columns: minmax(170px, var(--lab-left)) 10px minmax(0, 1fr) 46px;
+}
+.lab-outline-rail {
+  padding: 14px;
+  background: var(--lab-tint);
+  border-right: 2px solid var(--lab-ink);
+  min-width: 0;
+}
+.lab-outline-work,
+.lab-outline-context {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lab-outline-work {
+  padding: 0 clamp(8px, 3vw, 34px);
+}
+
+/* 08 — tabs sit above a split workspace */
+.ux-lab-mixedtabssplits .lab-desktop-layout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 245px;
+  grid-template-rows: 48px minmax(0, 1fr);
+  gap: 14px;
+}
+.lab-mixed-top {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid var(--lab-line);
+}
+.lab-mixed-side,
+.lab-mixed-context {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lab-mixed-main {
+  min-width: 0;
+  min-height: 620px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr) minmax(120px, var(--lab-lower)) 10px;
+  gap: 14px;
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-line);
+}
+
+/* 09 — overview is the landing surface */
+.ux-lab-notebookoverview .lab-desktop-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 240px;
+  gap: 18px;
+}
+.lab-overview-band {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--lab-tint);
+  border: 1px solid var(--lab-line);
+}
+.lab-overview-work,
+.lab-overview-context {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lab-overview-work {
+  padding: 0 clamp(10px, 3vw, 36px);
+}
+
+/* 10 — reader and activity are peers */
+.ux-lab-readeractivitysplit .lab-desktop-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) 10px minmax(260px, 0.7fr);
+  min-height: 680px;
+}
+.lab-reader-pane {
+  min-width: 0;
+  min-height: 620px;
+  padding: clamp(12px, 3vw, 42px);
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-line);
+  overflow: auto;
+}
+.lab-reader-activity {
+  min-width: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .lab-desktop-layout {
+    min-height: 0;
+  }
+  .lab-focus-dock {
+    display: flex;
+    gap: 6px;
+    position: sticky;
+    bottom: 10px;
+    justify-content: center;
+    margin: 20px auto 0;
+    width: max-content;
+    padding: 5px;
+    background: var(--lab-surface);
+    border: 1px solid var(--lab-line);
+    box-shadow: 0 4px 20px #1d1f2420;
+  }
+  .lab-focus-dock button {
+    border: 0;
+    background: transparent;
+    padding: 7px 10px;
+    color: var(--lab-muted);
+    text-transform: capitalize;
+    font: inherit;
+    cursor: pointer;
+  }
+  .lab-focus-dock button.is-active {
+    color: var(--lab-ink);
+    background: var(--lab-tint);
+  }
+}
+@media (max-width: 560px) {
+  .ux-lab {
+    padding: 18px 12px 32px;
+  }
+  .lab-toolstrip {
+    justify-content: flex-start;
+  }
+  .lab-mobile-sections {
+    display: grid;
+    gap: 10px;
+  }
+  .lab-desktop-layout {
+    display: none !important;
+  }
+  .lab-mobile-sections .lab-panel {
+    max-height: none;
+  }
+  .lab-mobile-sections .lab-panel-content {
+    padding: 12px;
+  }
+  .lab-mobile-sections .lab-panel-heading {
+    background: var(--lab-surface);
+  }
+  .lab-document-reading,
+  .lab-focus-work,
+  .lab-reader-pane {
+    min-height: 0;
+    padding: 16px;
+  }
+  .lab-panel.is-collapsed .lab-panel-heading {
+    writing-mode: horizontal-tb;
+  }
+  .lab-panel.is-collapsed .lab-kicker {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ux-lab *,
+  .ux-lab *::before,
+  .ux-lab *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+@media (forced-colors: active) {
+  .ux-lab {
+    --lab-line: CanvasText;
+    --lab-surface: Canvas;
+    --lab-paper: Canvas;
+    --lab-tint: Canvas;
+    --lab-ink: CanvasText;
+  }
+  .lab-panel,
+  .lab-document-reading,
+  .lab-focus-work {
+    border: 1px solid CanvasText;
+  }
+}

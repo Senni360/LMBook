@@ -5,6 +5,7 @@ directories:
   output: release
 files:
   - electron/**/*
+  - '!electron/preview.cjs'
   - server-dist/**/*
   - dist/**/*
   - package.json

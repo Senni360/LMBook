@@ -139,6 +139,9 @@ const NotebookWorkspace = React.lazy(() =>
     default: module.NotebookWorkspace,
   })),
 );
+const UxLab = React.lazy(() =>
+  import("./ux-lab/UxLab").then((module) => ({ default: module.UxLab })),
+);
 const VaultSourceReview = React.lazy(() =>
   import("./components/vault/VaultSourceReview").then((module) => ({
     default: module.VaultSourceReview,
@@ -649,6 +652,7 @@ function App() {
         />
         <FirstRunSetup
           initial={onboarding.connection}
+          onExplore={() => window.dispatchEvent(new Event("lmbook-open-ux-lab"))}
           onComplete={() => setOnboarding({ ...onboarding, required: false })}
         />
       </div>
@@ -774,6 +778,14 @@ function App() {
             )}
           </InkButton>
           <div className="rail-foot">
+            <InkButton
+              className="rail-settings"
+              onClick={() =>
+                window.dispatchEvent(new Event("lmbook-open-ux-lab"))
+              }
+            >
+              Explore workspace designs
+            </InkButton>
             LMBook{" "}
             <span>
               {window.sennibookDesktop ? "Desktop" : "Web preview"} ·{" "}
@@ -3210,6 +3222,13 @@ function Connections({
         </div>
         <div className="settings-body">
           <AppearanceSetup />
+          <InkButton
+            onClick={() =>
+              window.dispatchEvent(new Event("lmbook-open-ux-lab"))
+            }
+          >
+            Open the UX comparison lab
+          </InkButton>
         </div>
       </section>
       <section className="settings-section">
@@ -3644,10 +3663,49 @@ function DesktopDetails() {
   );
 }
 
+function RootExperience() {
+  const [lab, setLab] = useState(() =>
+    new URLSearchParams(location.search).has("ux-lab"),
+  );
+  const [mainVisited, setMainVisited] = useState(!lab);
+  useEffect(() => {
+    const open = () => setLab(true);
+    window.addEventListener("lmbook-open-ux-lab", open);
+    return () => window.removeEventListener("lmbook-open-ux-lab", open);
+  }, []);
+  const exit = () => {
+    const url = new URL(location.href);
+    url.searchParams.delete("ux-lab");
+    history.replaceState(null, "", url);
+    setMainVisited(true);
+    setLab(false);
+  };
+  return (
+    <>
+      {mainVisited && (
+        <div hidden={lab}>
+          <App />
+        </div>
+      )}
+      {lab && (
+        <React.Suspense
+          fallback={
+            <p role="status" style={{ padding: 32 }}>
+              Opening the UX comparison lab…
+            </p>
+          }
+        >
+          <UxLab onExit={exit} />
+        </React.Suspense>
+      )}
+    </>
+  );
+}
+
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <DownloadProvider>
-      <App />
+      <RootExperience />
       <InkDialogHost />
       <InkTooltip />
     </DownloadProvider>
@@ -3655,6 +3713,7 @@ createRoot(document.getElementById("root")!).render(
 );
 if (
   import.meta.env.DEV &&
+  !new URLSearchParams(location.search).has("ux-lab") &&
   new URLSearchParams(location.search).has("theme-lab")
 )
   void import("./theme-lab/ThemeLab");

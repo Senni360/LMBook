@@ -1,5 +1,11 @@
 # LMBook roadmap
 
+- **0.4.0-preview.1 PR candidate:** all eleven layouts are accessible before account setup. Electron chrome reserves its own row and follows the gallery theme; the sketch has a visible layout selector. Prerelease packaging keeps stable Latest unchanged. [Readiness and remaining boundaries](docs/audits/0.4.0-preview.1-readiness.md). Publication and final 0.4 remain separate.
+
+- **Owner-drawn flexible workspace:** [direction 11](docs/ui/sketch-workspace.md) extends the comparison lab with freely moved tabs, nested horizontal/vertical splits, saved proportions, undo and pane focus. It now also runs as a live Electron preview with a single compact title row and edge-to-edge draggable panes. It remains a fictional-data prototype pending owner iteration and production integration.
+
+- **Ten UX alternatives prepared for critique:** standalone detailed prompts preserve Ink while exploring different navigation, tabs, AI suggestions and working context. Each protects one unconventional mechanism. [Prompts and comparison procedure](docs/ui/ux-directions/README.md). All ten now have a switchable [interactive UX lab](docs/ui/ux-lab.md) using isolated fictional material. Owner evaluation, selection and real-data integration remain separate.
+
 - Published Windows 0.3.16 verifies Jev with the owner-provided key and separates flashcard evidence from recall quality. Low-confidence or inconsistent decisions need review; source verification is unchanged. [Live findings and remaining limits](docs/research/jev-live-evaluation.md). No 0.4 approval. Versions 0.3.9–0.3.16 are published with Windows installer/portable downloads; Mac downloads are not part of this batch.
 
 - **Local Windows 0.3.15:** opt-in Luna note connections with three control modes, notifications and undo; TypeSafe Jev settings, selected notebook checks and optional search ranking; persisted vertical card resizing. [Behavior and evidence](docs/ui/background-assistant.md). Actual Jev quality requires the owner's key and evaluation; all ten broader workflows are not complete. This is not 0.4 approval.

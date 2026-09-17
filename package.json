@@ -1,6 +1,6 @@
 {
   "name": "lmbook",
-  "version": "0.3.16",
+  "version": "0.4.0-preview.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "format": "prettier --write src server shared tests scripts electron/*.cjs *.json *.ts index.html",
     "build:desktop": "npm run build && node scripts/build-desktop.mjs",
     "desktop": "npm run build:desktop && electron .",
+    "desktop:preview": "node scripts/dev-preview.mjs",
     "desktop:pack": "npm run build:desktop && node scripts/package-desktop.mjs --dir",
     "desktop:dist": "npm run build:desktop && node scripts/package-desktop.mjs --win",
     "test:desktop": "npm run build:desktop && tsx --test tests/desktop.smoke.ts",
