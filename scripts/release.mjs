@@ -10,6 +10,7 @@ import {
 } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { releaseVersion, isPrerelease } from "./release-version.mjs";
 
 const command = process.argv[2];
 const pkg = JSON.parse(await readFile("package.json", "utf8"));
@@ -26,7 +27,7 @@ const policy = JSON.parse(
     "utf8",
   ),
 );
-const stableVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const stableVersion = releaseVersion;
 if (
   !stableVersion.test(policy.targetVersion) ||
   (policy.approvedVersion !== null &&
@@ -60,8 +61,11 @@ if (command === "publish" && !approved)
   throw new Error(
     `Publication of v${version} is not approved. Iteration builds remain unpublished until the owner approves the target release.`,
   );
-if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version))
-  throw new Error("Release versions must be stable MAJOR.MINOR.PATCH numbers.");
+if (!releaseVersion.test(version))
+  throw new Error(
+    "Use MAJOR.MINOR.PATCH or a numbered alpha, beta, rc or preview version.",
+  );
+const prerelease = isPrerelease(version);
 if (lock.version !== version || lock.packages[""].version !== version)
   throw new Error(
     "package.json and package-lock.json must have the same version.",
@@ -297,7 +301,7 @@ if (command === "plan") {
         name: `LMBook ${version}`,
         body,
         draft: true,
-        prerelease: false,
+        prerelease,
       },
     });
     if (release.assets.some((asset) => !names.includes(asset.name)))
@@ -368,11 +372,14 @@ if (command === "plan") {
       body: {
         draft: false,
         body,
-        make_latest: batchVersion
-          ? version === "0.3.16"
-            ? "true"
-            : "false"
-          : "legacy",
+        prerelease,
+        make_latest: prerelease
+          ? "false"
+          : batchVersion
+            ? version === "0.3.16"
+              ? "true"
+              : "false"
+            : "legacy",
       },
     });
     await summary(

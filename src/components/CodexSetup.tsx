@@ -248,9 +248,11 @@ export function CodexSetup({
 export function FirstRunSetup({
   initial,
   onComplete,
+  onExplore,
 }: {
   initial: CodexOnboardingStatus;
   onComplete: () => void;
+  onExplore: () => void;
 }) {
   const [connection, setConnection] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -268,6 +270,13 @@ export function FirstRunSetup({
           LMBook can help with the thinking.
         </p>
         <section className="ai-setup-step" aria-labelledby="codex-first-title">
+          <InkButton className="button" onClick={onExplore}>
+            Explore 11 workspace layouts
+          </InkButton>
+          <p className="fine-print">
+            Try the interactive sample notebook before connecting an account.
+            Your library stays separate.
+          </p>
           <h2 id="codex-first-title">Connect Codex</h2>
           <CodexSetup initial={initial} onVerified={setConnection} />
         </section>

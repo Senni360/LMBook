@@ -1,5 +1,8 @@
 # LMBook
 
+> **0.4.0-preview.1 — layout gallery:** compare eleven interactive workspace designs using a shared sample notebook. On first launch choose **Explore 11 workspace layouts** without connecting an account, or use **Explore workspace designs** from the existing library. The gallery's AI/audio are simulated; real notebooks remain separate. [Preview notes](docs/releases/0.4.0-preview.1.md).
+
+
 A local, open-source learning notebook for detailed two-person audio and source-based flashcards. Bring your sources, begrippen and leerdoelen; inspect the evidence; shape your practice.
 
 ## Windows and macOS desktop editions

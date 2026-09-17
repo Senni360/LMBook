@@ -1,0 +1,1015 @@
+/* Owner's sketch: one continuous working surface with three independent tabs. */
+.is-sketch-direction .lab-notebook-bar {
+  padding: 14px 22px;
+  min-height: 74px;
+}
+:root[data-theme="ink"] .is-sketch-direction .lab-notebook-bar h1 {
+  font-size: 21px;
+  margin: 2px 0;
+}
+.is-sketch-direction .lab-comparison-bar {
+  min-height: 55px;
+  padding: 9px 22px;
+}
+.is-sketch-direction .lab-bottom-bar {
+  padding: 8px 22px;
+  min-height: 42px;
+}
+.sketch-workspace {
+  margin: 0 18px;
+}
+
+.sketch-columns {
+  display: grid;
+  height: calc(100dvh - 185px);
+  min-height: 450px;
+  border: 1px solid var(--lab-line);
+  background: var(--lab-surface);
+}
+.sketch-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.sketch-pane-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.sketch-material {
+  background: var(--lab-paper);
+}
+.sketch-tabstrip {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--lab-line);
+  padding: 0 8px;
+}
+:root[data-theme="ink"] .ux-lab .sketch-tabstrip > .ink-control,
+:root[data-theme="ink"] .ux-lab .sketch-document-tab > .ink-control {
+  --ink-fill: transparent;
+  background: transparent;
+  border-radius: 0;
+  padding: 0 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--lab-muted);
+  flex-shrink: 0;
+}
+.sketch-tabstrip .ink-control > .ink-contour {
+  display: none;
+}
+:root[data-theme="ink"]
+  .ux-lab
+  .sketch-tabstrip
+  .ink-control[aria-selected="true"] {
+  --ink-fill: transparent;
+  color: var(--lab-accent);
+  border-bottom: 2px solid var(--lab-accent);
+}
+:root[data-theme="ink"] .ux-lab .sketch-tabstrip .ink-control:hover {
+  color: var(--lab-ink);
+  background: var(--lab-tint);
+}
+.sketch-tabstrip [role="tab"]:focus-visible {
+  outline: 2px solid var(--lab-accent);
+  outline-offset: -4px;
+}
+.sketch-work-tabs {
+  display: flex;
+  position: relative;
+  flex-shrink: 0;
+}
+.sketch-document-strip {
+  flex: 1;
+  min-width: 0;
+  overflow: auto hidden;
+  scrollbar-width: thin;
+  padding-right: 0;
+}
+.sketch-document-tab {
+  display: flex;
+  min-width: 0;
+  flex-shrink: 0;
+  position: relative;
+}
+.sketch-document-tab [role="tab"] > span {
+  max-width: 145px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:root[data-theme="ink"] .ux-lab .sketch-document-tab .sketch-close-tab {
+  padding: 0 5px;
+  min-width: 26px;
+}
+.sketch-add-menu {
+  border-bottom: 1px solid var(--lab-line);
+}
+.sketch-add-menu > summary {
+  list-style: none;
+  height: 45px;
+  width: 34px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.sketch-add-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.sketch-add-menu > summary:hover {
+  background: var(--lab-tint);
+}
+.sketch-tab-options {
+  position: absolute;
+  top: 43px;
+  right: 2px;
+  z-index: 5;
+  width: 230px;
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-line);
+  border-radius: 6px;
+  padding: 8px;
+}
+.sketch-tab-options .ink-control {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  margin: 3px 0;
+}
+.sketch-count {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--lab-tint);
+  color: var(--lab-accent);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.sketch-divider {
+  cursor: col-resize;
+  touch-action: none;
+  position: relative;
+  background: var(--lab-surface);
+  outline-offset: -2px;
+}
+.sketch-divider::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 3px;
+  width: 1px;
+  background: var(--lab-line);
+  transition: background 120ms;
+}
+.sketch-divider:hover::after,
+.sketch-divider:focus-visible::after {
+  width: 2px;
+  background: var(--lab-accent);
+}
+.sketch-divider span {
+  position: absolute;
+  left: 2px;
+  top: 45%;
+  height: 32px;
+  width: 3px;
+  background: var(--lab-line);
+  border-radius: 2px;
+}
+.sketch-pane-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  gap: 5px;
+  padding: 9px 14px;
+  font-size: 11px;
+  color: var(--lab-muted);
+  border-top: 1px solid var(--lab-line);
+  flex-shrink: 0;
+}
+.sketch-pane-foot .ink-control {
+  font-size: 11px;
+  min-height: 26px;
+  padding: 3px 5px;
+}
+.sketch-material .ux-material {
+  padding: 16px 12px 4px;
+  border: 0;
+  background: transparent;
+}
+.sketch-material .ux-material-top {
+  padding: 0 1px;
+}
+.sketch-material .ux-material-actions {
+  margin: 12px 0;
+}
+.sketch-material .ux-material-count {
+  font-size: 11px;
+  margin: 8px 2px 12px;
+}
+.sketch-material .ux-material-row {
+  border-radius: 3px;
+  padding: 9px 4px;
+}
+.sketch-material .ux-material-open {
+  font-size: 13px;
+  text-align: left;
+}
+.sketch-material .ux-material-open strong {
+  font-weight: 550;
+}
+.sketch-material .ux-material-open small {
+  font-size: 10px;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+.sketch-material .ux-label {
+  font-size: 12px;
+}
+.sketch-material-hint {
+  font-size: 11px;
+  color: var(--lab-muted);
+  padding: 8px 15px;
+}
+.sketch-review .ux-review-panel,
+.sketch-review .ux-activity-panel {
+  border: 0;
+  background: transparent;
+  padding: 18px 15px;
+}
+.sketch-review .ux-eyebrow {
+  display: none;
+}
+.sketch-review .ux-panel-heading {
+  align-items: center;
+  margin-bottom: 12px;
+}
+.sketch-review .ux-panel-heading h2 {
+  font-size: 14px;
+  margin: 0;
+  font-weight: 600;
+}
+.sketch-review .ux-panel-heading select {
+  font-size: 12px;
+}
+.sketch-review .ux-suggestion {
+  padding: 15px 0;
+  margin: 0;
+  border-bottom: 1px solid var(--lab-line);
+}
+.sketch-review .ux-suggestion-title {
+  display: block;
+}
+:root[data-theme="ink"] .ux-lab .sketch-review-disclosure {
+  --ink-fill: transparent;
+  background: transparent;
+  border: 0;
+  font-size: 13px;
+  text-align: left;
+  padding: 0;
+  min-height: 32px;
+  justify-content: space-between;
+  width: 100%;
+  line-height: 1.45;
+  color: var(--lab-ink);
+}
+.sketch-review-disclosure .ink-contour {
+  display: none;
+}
+:root[data-theme="ink"] .sketch-add-menu > summary::before {
+  display: none;
+}
+.ux-lab .sketch-review .ux-panel-heading {
+  flex-direction: row;
+  align-items: center;
+}
+.ux-lab .sketch-material .ux-material-list {
+  max-height: none;
+  overflow: visible;
+}
+.ux-lab .sketch-material .ux-material {
+  max-height: none;
+  overflow: visible;
+}
+.sketch-review .ux-suggestion-title > span {
+  display: block;
+  font-size: 11px;
+  color: var(--lab-muted);
+  margin-top: 2px;
+}
+.sketch-review .ux-suggestion p {
+  font-size: 12px;
+  line-height: 1.65;
+}
+.sketch-review .ux-suggestion blockquote {
+  margin: 12px 0;
+  font-size: 12px;
+  padding: 9px 10px;
+}
+.sketch-review .ux-suggestion .ux-uncertainty {
+  font-size: 11px;
+}
+.sketch-review .ux-suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sketch-review .lab-evidence {
+  padding: 20px 16px;
+}
+.sketch-review .lab-evidence h2 {
+  font-size: 18px;
+}
+.sketch-work .ux-screen {
+  padding: 24px;
+  min-height: 100%;
+}
+.sketch-work .ux-screen-heading {
+  margin-bottom: 20px;
+}
+.sketch-work.is-chat .sketch-pane-body {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+.sketch-work.is-chat .ux-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+.sketch-work.is-chat .ux-screen-heading {
+  order: 0;
+  padding: 20px 26px 0;
+  margin: 0;
+  border: 0;
+  flex-shrink: 0;
+}
+.sketch-work.is-chat .ux-screen-heading .ux-eyebrow {
+  display: none;
+}
+:root[data-theme="ink"] .ux-lab .sketch-work.is-chat .ux-screen-heading h1 {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 600;
+}
+.sketch-work.is-chat .ux-message-list {
+  order: 1;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 6px 26px 20px;
+}
+.sketch-work.is-chat .ux-message {
+  padding: 16px 0;
+  border-top: 0;
+  border-bottom: 1px solid var(--lab-line);
+}
+.sketch-work.is-chat .ux-message > p {
+  font-size: 15px;
+  line-height: 1.8;
+}
+.sketch-work.is-chat .ux-message .ux-question {
+  background: var(--lab-paper);
+  padding: 12px 15px;
+  border-radius: 5px 7px 5px 4px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 550;
+}
+.sketch-work.is-chat .ux-message .ux-qualification {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--lab-muted);
+}
+.sketch-work.is-chat .ux-citation-row {
+  gap: 7px;
+}
+.sketch-work.is-chat .ux-citation-row button {
+  font-size: 11px;
+}
+.sketch-work.is-chat .ux-source-picker {
+  order: 2;
+  margin: 0 22px 8px;
+  flex-shrink: 0;
+  max-height: 32%;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+.sketch-work.is-chat .ux-source-picker-head {
+  min-height: 32px;
+  margin: 0;
+  padding: 4px 0;
+  border: 0;
+  font-size: 11px;
+}
+.sketch-work.is-chat .ux-ask-composer {
+  order: 4;
+  margin: 0;
+  padding: 0 22px 18px;
+  flex-shrink: 0;
+}
+.sketch-work.is-chat .ux-ask-composer > .ux-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+.sketch-work.is-chat .ux-ask-composer textarea {
+  min-height: 88px;
+  height: 88px;
+  max-height: 160px;
+  padding: 14px;
+  font-size: 14px;
+  resize: vertical;
+}
+.sketch-work.is-chat .ux-composer-actions {
+  margin-top: 9px;
+  justify-content: space-between;
+}
+.sketch-work.is-chat .ux-composer-actions > span {
+  font-size: 10px;
+  color: var(--lab-muted);
+}
+.sketch-work.is-chat .ux-warning {
+  order: 3;
+  margin: 0 22px 8px;
+  font-size: 12px;
+}
+.sketch-mobile-switch {
+  display: flex;
+  gap: 6px;
+  padding: 0 0 10px;
+}
+@media (max-width: 1000px) {
+  .sketch-workspace {
+    margin: 0 12px;
+  }
+  .sketch-columns {
+    display: flex;
+    height: calc(100dvh - 252px);
+    min-height: 470px;
+  }
+  .sketch-pane {
+    width: 100%;
+  }
+  .sketch-material .ux-material {
+    padding: 16px;
+  }
+}
+@media (max-width: 600px) {
+  .is-sketch-direction .lab-comparison-bar {
+    padding: 10px 12px;
+  }
+  .is-sketch-direction .lab-notebook-bar {
+    padding: 12px;
+    gap: 6px;
+  }
+  .is-sketch-direction .lab-notebook-bar .lab-small-label {
+    font-size: 10px;
+  }
+  .is-sketch-direction .lab-bottom-bar {
+    padding: 8px 12px;
+  }
+  .sketch-columns {
+    height: calc(100dvh - 308px);
+    min-height: 430px;
+  }
+  .sketch-work.is-chat .ux-screen-heading {
+    padding: 18px 16px 0;
+  }
+  .sketch-work.is-chat .ux-message-list {
+    padding: 4px 16px 16px;
+  }
+  .sketch-work.is-chat .ux-ask-composer {
+    padding: 0 14px 14px;
+  }
+  .sketch-work.is-chat .ux-ask-composer textarea {
+    font-size: 16px;
+    min-height: 76px;
+    height: 76px;
+  }
+  .sketch-work.is-chat .ux-source-picker {
+    margin: 0 14px 6px;
+  }
+  .sketch-work.is-chat .ux-message > p {
+    font-size: 14px;
+  }
+  .sketch-mobile-switch .ink-control {
+    flex: 1;
+    padding: 7px 4px;
+    font-size: 12px;
+  }
+}
+
+/* Recursive docking: any pane can contain any view, split or resize independently. */
+.dock-workspace {
+  min-width: 0;
+}
+.dock-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 0 8px;
+}
+.dock-toolbar p {
+  font-size: 11px;
+  color: var(--lab-muted);
+  margin: 0;
+}
+.dock-toolbar p span {
+  margin-left: 8px;
+}
+.dock-toolbar > div {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.dock-toolbar .ink-control {
+  font-size: 11px;
+  min-height: 30px;
+  padding: 4px 7px;
+}
+.dock-toolbar label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  min-width: 0;
+}
+.dock-toolbar select {
+  min-width: 0;
+  max-width: 190px;
+  border: 1px solid var(--lab-line);
+  border-radius: 5px;
+  padding: 6px;
+}
+.dock-canvas {
+  height: calc(100dvh - 223px);
+  min-height: 430px;
+  overflow: auto;
+  border: 1px solid var(--lab-line);
+  background: var(--lab-surface);
+}
+.dock-root {
+  height: 100%;
+  width: 100%;
+}
+.dock-root > .dock-pane {
+  height: 100%;
+}
+.dock-split {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.dock-pane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: var(--lab-surface);
+}
+.dock-pane > .sketch-work-tabs {
+  border-top: 2px solid transparent;
+  min-height: 42px;
+}
+.dock-pane.is-focused > .sketch-work-tabs {
+  border-top-color: var(--lab-accent);
+}
+.dock-pane .sketch-pane-body {
+  container-type: size;
+}
+.dock-divider {
+  position: relative;
+  background: var(--lab-paper);
+  touch-action: none;
+  z-index: 1;
+}
+.dock-divider-x {
+  cursor: col-resize;
+}
+.dock-divider-y {
+  cursor: row-resize;
+}
+.dock-divider::after {
+  content: "";
+  position: absolute;
+  background: var(--lab-line);
+  transition: background 100ms;
+}
+.dock-divider-x::after {
+  inset: 0 auto 0 3px;
+  width: 1px;
+}
+.dock-divider-y::after {
+  inset: 3px 0 auto;
+  height: 1px;
+}
+.dock-divider:hover::after,
+.dock-divider:focus-visible::after {
+  background: var(--lab-accent);
+}
+.dock-divider span {
+  position: absolute;
+  border-radius: 2px;
+  background: var(--lab-line);
+}
+.dock-divider-x span {
+  width: 3px;
+  height: 30px;
+  top: calc(50% - 15px);
+  left: 2px;
+}
+.dock-divider-y span {
+  height: 3px;
+  width: 30px;
+  left: calc(50% - 15px);
+  top: 2px;
+}
+.dock-empty {
+  padding: 24px;
+  color: var(--lab-muted);
+  font-size: 13px;
+}
+.dock-empty h2 {
+  font-size: 18px;
+  margin: 12px 0;
+}
+.dock-empty > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dock-empty-tab {
+  padding: 10px;
+  font-size: 12px;
+  color: var(--lab-muted);
+}
+:root[data-theme="ink"] .ux-lab .dock-pane-options {
+  --ink-fill: transparent;
+  border-bottom: 1px solid var(--lab-line);
+  padding: 0 7px;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+:root[data-theme="ink"] .ux-lab .sketch-tabstrip .ink-contour,
+:root[data-theme="ink"] .ux-lab .sketch-review-disclosure .ink-contour,
+:root[data-theme="ink"] .ux-lab .dock-pane-options .ink-contour {
+  display: none;
+}
+.dock-menu {
+  inset: auto;
+  margin: 0;
+  width: 260px;
+  max-width: calc(100vw - 20px);
+  max-height: calc(100dvh - 30px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--lab-line);
+  border-radius: 7px;
+  background: var(--lab-surface);
+  color: var(--lab-ink);
+  font-size: 12px;
+}
+.dock-menu > strong {
+  display: block;
+  font-size: 11px;
+  margin: 3px 0 7px;
+  color: var(--lab-muted);
+  font-weight: 550;
+}
+.dock-menu .ink-control {
+  font-size: 12px;
+  min-height: 33px;
+}
+.dock-menu > .ink-control,
+.dock-menu details .ink-control {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+.dock-menu-views,
+.dock-menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 15px;
+}
+.dock-menu summary {
+  margin: 9px 0;
+  cursor: pointer;
+}
+.dock-menu hr {
+  border: 0;
+  border-top: 1px solid var(--lab-line);
+  margin: 12px 0;
+}
+.dock-drop-preview {
+  position: absolute;
+  inset: 4px;
+  background: color-mix(in srgb, var(--lab-accent) 13%, transparent);
+  border: 2px solid var(--lab-accent);
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  z-index: 4;
+}
+.dock-drop-preview span {
+  background: var(--lab-surface);
+  color: var(--lab-accent);
+  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 4px;
+}
+.dock-drop-left {
+  right: 50%;
+}
+.dock-drop-right {
+  left: 50%;
+}
+.dock-drop-top {
+  bottom: 50%;
+}
+.dock-drop-bottom {
+  top: 50%;
+}
+.dock-pane .ux-screen {
+  min-width: 0;
+}
+.dock-pane .ux-note-footer {
+  flex-wrap: wrap;
+}
+@container (max-height:350px) {
+  .sketch-work.is-chat .ux-screen-heading {
+    display: none;
+  }
+  .sketch-work.is-chat .ux-ask-composer {
+    padding: 0 12px 8px;
+  }
+  .sketch-work.is-chat .ux-ask-composer textarea {
+    height: 50px;
+    min-height: 50px;
+    max-height: 65px;
+  }
+  .sketch-work.is-chat .ux-composer-actions {
+    margin-top: 4px;
+  }
+  .sketch-work.is-chat .ux-composer-actions > span {
+    display: none;
+  }
+  .sketch-work.is-chat .ux-source-picker {
+    margin: 0 12px 3px;
+    max-height: 60px;
+  }
+  .sketch-work.is-chat .ux-message-list {
+    padding: 0 14px 8px;
+  }
+}
+@media (max-width: 1100px) {
+  .dock-toolbar p span {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .dock-canvas {
+    height: calc(100dvh - 240px);
+    min-height: 430px;
+  }
+  .dock-toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .dock-toolbar > div {
+    margin-left: auto;
+  }
+  .dock-toolbar > div .ink-control span {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .dock-canvas {
+    height: calc(100dvh - 300px);
+  }
+  .dock-toolbar select {
+    max-width: 130px;
+  }
+}
+/* Border-to-border workspace: one compact chrome row, no permanent layout toolbar. */
+.ux-lab.is-sketch-direction {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.is-sketch-direction .desktop-bar {
+  position: relative;
+  flex: 0 0 40px;
+  width: 100%;
+  background: var(--lab-paper);
+  color: var(--lab-ink);
+  border-color: var(--lab-line);
+}
+.dock-topbar {
+  display: flex;
+  flex: 0 0 40px;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--lab-line);
+  background: var(--lab-paper);
+}
+.desktop-bar .dock-topbar {
+  flex: 1;
+  height: 40px;
+  border: 0;
+}
+.dock-topbar button,
+.dock-topbar select,
+.dock-topbar .ink-control {
+  -webkit-app-region: no-drag;
+}
+.dock-topbar > .ink-control {
+  min-height: 28px;
+  font-size: 12px;
+}
+.dock-topbar > .ink-field {
+  max-width: 260px;
+}
+.dock-topbar-spacer {
+  flex: 1;
+  align-self: stretch;
+  -webkit-app-region: drag;
+}
+.dock-preview-badge {
+  font-size: 10px;
+  color: var(--lab-muted);
+  white-space: nowrap;
+}
+.dock-layout-tools {
+  flex: none;
+}
+.dock-topbar .dock-toolbar {
+  padding: 0;
+  min-height: 0;
+  gap: 6px;
+}
+.dock-topbar .dock-toolbar > div {
+  margin: 0;
+}
+.is-sketch-direction .dock-workspace {
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.is-sketch-direction .dock-canvas {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+}
+.dock-workspace-menu {
+  width: 300px;
+}
+.dock-workspace-menu > strong {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.dock-workspace-menu p {
+  font-size: 11px;
+  color: var(--lab-muted);
+  padding: 6px 8px;
+  margin: 0;
+}
+.dock-workspace-menu .ink-control:has(select) {
+  width: 100%;
+}
+.dock-tab-grip {
+  opacity: 0.35;
+  flex-shrink: 0;
+}
+.sketch-document-tab:hover .dock-tab-grip {
+  opacity: 0.85;
+}
+.sketch-document-tab [draggable] {
+  cursor: grab;
+  gap: 4px;
+}
+.sketch-document-tab [draggable]:active {
+  cursor: grabbing;
+}
+.dock-divider:hover span,
+.dock-divider:active span {
+  background: var(--lab-accent);
+}
+.dock-drop-preview {
+  backdrop-filter: blur(1px);
+}
+@media (max-width: 900px) {
+  .dock-preview-badge {
+    display: none;
+  }
+  .dock-topbar {
+    gap: 3px;
+    padding: 0 4px;
+  }
+  .dock-topbar > .ink-field {
+    max-width: 170px;
+  }
+  .dock-topbar .dock-toolbar select {
+    max-width: 110px;
+  }
+  .dock-topbar .dock-toolbar label {
+    font-size: 0;
+    gap: 0;
+  }
+  .dock-topbar .dock-toolbar select {
+    font-size: 11px;
+  }
+}
+@media (max-width: 560px) {
+  .dock-topbar > .ink-field {
+    max-width: 140px;
+  }
+  .dock-topbar .dock-toolbar select {
+    max-width: 90px;
+  }
+  .dock-topbar .dock-toolbar button[aria-label="Reset layout"] {
+    display: none;
+  }
+  .is-sketch-direction .desktop-menu-trigger span,
+  .is-sketch-direction .desktop-menu-trigger > svg:last-of-type {
+    display: none;
+  }
+}
+
+/* Keep tab rows compact; overflow remains scrollable and keyboard reachable. */
+.is-sketch-direction .sketch-document-strip {
+  scrollbar-width: none;
+}
+.is-sketch-direction .sketch-document-strip::-webkit-scrollbar {
+  display: none;
+}
+:root .ux-lab.is-sketch-direction :is(input, textarea)::placeholder {
+  color: var(--lab-muted);
+}
+
+/* A visible picker makes all eleven candidates reachable from the sketch too. */
+.dock-topbar > .ink-field:nth-child(2) {
+  flex: 0 1 255px;
+  min-width: 90px;
+}
+.dock-topbar > .ink-field:nth-child(2) select {
+  text-overflow: ellipsis;
+}
+@media (max-width: 900px) {
+  .dock-topbar > .ink-field:first-child {
+    max-width: 135px;
+  }
+  .dock-topbar > .ink-field:nth-child(2) {
+    max-width: 150px;
+  }
+  .dock-topbar .dock-toolbar button[aria-label="Reset layout"] {
+    display: none;
+  }
+  .is-sketch-direction .desktop-menu-trigger span {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .dock-topbar > .ink-field:first-child {
+    max-width: 105px;
+  }
+  .dock-topbar > .ink-field:nth-child(2) {
+    max-width: 95px;
+    min-width: 65px;
+  }
+  .dock-topbar .dock-toolbar select {
+    max-width: 75px;
+  }
+  .dock-topbar .dock-toolbar button[aria-label="Undo layout change"] {
+    display: none;
+  }
+}

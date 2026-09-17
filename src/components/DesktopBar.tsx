@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BookOpen,
   Check,
@@ -15,10 +15,12 @@ export function DesktopBar({
   title,
   onNew,
   onSettings,
+  children,
 }: {
   title: string;
   onNew: () => void;
   onSettings: () => void;
+  children?: ReactNode;
 }) {
   const desktop = window.sennibookDesktop;
   const [state, setState] = useState({
@@ -31,9 +33,11 @@ export function DesktopBar({
   const [error, setError] = useState("");
   const menu = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const bar = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!desktop) return;
     const keyboard = (event: KeyboardEvent) => {
+      if (bar.current?.closest("[hidden]")) return;
       if (
         event.key === "F10" &&
         !event.shiftKey &&
@@ -58,6 +62,7 @@ export function DesktopBar({
       );
     const offState = desktop.onWindowState(setState);
     const offQuit = desktop.onQuitRequest(async (id) => {
+      if (bar.current?.closest("[hidden]")) return;
       const choice = await chooseInk({
         title: "Generation is still running",
         message:
@@ -116,6 +121,7 @@ export function DesktopBar({
   return (
     <header
       className="desktop-bar"
+      ref={bar}
       data-focused={state.focused}
       data-platform={state.platform}
       onDoubleClick={(event) => {
@@ -267,7 +273,7 @@ export function DesktopBar({
           </div>
         )}
       </div>
-      <span className="desktop-bar-caption">{title}</span>
+      {children || <span className="desktop-bar-caption">{title}</span>}
       <div className="desktop-window-actions">
         <InkButton
           className="desktop-window-button"

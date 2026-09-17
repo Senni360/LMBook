@@ -1,5 +1,39 @@
 # Work log
 
+## 2026-09-17 — Layout gallery prerelease preparation
+
+Prepared 0.4.0-preview.1 with all eleven comparison layouts, accessible before Codex account setup. Fixed the fixed-position Electron title bar covering the picker in directions 1–10 and preview/main-theme color leakage behind the logo/window buttons. The sketch now exposes a visible layout selector. Shared Ink variables keep menus and placeholder text consistent with the gallery theme. Added numbered prerelease support to local packaging and the release publisher, with prerelease marking and no stable Latest promotion; approval remains unset. Development-only Electron preview entry is excluded from packaged apps.
+
+Evaluated all eleven layouts in light/dark Electron windows, first-run entry/exit, saved layout selection and narrow windows (50 runtime checks). Existing common journeys and all ten distinct comparison mechanisms passed. TypeScript/Vite/desktop build and 38 existing tests passed. [Readiness evidence and packaged checks](docs/audits/0.4.0-preview.1-readiness.md) record the remaining platform boundaries. No new formal tests or provider runs.
+
+## 2026-09-17 — Live Electron workspace, direct dragging and full window use
+
+Added `npm run desktop:preview`: isolated Electron chrome around the live Vite UX preview, with renderer HMR and preview-process restart on shell edits. Direction 11 now occupies the window border to border below one 40px title row; extra notebook/instruction/footer rows and persistent split buttons were removed. Notebook selection, status and settings moved into the title row/menu. Draggable tabs have grip marks and destination previews; moving the last tab reclaims its old pane, with layout undo.
+
+Actual Electron evaluation verified canvas bounds, edge drops, both pointer-resize axes, persisted arrangements, move/undo space reclamation, maximize/restore and a live code edit. Visual screenshots and 390px browser/narrow Electron checks were performed. No live providers or real vaults were accessed, and no release was created. [Details and limits](docs/ui/sketch-workspace.md).
+
+## 2026-09-17 — Owner-drawn flexible workspace
+
+Added direction 11 from the owner's two Paint drawings, preserving Ink and the other ten candidates. The first drawing defined notes/sources, chat and review with separate tabs. The second explicitly required arbitrary arrangement and multiple visible views, so the implementation now uses a persisted recursive split tree. Tabs drag/reorder/group or split at any edge, with equivalent pane-menu actions. Both divider axes support pointer/keyboard control. Close/reopen, space reclamation, focus/restore, layout undo, reset and a narrow-screen pane chooser are implemented. Shared notebook drafts remain independent of pane placement; pending simulated answers now continue while views move.
+
+Browser evaluation exercised five panes, nested axes, both resizing methods, draft-preserving moves, actual edge drops, menu moves, layout undo/reload and dark/narrow rendering. Build and all 38 existing tests passed; no new formal tests. See [controls, evidence and limits](docs/ui/sketch-workspace.md). This is still the isolated UX lab: no owner-vault access, live generation, new installer, version bump or release publication.
+
+
+## 2026-09-17 — Ten switchable interactive UX directions
+
+Built a lazy-loaded comparison lab with shared fictional material and separately retained navigation/layout state for each direction. Added entry points in the app footer and Appearance settings, deep links, keyboard switching, light/dark/accent controls and all ten protected mechanisms. Shared screens support editing, draft/source conflict recovery, suggestion apply/undo, source snapshots, practice modes, simulated audio, demo imports into new/existing notebooks and simulated model job readiness/cancellation. The lab does not call providers or touch real vaults. Hidden desktop chrome ignores duplicate menu/quit handling.
+
+Visual browser passes covered all ten desktop layouts and narrow widths. Common runtime journeys and all ten distinctive mechanisms were exercised with disposable Playwright diagnostics; independent review identified hidden argument evidence and ambiguous duplicate titles, now fixed. Corrected duplicate timers, mobile positioning, source selection density, stale evidence and draft persistence during integration. Production build and all 38 existing tests passed; no new formal tests. See [behavior, evidence and limits](docs/ui/ux-lab.md). Owner comparison, full production integration, physical controller/native platform checks and release delivery remain separate. No installer, version bump, publication or educational-effectiveness claim.
+
+
+## 2026-09-17 — Ten standalone UX direction prompts
+
+The owner clarified that they wanted alternative whole-app UX directions, then requested detailed separate Markdown prompts with one unconventional idea explicitly protected from removal during critique. Prepared ten self-contained briefs under [docs/ui/ux-directions](docs/ui/ux-directions/README.md), with direction-specific navigation, tabs, AI review, pane behaviour, feature placement, protected interactions, failure cases and demonstrations. Every prompt embeds the same product constraints, fictional fixtures, accessibility requirements and evaluation journeys. Added a comparison index and written counterargument review; updated product/roadmap references. Consulted existing LMBook design/product notes and NN/g/W3C guidance. Documentation only: no application UI changes, live providers, owner-vault access, new automated tests, prototype builds or release changes. Actual usability and educational effectiveness remain untested.
+
+## 2026-09-17 — Owner selects seven additional Jev directions
+
+Recorded the owner's acceptance of ideas 4–10 from the latest brainstorming list in [the decision record](docs/research/jev-next-opportunities.md), including observable outcomes and evaluation boundaries. Ideas 1–3 were not selected in this round; earlier accepted assistant requirements remain intact. Updated product and roadmap references. Documentation only: no application behavior, provider calls, new tests, installer or release changes.
+
 ## 2026-09-17 — Background connections, Jev experiments and local 0.3.15
 
 Owner authorized starting the autonomous assistant and vertical card controls, then superseded the earlier Jev exclusion: API access is now available and broad useful experimentation is wanted, including notebook organization. Official documentation, launch demos and early X/syndicated reports informed bounded decision tasks; vendor and user claims remain distinct from LMBook evidence. Direct TypeSafe is now an explicit provider exception; Luna still uses Codex and no paid Luna fallback was added.

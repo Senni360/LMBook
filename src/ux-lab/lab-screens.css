@@ -1,0 +1,550 @@
+.ux-lab,
+.ux-screen,
+.ux-material,
+.ux-review-panel,
+.ux-activity-panel {
+  color: var(--lab-ink, #272622);
+}
+.ux-screen {
+  background: var(--lab-surface);
+  min-height: 100%;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  overflow: auto;
+}
+.ux-screen-heading,
+.ux-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--lab-line);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+.ux-screen-heading h1,
+.ux-panel-heading h2 {
+  margin: 0.1rem 0 0;
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  letter-spacing: -0.025em;
+  font-weight: 660;
+}
+.ux-panel-heading h2 {
+  font-size: 1.15rem;
+}
+.ux-eyebrow {
+  color: var(--lab-accent);
+  font-size: 0.7rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  margin: 0;
+  font-weight: 750;
+}
+.ux-screen-actions,
+.ux-composer-actions,
+.ux-audio-controls,
+.ux-practice-controls,
+.ux-note-footer,
+.ux-suggestion-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+.ux-label {
+  display: block;
+  color: var(--lab-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+.ux-material {
+  background: color-mix(in srgb, var(--lab-paper) 92%, var(--lab-line));
+  border-right: 1px solid var(--lab-line);
+  padding: 1rem;
+  min-width: 14rem;
+  overflow: auto;
+}
+.ux-material-top {
+  margin-bottom: 0.8rem;
+}
+.ux-material-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.7rem 0 1rem;
+}
+.ux-material-actions .ink-control {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.6rem;
+}
+.ux-material-switch {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--lab-line);
+  margin: 0 -1rem;
+  padding: 0 1rem;
+}
+.ux-material-switch button {
+  background: transparent;
+  border: 0;
+  color: var(--lab-muted);
+  cursor: pointer;
+  padding: 0.55rem 0.4rem;
+  border-bottom: 2px solid transparent;
+}
+.ux-material-switch button.is-active {
+  color: var(--lab-ink);
+  border-color: var(--lab-accent);
+}
+.ux-material-count {
+  color: var(--lab-muted);
+  font-size: 0.75rem;
+}
+.ux-material-list {
+  display: grid;
+  gap: 0.1rem;
+}
+.ux-material-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.4rem 0.2rem;
+  border-radius: 0.35rem;
+}
+.ux-material-row.is-current {
+  background: var(--lab-tint);
+}
+.ux-material-open {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--lab-ink);
+  padding: 0;
+}
+.ux-material-open strong,
+.ux-material-open small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ux-material-open strong {
+  font-size: 0.8rem;
+}
+.ux-material-open small {
+  color: var(--lab-muted);
+  font-size: 0.68rem;
+  margin-top: 0.15rem;
+}
+.ux-check input {
+  position: absolute;
+  opacity: 0;
+}
+.ux-check span {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--lab-line);
+  margin-top: 0.15rem;
+  border-radius: 0.2rem;
+}
+.ux-check input:checked + span {
+  background: var(--lab-accent);
+  box-shadow: inset 0 0 0 3px var(--lab-surface);
+}
+.ux-more {
+  margin-top: 0.7rem;
+  font-size: 0.75rem;
+}
+.ux-subtle-link {
+  display: block;
+  margin-top: 1.5rem;
+  background: none;
+  border: 0;
+  color: var(--lab-muted);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.ux-note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  color: var(--lab-muted);
+  font-size: 0.76rem;
+  margin-bottom: 1.2rem;
+}
+.ux-warning {
+  color: #9b4e32;
+  background: color-mix(in srgb, #d77d54 16%, var(--lab-surface));
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.35rem;
+}
+.ux-note-editor {
+  display: block;
+  width: 100%;
+  min-height: 30rem;
+  resize: vertical;
+  padding: 1rem;
+  background: var(--lab-paper);
+  border: 1px solid var(--lab-line);
+  color: var(--lab-ink);
+  font: inherit;
+  line-height: 1.7;
+}
+.ux-markdown {
+  max-width: 70ch;
+  font-size: 1.02rem;
+  line-height: 1.72;
+}
+.ux-markdown h2 {
+  margin-top: 2rem;
+}
+.ux-markdown blockquote {
+  border-inline-start: 1px solid var(--lab-line);
+  padding-left: 1rem;
+  color: var(--lab-muted);
+}
+.ux-note-footer {
+  margin-top: 2rem;
+  border-top: 1px solid var(--lab-line);
+  padding-top: 1rem;
+}
+.ux-source-picker {
+  border: 1px solid var(--lab-line);
+  background: var(--lab-paper);
+  border-radius: 0.45rem;
+  padding: 0.8rem;
+  margin-bottom: 1.2rem;
+}
+.ux-source-picker-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  border-bottom: 1px solid var(--lab-line);
+  padding-bottom: 0.65rem;
+}
+.ux-source-picker-head span {
+  color: var(--lab-muted);
+  font-size: 0.75rem;
+}
+.ux-source-picker-head div {
+  margin-left: auto;
+  display: flex;
+  gap: 0.35rem;
+}
+.ux-source-picker-head .ink-control {
+  font-size: 0.7rem;
+  padding: 0.3rem 0.5rem;
+}
+.ux-source-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--lab-line) 65%, transparent);
+  cursor: pointer;
+}
+.ux-source-row:last-child {
+  border: 0;
+}
+.ux-source-row small {
+  color: var(--lab-muted);
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 0.1rem;
+}
+.ux-ask-composer textarea {
+  display: block;
+  min-height: 7rem;
+  width: 100%;
+  padding: 0.8rem;
+  background: var(--lab-paper);
+  border: 1px solid var(--lab-line);
+  color: var(--lab-ink);
+  resize: vertical;
+  font: inherit;
+}
+.ux-composer-actions {
+  margin-top: 0.6rem;
+}
+.ux-composer-actions span {
+  color: var(--lab-muted);
+  font-size: 0.72rem;
+}
+.ux-message-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.ux-message {
+  border-top: 2px solid var(--lab-accent);
+  padding-top: 0.8rem;
+  max-width: 70ch;
+  line-height: 1.6;
+}
+.ux-question {
+  font-weight: 700;
+}
+.ux-citation-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.ux-citation-row button,
+.ux-transcript button {
+  border: 0;
+  background: var(--lab-tint);
+  color: var(--lab-accent);
+  border-radius: 1rem;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+}
+.ux-qualification {
+  font-size: 0.78rem;
+  color: var(--lab-muted);
+}
+.ux-incomplete {
+  background: var(--lab-tint);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+}
+.ux-practice-card {
+  background: var(--lab-paper);
+  border: 1px solid var(--lab-line);
+  border-radius: 0.5rem;
+  min-height: 16rem;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+.ux-card-count {
+  color: var(--lab-muted);
+  font-size: 0.75rem;
+}
+.ux-card-prompt {
+  font-size: clamp(1.4rem, 4vw, 2.4rem);
+  margin: 0;
+}
+.ux-card-answer {
+  color: var(--lab-accent);
+  font-size: 1.5rem;
+}
+.ux-correct {
+  color: #36714c;
+  font-weight: 700;
+}
+.ux-feedback {
+  color: #9b4e32;
+}
+.ux-practice-controls {
+  justify-content: center;
+  margin: 1rem 0 2rem;
+}
+.ux-pair-editor {
+  border-top: 1px solid var(--lab-line);
+  padding-top: 1rem;
+}
+.ux-pair-editor h2 {
+  font-size: 1rem;
+}
+.ux-pair-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.35rem 0;
+}
+.ux-pair-row small {
+  color: var(--lab-accent);
+  font-size: 0.68rem;
+}
+.ux-audio-note {
+  background: var(--lab-paper);
+  border: 1px solid var(--lab-line);
+  padding: 1.2rem;
+  border-radius: 0.45rem;
+}
+.ux-audio-time {
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  margin: 1rem 0 0.3rem;
+}
+.ux-audio-time strong {
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+.ux-audio-time span {
+  color: var(--lab-muted);
+}
+.ux-audio-note input[type="range"] {
+  width: 100%;
+}
+.ux-transcript {
+  max-width: 65ch;
+  padding: 1.5rem 0;
+  line-height: 1.65;
+}
+.ux-transcript mark {
+  color: var(--lab-accent);
+  background: transparent;
+  font-weight: 700;
+  margin-right: 0.8rem;
+}
+.ux-listen-help {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--lab-line);
+  padding-top: 1rem;
+  color: var(--lab-muted);
+  font-size: 0.8rem;
+}
+.ux-review-panel,
+.ux-activity-panel {
+  background: var(--lab-surface);
+  padding: 1rem;
+  overflow: auto;
+}
+.ux-suggestion {
+  border-bottom: 1px solid var(--lab-line);
+  padding: 1rem 0 1.2rem;
+}
+.ux-suggestion-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+.ux-suggestion-title span {
+  color: var(--lab-muted);
+  font-size: 0.72rem;
+}
+.ux-suggestion p {
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.ux-suggestion blockquote {
+  margin: 0.7rem 0;
+  padding: 0.6rem 0.8rem;
+  border-left: 2px solid var(--lab-accent);
+  background: var(--lab-paper);
+  font-size: 0.78rem;
+}
+.ux-proposed {
+  color: var(--lab-accent);
+}
+.ux-uncertainty {
+  color: var(--lab-muted);
+  font-size: 0.72rem !important;
+}
+.ux-suggestion-actions .ink-control {
+  font-size: 0.72rem;
+  padding: 0.35rem 0.55rem;
+}
+.ux-suggestion-stale {
+  background: color-mix(in srgb, #d77d54 8%, transparent);
+}
+.ux-empty {
+  color: var(--lab-muted);
+}
+.ux-job {
+  border-bottom: 1px solid var(--lab-line);
+  padding: 0.8rem 0;
+  display: grid;
+  gap: 0.55rem;
+}
+.ux-job > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+.ux-job > div span {
+  color: var(--lab-muted);
+}
+.ux-job progress {
+  width: 100%;
+  accent-color: var(--lab-accent);
+}
+.ux-overview-intro {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  max-width: 65ch;
+  line-height: 1.65;
+}
+.ux-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 3rem;
+}
+.ux-overview-grid section {
+  border-top: 2px solid var(--lab-accent);
+  padding-top: 0.7rem;
+}
+.ux-overview-grid h2 {
+  font-size: 0.9rem;
+}
+.ux-overview-link {
+  display: block;
+  text-align: left;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--lab-ink);
+  border-bottom: 1px solid var(--lab-line);
+  padding: 0.75rem 0;
+  cursor: pointer;
+}
+.ux-overview-link strong,
+.ux-overview-link span {
+  display: block;
+}
+.ux-overview-link span {
+  color: var(--lab-muted);
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+}
+@media (max-width: 760px) {
+  .ux-screen-heading,
+  .ux-overview-intro {
+    flex-direction: column;
+  }
+  .ux-overview-grid {
+    grid-template-columns: 1fr;
+    margin-top: 2rem;
+  }
+  .ux-pair-row {
+    grid-template-columns: 1fr auto 1fr;
+  }
+  .ux-pair-row small {
+    grid-column: 1 / -1;
+  }
+  .ux-material {
+    border-right: 0;
+    border-bottom: 1px solid var(--lab-line);
+    max-height: 40vh;
+  }
+  .ux-screen {
+    padding: 1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ux-lab *,
+  .ux-lab *::before,
+  .ux-lab *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -19,7 +19,7 @@ The workflow installs locked dependencies, builds the app, runs the existing app
 
 No personal token is required. The first Mac builds are ad-hoc signed and not notarized; Developer ID signing would require separate Apple credentials. Build jobs have `contents: read`; only the publishing job has `contents: write` through GitHub's temporary `GITHUB_TOKEN`. Dependencies and packaging run without that write token. The workflow's third-party actions are pinned to commit SHAs.
 
-A merge without a version bump does not produce another release for an already published version. Version numbers are not automatically incremented. Stable `MAJOR.MINOR.PATCH` versions are supported. This publishes downloads on GitHub; it does not install updates into an already running desktop app.
+A merge without a version bump does not produce another release for an already published version. Version numbers are not automatically incremented. Stable `MAJOR.MINOR.PATCH` versions and numbered `-alpha.N`, `-beta.N`, `-rc.N` and `-preview.N` prereleases are supported. Prereleases are explicitly marked on GitHub and never replace the stable Latest release. They still require exact-version approval; `0.4.0-preview.1` is prepared for review, not approved for publication. This publishes downloads on GitHub; it does not install updates into an already running desktop app.
 
 ## Failures and retries
 
